@@ -85,23 +85,46 @@
             min-width: 12rem;
             z-index: 2000;
         }
+        .navbar .navbar-nav .nav-link.nav-link-main {
+            border-radius: 0;
+            background-color: transparent !important;
+            transition: color 0.15s ease;
+        }
+        .navbar .navbar-nav .nav-link.nav-link-main:hover,
+        .navbar .navbar-nav .nav-link.nav-link-main:focus {
+            background-color: transparent !important;
+            color: #0b57d0 !important;
+        }
+        .navbar .navbar-nav .nav-item.active > .nav-link.nav-link-main,
+        .navbar .navbar-nav .nav-item.show > .nav-link.nav-link-main {
+            background-color: transparent !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+            color: #0b57d0 !important;
+            font-weight: 600;
+        }
+        .navbar .navbar-nav .nav-link.nav-link-main.dropdown-toggle::after {
+            margin-left: 0.4rem;
+        }
         [data-compliance-menu] .dropdown-item {
-            border-radius: 8px;
-            margin: 2px 6px;
+            border-radius: 0;
+            margin: 0;
             padding: 0.5rem 0.75rem;
-            transition: background-color 0.15s ease, color 0.15s ease;
+            background-color: transparent !important;
+            transition: color 0.15s ease;
         }
         [data-compliance-menu] .dropdown-item:hover,
         [data-compliance-menu] .dropdown-item:focus {
-            background-color: #e8f1ff;
-            color: #0b57d0;
+            background-color: transparent !important;
+            color: #0b57d0 !important;
         }
         [data-compliance-menu] .dropdown-item.active,
         [data-compliance-menu] .dropdown-item.active:hover,
         [data-compliance-menu] .dropdown-item.active:focus {
-            background-color: #206bc4;
-            color: #ffffff;
+            background-color: transparent !important;
+            color: #0b57d0 !important;
             font-weight: 600;
+            box-shadow: none;
         }
         .select2-container {
             width: 100% !important;
@@ -172,20 +195,20 @@
                 <ul class="navbar-nav">
                     @auth
                         <li class="nav-item {{ request()->routeIs('risks.*') && !request()->routeIs('risks.heatmap') && !request()->routeIs('risks.recap') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('risks.index') }}">Risk Register</a>
+                            <a class="nav-link nav-link-main" href="{{ route('risks.index') }}">Risk Register</a>
                         </li>
                         <li class="nav-item {{ request()->routeIs('risks.heatmap') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('risks.heatmap') }}">Heat Map</a>
+                            <a class="nav-link nav-link-main" href="{{ route('risks.heatmap') }}">Heat Map</a>
                         </li>
                         <li class="nav-item {{ request()->routeIs('risks.recap') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('risks.recap') }}">Recap</a>
+                            <a class="nav-link nav-link-main" href="{{ route('risks.recap') }}">Recap</a>
                         </li>
                         <li class="nav-item {{ request()->routeIs('howto') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('howto') }}">How To</a>
+                            <a class="nav-link nav-link-main" href="{{ route('howto') }}">How To</a>
                         </li>
                         @if(auth()->user()->isComplianceDivision())
                             <li class="nav-item dropdown {{ request()->routeIs('compliance.*') ? 'active' : '' }}" data-compliance-nav>
-                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="false">
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="false">
                                     Compliance
                                 </a>
                                 <div class="dropdown-menu" data-compliance-menu>

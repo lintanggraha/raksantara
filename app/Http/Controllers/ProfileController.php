@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\InputValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +36,9 @@ class ProfileController extends Controller
         $user = \App\User::find(Auth::id());
 
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', 'regex:' . InputValidation::SAFE_TEXT_REGEX],
+        ], [
+            'name.regex' => InputValidation::safeTextMessage(),
         ]);
 
         $user->update([

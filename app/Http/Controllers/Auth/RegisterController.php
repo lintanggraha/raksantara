@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
+use App\Support\InputValidation;
 use App\Support\RiskOwnerAccess;
 use App\User;
 use Illuminate\Foundation\Auth\RegistersUsers;
@@ -52,12 +53,13 @@ class RegisterController extends Controller
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:' . InputValidation::SAFE_TEXT_REGEX],
             'username' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9_.-]+$/', 'unique:users,username'],
             'division' => ['required', 'string', 'max:255', Rule::in(RiskOwnerAccess::options())],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/', 'confirmed'],
         ], [
+            'name.regex' => InputValidation::safeTextMessage(),
             'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, underscore, dan dash.',
             'division.in' => 'Divisi yang dipilih tidak valid.',
             'password.regex' => 'Password harus mengandung kombinasi huruf dan angka.',

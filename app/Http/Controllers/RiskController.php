@@ -16,6 +16,7 @@ use App\RiskScoreMatrix;
 use App\RiskInherentAnalysis;
 use App\RiskResidualAnalysis;
 use App\RadarGroup;
+use App\Support\InputValidation;
 use App\Support\RiskOwnerAccess;
 
 class RiskController extends Controller
@@ -1096,44 +1097,13 @@ class RiskController extends Controller
             'Your account division is not configured. Please contact administrator.'
         );
 
-        $validated = $request->validate([
-            'risk_title' => 'required|string|max:255',
-            'risk_category_id' => 'required|integer|exists:risk_categories,id',
-            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
-            'cause' => 'nullable|string|max:5000',
-            'existing_control' => 'nullable|string|max:5000',
-            'risk_owner' => ['required', 'string', 'max:255', Rule::in($allowedRiskOwners)],
-            'risk_description' => 'nullable|string|max:5000',
-            'inherent_probability_score' => 'nullable|integer|between:1,5|required_with:inherent_impact_scale_id,inherent_impact_score',
-            'inherent_probability_description' => 'nullable|string|max:255',
-            'inherent_impact_scale_id' => 'nullable|integer|exists:impact_scales,id|required_with:inherent_probability_score,inherent_impact_score',
-            'inherent_impact_score' => 'nullable|integer|between:1,5|required_with:inherent_probability_score,inherent_impact_scale_id',
-            'inherent_impact_description' => 'nullable|string|max:255',
-            'inherent_impact_amount' => 'nullable|numeric|min:0',
-            'inherent_probability_percent' => 'nullable|numeric|min:0|max:100',
-            'inherent_potential_loss' => 'nullable|numeric|min:0',
-            'residual_probability_score' => 'nullable|integer|between:1,5|required_with:residual_impact_scale_id,residual_impact_score',
-            'residual_probability_description' => 'nullable|string|max:255',
-            'residual_impact_scale_id' => 'nullable|integer|exists:impact_scales,id|required_with:residual_probability_score,residual_impact_score',
-            'residual_impact_score' => 'nullable|integer|between:1,5|required_with:residual_probability_score,residual_impact_scale_id',
-            'residual_impact_description' => 'nullable|string|max:255',
-            'residual_impact_amount' => 'nullable|numeric|min:0',
-            'residual_probability_percent' => 'nullable|numeric|min:0|max:100',
-            'residual_potential_loss' => 'nullable|numeric|min:0',
-            'radar_group_id' => 'nullable|integer|exists:radar_groups,id',
-            'radar_description' => 'nullable|string|max:255',
-            'radar_code' => 'nullable|string|max:50',
-            'treatment_option' => 'nullable|array|max:20',
-            'treatment_option.*' => 'nullable|string|in:Avoidance,Mitigation,Transfer,Acceptance',
-            'treatment_description' => 'nullable|array|max:20',
-            'treatment_description.*' => 'nullable|string|max:1000',
-            'treatment_pic' => 'nullable|array|max:20',
-            'treatment_pic.*' => 'nullable|string|max:255',
-            'treatment_deadline' => 'nullable|array|max:20',
-            'treatment_deadline.*' => 'nullable|date',
-            'treatment_effectiveness' => 'nullable|array|max:20',
-            'treatment_effectiveness.*' => 'nullable|string|in:Low,Medium,High',
-        ]);
+        $this->normalizeRiskNumericInputs($request);
+
+        $validated = $request->validate(
+            $this->riskValidationRules($allowedRiskOwners),
+            $this->riskValidationMessages(),
+            $this->riskValidationAttributes()
+        );
 
         if (config('app.debug')) {
             Log::debug('RiskController@store payload keys', [
@@ -1375,45 +1345,13 @@ class RiskController extends Controller
         $this->ensureCanManageRisk($risk);
         $allowedRiskOwners = $this->allowedRiskOwners($risk->risk_owner);
 
-        $validated = $request->validate([
-            'risk_title' => 'required|string|max:255',
-            'risk_description' => 'nullable|string|max:5000',
-            'risk_category_id' => 'required|integer|exists:risk_categories,id',
-            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
-            'cause' => 'nullable|string|max:5000',
-            'existing_control' => 'nullable|string|max:5000',
-            'inherent_probability_score' => 'nullable|integer|between:1,5|required_with:inherent_impact_scale_id,inherent_impact_score',
-            'inherent_probability_description' => 'nullable|string|max:255',
-            'inherent_impact_scale_id' => 'nullable|integer|exists:impact_scales,id|required_with:inherent_probability_score,inherent_impact_score',
-            'inherent_impact_score' => 'nullable|integer|between:1,5|required_with:inherent_probability_score,inherent_impact_scale_id',
-            'inherent_impact_description' => 'nullable|string|max:255',
-            'inherent_impact_amount' => 'nullable|numeric|min:0',
-            'inherent_probability_percent' => 'nullable|numeric|min:0|max:100',
-            'inherent_potential_loss' => 'nullable|numeric|min:0',
-            'residual_probability_score' => 'nullable|integer|between:1,5|required_with:residual_impact_scale_id,residual_impact_score',
-            'residual_probability_description' => 'nullable|string|max:255',
-            'residual_impact_scale_id' => 'nullable|integer|exists:impact_scales,id|required_with:residual_probability_score,residual_impact_score',
-            'residual_impact_score' => 'nullable|integer|between:1,5|required_with:residual_probability_score,residual_impact_scale_id',
-            'residual_impact_description' => 'nullable|string|max:255',
-            'residual_impact_amount' => 'nullable|numeric|min:0',
-            'residual_probability_percent' => 'nullable|numeric|min:0|max:100',
-            'residual_potential_loss' => 'nullable|numeric|min:0',
-            'radar_group_id' => 'nullable|integer|exists:radar_groups,id',
-            'radar_description' => 'nullable|string|max:255',
-            'radar_code' => 'nullable|string|max:50',
-            'treatment_option' => 'nullable|array|max:20',
-            'treatment_option.*' => 'nullable|string|in:Avoidance,Mitigation,Transfer,Acceptance',
-            'treatment_description' => 'nullable|array|max:20',
-            'treatment_description.*' => 'nullable|string|max:1000',
-            'treatment_pic' => 'nullable|array|max:20',
-            'treatment_pic.*' => 'nullable|string|max:255',
-            'treatment_deadline' => 'nullable|array|max:20',
-            'treatment_deadline.*' => 'nullable|date',
-            'treatment_effectiveness' => 'nullable|array|max:20',
-            'treatment_effectiveness.*' => 'nullable|string|in:Low,Medium,High',
-            'risk_owner' => ['required', 'string', 'max:255', Rule::in($allowedRiskOwners)],
-            'status' => 'required|string|in:Open,Monitoring,Closed',
-        ]);
+        $this->normalizeRiskNumericInputs($request);
+
+        $validated = $request->validate(
+            $this->riskValidationRules($allowedRiskOwners, true),
+            $this->riskValidationMessages(),
+            $this->riskValidationAttributes()
+        );
 
         try {
             DB::transaction(function () use ($risk, $validated) {
@@ -1625,6 +1563,117 @@ class RiskController extends Controller
         $risk->delete();
 
         return redirect()->route('risks.index')->with('success', 'Risk deleted successfully');
+    }
+
+    private function normalizeRiskNumericInputs(Request $request): void
+    {
+        $request->merge([
+            'inherent_impact_amount' => InputValidation::normalizeGroupedInteger($request->input('inherent_impact_amount')),
+            'inherent_probability_percent' => InputValidation::normalizeLocalizedDecimal($request->input('inherent_probability_percent')),
+            'inherent_potential_loss' => InputValidation::normalizeGroupedInteger($request->input('inherent_potential_loss')),
+            'residual_impact_amount' => InputValidation::normalizeGroupedInteger($request->input('residual_impact_amount')),
+            'residual_probability_percent' => InputValidation::normalizeLocalizedDecimal($request->input('residual_probability_percent')),
+            'residual_potential_loss' => InputValidation::normalizeGroupedInteger($request->input('residual_potential_loss')),
+        ]);
+    }
+
+    private function riskValidationRules(array $allowedRiskOwners, bool $includeStatus = false): array
+    {
+        $textRule255 = 'regex:' . InputValidation::SAFE_TEXT_REGEX;
+        $textRule1000 = 'regex:' . InputValidation::SAFE_TEXT_REGEX;
+        $textRule5000 = 'regex:' . InputValidation::SAFE_TEXT_REGEX;
+        $strictInteger = 'regex:' . InputValidation::STRICT_INTEGER_REGEX;
+        $strictDecimal = 'regex:' . InputValidation::STRICT_DECIMAL_REGEX;
+
+        $rules = [
+            'risk_title' => ['required', 'string', 'max:255', $textRule255],
+            'risk_description' => ['nullable', 'string', 'max:5000', $textRule5000],
+            'risk_category_id' => 'required|integer|exists:risk_categories,id',
+            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
+            'cause' => ['nullable', 'string', 'max:5000', $textRule5000],
+            'existing_control' => ['nullable', 'string', 'max:5000', $textRule5000],
+            'risk_owner' => ['required', 'string', 'max:255', Rule::in($allowedRiskOwners)],
+            'inherent_probability_score' => 'nullable|integer|between:1,5|required_with:inherent_impact_scale_id,inherent_impact_score',
+            'inherent_probability_description' => ['nullable', 'string', 'max:255', $textRule255],
+            'inherent_impact_scale_id' => 'nullable|integer|exists:impact_scales,id|required_with:inherent_probability_score,inherent_impact_score',
+            'inherent_impact_score' => 'nullable|integer|between:1,5|required_with:inherent_probability_score,inherent_impact_scale_id',
+            'inherent_impact_description' => ['nullable', 'string', 'max:255', $textRule255],
+            'inherent_impact_amount' => ['nullable', 'numeric', $strictInteger, 'min:0'],
+            'inherent_probability_percent' => ['nullable', 'numeric', $strictDecimal, 'min:0', 'max:100'],
+            'inherent_potential_loss' => ['nullable', 'numeric', $strictInteger, 'min:0'],
+            'residual_probability_score' => 'nullable|integer|between:1,5|required_with:residual_impact_scale_id,residual_impact_score',
+            'residual_probability_description' => ['nullable', 'string', 'max:255', $textRule255],
+            'residual_impact_scale_id' => 'nullable|integer|exists:impact_scales,id|required_with:residual_probability_score,residual_impact_score',
+            'residual_impact_score' => 'nullable|integer|between:1,5|required_with:residual_probability_score,residual_impact_scale_id',
+            'residual_impact_description' => ['nullable', 'string', 'max:255', $textRule255],
+            'residual_impact_amount' => ['nullable', 'numeric', $strictInteger, 'min:0'],
+            'residual_probability_percent' => ['nullable', 'numeric', $strictDecimal, 'min:0', 'max:100'],
+            'residual_potential_loss' => ['nullable', 'numeric', $strictInteger, 'min:0'],
+            'radar_group_id' => 'nullable|integer|exists:radar_groups,id',
+            'radar_description' => 'nullable|string|max:255',
+            'radar_code' => 'nullable|string|max:50|regex:/^[A-Za-z0-9\\/]+$/',
+            'treatment_option' => 'nullable|array|max:20',
+            'treatment_option.*' => 'nullable|string|in:Avoidance,Mitigation,Transfer,Acceptance',
+            'treatment_description' => 'nullable|array|max:20',
+            'treatment_description.*' => ['nullable', 'string', 'max:1000', $textRule1000],
+            'treatment_pic' => 'nullable|array|max:20',
+            'treatment_pic.*' => ['nullable', 'string', 'max:255', $textRule255],
+            'treatment_deadline' => 'nullable|array|max:20',
+            'treatment_deadline.*' => 'nullable|date',
+            'treatment_effectiveness' => 'nullable|array|max:20',
+            'treatment_effectiveness.*' => 'nullable|string|in:Low,Medium,High',
+        ];
+
+        if ($includeStatus) {
+            $rules['status'] = 'required|string|in:Open,Monitoring,Closed';
+        }
+
+        return $rules;
+    }
+
+    private function riskValidationMessages(): array
+    {
+        return [
+            'risk_title.regex' => InputValidation::safeTextMessage(),
+            'risk_description.regex' => InputValidation::safeTextMessage(),
+            'cause.regex' => InputValidation::safeTextMessage(),
+            'existing_control.regex' => InputValidation::safeTextMessage(),
+            'inherent_probability_description.regex' => InputValidation::safeTextMessage(),
+            'inherent_impact_description.regex' => InputValidation::safeTextMessage(),
+            'residual_probability_description.regex' => InputValidation::safeTextMessage(),
+            'residual_impact_description.regex' => InputValidation::safeTextMessage(),
+            'treatment_description.*.regex' => InputValidation::safeTextMessage(),
+            'treatment_pic.*.regex' => InputValidation::safeTextMessage(),
+            'inherent_impact_amount.regex' => InputValidation::strictIntegerMessage(),
+            'inherent_probability_percent.regex' => InputValidation::strictDecimalMessage(),
+            'inherent_potential_loss.regex' => InputValidation::strictIntegerMessage(),
+            'residual_impact_amount.regex' => InputValidation::strictIntegerMessage(),
+            'residual_probability_percent.regex' => InputValidation::strictDecimalMessage(),
+            'residual_potential_loss.regex' => InputValidation::strictIntegerMessage(),
+            'radar_code.regex' => 'Radar code hanya boleh berisi huruf, angka, dan slash (/).',
+        ];
+    }
+
+    private function riskValidationAttributes(): array
+    {
+        return [
+            'risk_title' => 'Process',
+            'risk_description' => 'Risk Identification',
+            'cause' => 'Cause',
+            'existing_control' => 'Existing Control',
+            'inherent_probability_description' => 'Inherent Probability Description',
+            'inherent_impact_description' => 'Inherent Impact Description',
+            'residual_probability_description' => 'Residual Probability Description',
+            'residual_impact_description' => 'Residual Impact Description',
+            'inherent_impact_amount' => 'Inherent Impact (Rp)',
+            'inherent_probability_percent' => 'Inherent Probability (%)',
+            'inherent_potential_loss' => 'Inherent Potential Loss (Rp)',
+            'residual_impact_amount' => 'Residual Impact (Rp)',
+            'residual_probability_percent' => 'Residual Probability (%)',
+            'residual_potential_loss' => 'Residual Potential Loss (Rp)',
+            'treatment_description.*' => 'Treatment Description',
+            'treatment_pic.*' => 'Treatment PIC',
+        ];
     }
 
     private function ensureCanManageRisk(Risk $risk): void
