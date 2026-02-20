@@ -1,3 +1,3 @@
-# About SSAS PROJECT
+# Risk Management System
 
-SSAS PROJECT ADALAH Project Personal.
+SSAS Project - Risk Management application.
