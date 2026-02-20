@@ -1,0 +1,1064 @@
+@extends('layouts.tabler')
+
+@section('title', 'Risk Register')
+
+@section('content_header')
+<h1 class="text-end mb-0">Risk Register Dashboard</h1>
+@stop
+
+@section('content')
+
+{{-- DATATABLE CSS --}}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<style>
+.risk-header {
+    background-color: #d69b72;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+.analysis-header {
+    background-color: #9fbf8a;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+table th {
+    text-align: center;
+    vertical-align: middle !important;
+    font-size: 13px;
+}
+
+table td {
+    vertical-align: middle;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 12px;
+}
+
+.risk-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.risk-toolbar .btn.with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    border-radius: 0.45rem;
+    padding: 0.36rem 0.72rem;
+    font-weight: 600;
+}
+
+.risk-toolbar .btn.with-icon i {
+    margin: 0;
+    line-height: 1;
+}
+
+.table-controls-panel {
+    background: #f8fafc;
+    border: 1px solid #dbe7f3;
+    border-radius: 0.65rem;
+    padding: 0.85rem 0.95rem;
+    margin-bottom: 0.95rem;
+}
+
+.table-controls-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) minmax(360px, 1fr);
+    gap: 0.9rem 1rem;
+    align-items: start;
+}
+
+.table-control-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.table-control-block .control-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.38rem;
+    text-transform: uppercase;
+}
+
+.table-control-block .control-label i {
+    color: #2563eb;
+}
+
+.table-control-body {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+#ownerFilter {
+    width: 100%;
+}
+
+.column-preset-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    min-height: 44px;
+}
+
+.column-preset-group .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.72rem;
+    min-height: 36px;
+    font-weight: 600;
+}
+
+.column-preset-group .btn.active {
+    box-shadow: none;
+}
+
+.column-preset-group .btn i {
+    margin: 0;
+    line-height: 1;
+}
+
+.risk-table-card-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.85rem 1rem;
+}
+
+.risk-table-title {
+    margin: 0;
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+#riskTable_wrapper .dataTables_filter {
+    text-align: right;
+}
+
+#riskTable_wrapper .dataTables_filter label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#riskTable_wrapper .dataTables_length label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+#riskTable_wrapper .dataTables_length select {
+    width: auto;
+    min-width: 82px;
+}
+
+#riskTable_wrapper .dataTables_filter input {
+    margin-left: 0 !important;
+    min-width: 220px;
+}
+
+#riskTable_wrapper .dataTables_length,
+#riskTable_wrapper .dataTables_filter {
+    margin-bottom: 0.75rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.chip-score {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.chip-score-risk {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.chip-score-adj {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.chip-radar {
+    background: #1e293b;
+    color: #f8fafc;
+}
+
+.chip-level-adjust {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.risk-level-pill,
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.28rem 0.58rem;
+    border-radius: 0.35rem;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.risk-level-pill.low {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.risk-level-pill.low-moderate {
+    background: #cffafe;
+    color: #0e7490;
+}
+
+.risk-level-pill.moderate {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.risk-level-pill.moderate-high {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.risk-level-pill.high {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.risk-level-pill.unknown {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.status-pill.open {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.status-pill.monitoring {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-pill.closed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.risk-action-stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+#riskTable_wrapper .dataTables_paginate .pagination {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    padding-left: 0;
+}
+
+#riskTable_wrapper .dataTables_paginate .page-item {
+    float: none !important;
+}
+
+#riskTable_wrapper .dataTables_paginate .page-item .page-link {
+    border-radius: 0.35rem;
+    padding: 0.3rem 0.55rem;
+    margin: 0 !important;
+}
+
+#riskTable_wrapper .dataTables_paginate .page-item + .page-item .page-link {
+    margin-left: 0 !important;
+}
+
+/* Fallback for non-bootstrap pagination renderer */
+#riskTable_wrapper .dataTables_paginate {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+#riskTable_wrapper .dataTables_paginate > a,
+#riskTable_wrapper .dataTables_paginate a.paginate_button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    padding: 0.3rem 0.55rem !important;
+    margin: 0 0.22rem !important;
+    border-radius: 0.35rem;
+}
+
+#riskTable_wrapper .dataTables_paginate span {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+#riskTable_wrapper .dataTables_paginate span .paginate_button {
+    margin: 0 !important;
+}
+
+#riskTable_wrapper .dataTables_paginate .paginate_button.previous,
+#riskTable_wrapper .dataTables_paginate .page-item.previous .page-link {
+    margin-right: 0.4rem !important;
+}
+
+#riskTable_wrapper .dataTables_paginate .paginate_button.next,
+#riskTable_wrapper .dataTables_paginate .page-item.next .page-link {
+    margin-left: 0.4rem !important;
+}
+
+@media (max-width: 768px) {
+    .table-controls-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .table-control-body,
+    .column-preset-group {
+        min-height: 0;
+    }
+
+    .column-preset-group .btn {
+        padding: 0.28rem 0.64rem;
+    }
+
+    .risk-table-card-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.7rem;
+    }
+
+    .risk-toolbar {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    #riskTable_wrapper .dataTables_filter {
+        text-align: left;
+    }
+
+    #riskTable_wrapper .dataTables_filter input {
+        min-width: 160px;
+    }
+
+    #riskTable_wrapper .dataTables_paginate {
+        margin-top: 0.5rem;
+        text-align: left;
+    }
+}
+</style>
+
+{{-- SUMMARY --}}
+@php
+    $levelCounts = [
+        'Low' => 0,
+        'Low to Moderate' => 0,
+        'Moderate' => 0,
+        'Moderate to High' => 0,
+        'High' => 0,
+    ];
+
+    foreach ($risks as $risk) {
+        $level = optional($risk->residualAnalysis)->risk_level ?? $risk->risk_level;
+        if (isset($levelCounts[$level])) {
+            $levelCounts[$level]++;
+        }
+    }
+@endphp
+
+<div class="row mb-4">
+
+<div class="col-md-2">
+<div class="small-box bg-info">
+<div class="inner">
+<h3>{{ $risks->count() }}</h3>
+<p>Total Risks</p>
+</div>
+<div class="icon"><i class="fas fa-layer-group"></i></div>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="small-box bg-success">
+<div class="inner">
+<h3>{{ $levelCounts['Low'] }}</h3>
+<p>Low Risk</p>
+</div>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="small-box" style="background:#17a2b8;color:white;">
+<div class="inner">
+<h3>{{ $levelCounts['Low to Moderate'] }}</h3>
+<p>Low to Moderate</p>
+</div>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="small-box bg-warning">
+<div class="inner">
+<h3>{{ $levelCounts['Moderate'] }}</h3>
+<p>Moderate Risk</p>
+</div>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="small-box" style="background:#fd7e14;color:white;">
+<div class="inner">
+<h3>{{ $levelCounts['Moderate to High'] }}</h3>
+<p>Moderate to High</p>
+</div>
+</div>
+</div>
+
+<div class="col-md-2">
+<div class="small-box bg-danger">
+<div class="inner">
+<h3>{{ $levelCounts['High'] }}</h3>
+<p>High Risk</p>
+</div>
+</div>
+</div>
+
+</div>
+
+
+{{-- FILTER --}}
+<div class="table-controls-panel">
+    <div class="table-controls-grid">
+        <div class="table-control-block">
+            <div class="control-label">
+                <i class="fas fa-filter"></i> Filter Owner
+            </div>
+            <div class="table-control-body">
+                <select id="ownerFilter" class="form-control">
+                    <option value="">All Owner</option>
+
+                    @foreach($risks->pluck('risk_owner')->unique() as $owner)
+                    <option value="{{ $owner }}">{{ $owner }}</option>
+                    @endforeach
+
+                </select>
+            </div>
+        </div>
+
+        <div class="table-control-block">
+            <div class="control-label">
+                <i class="fas fa-columns"></i> Column Preset
+            </div>
+            <div class="table-control-body">
+                <div class="column-preset-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary active" data-column-preset="overview">
+                        <i class="fas fa-table"></i> Overview
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="full">
+                        <i class="fas fa-th-large"></i> Full Table
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="analysis">
+                        <i class="fas fa-chart-line"></i> Analysis
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="treatment">
+                        <i class="fas fa-stethoscope"></i> Treatment
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="quantitative">
+                        <i class="fas fa-calculator"></i> Quantitative
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- TABLE --}}
+<div class="card shadow">
+
+<div class="card-header risk-table-card-header d-flex justify-content-between align-items-center">
+<div>
+    <h3 class="risk-table-title">Risk Register Table</h3>
+</div>
+
+<div class="risk-toolbar">
+@include('reports.export-buttons', [
+    'scope' => 'risks',
+    'scopeLabel' => 'Risk Register',
+])
+<a href="{{ route('risks.recap') }}" class="btn btn-info btn-sm with-icon">
+<i class="fas fa-chart-bar"></i> Recap
+</a>
+<a href="{{ route('risks.heatmap') }}" class="btn btn-secondary btn-sm with-icon">
+<i class="fas fa-th"></i> Heat Map
+</a>
+<a href="{{ route('risks.create') }}" class="btn btn-primary btn-sm with-icon">
+<i class="fas fa-plus"></i> Add Risk
+</a>
+</div>
+</div>
+
+<div class="card-body table-responsive">
+<table id="riskTable" class="table table-hover table-bordered table-sm">
+
+<thead>
+
+<tr>
+<th colspan="2" class="text-center column-group-head" data-start="0" data-end="1" style="background:#f8f9fa">STATUS & ACTIONS</th>
+<th colspan="4" class="text-center column-group-head" data-start="2" data-end="5" style="background:#e3e6f0">BASIC INFO</th>
+<th colspan="5" class="risk-header column-group-head" data-start="6" data-end="10">RISK</th>
+<th colspan="6" class="analysis-header column-group-head" data-start="11" data-end="16">INHERENT ANALYSIS</th>
+<th colspan="6" class="text-center column-group-head" data-start="17" data-end="22" style="background:#fff3cd">TREATMENT</th>
+<th colspan="6" class="text-center column-group-head" data-start="23" data-end="28" style="background:#d1e7dd">RESIDUAL ANALYSIS</th>
+<th colspan="2" class="text-center column-group-head" data-start="29" data-end="30" style="background:#cfe2ff">RISK CONCLUSION</th>
+<th colspan="2" class="text-center column-group-head" data-start="31" data-end="32" style="background:#e8f5e9">GROUP RADAR</th>
+<th colspan="6" class="text-center column-group-head" data-start="33" data-end="38" style="background:#e7d9c5">QUANTITATIVE RESULT</th>
+</tr>
+
+<tr>
+<th>Status</th>
+<th>Actions</th>
+<th>Risk ID</th>
+<th>Year</th>
+<th>Process</th>
+<th>Risk Identification</th>
+
+<th>Category</th>
+<th>Cause Category</th>
+<th>Cause</th>
+<th>Control</th>
+<th>Owner</th>
+
+<th>Prob Desc</th>
+<th>Prob Score</th>
+<th>Impact Desc</th>
+<th>Impact Score</th>
+<th>Inherent Risk</th>
+<th>Risk Level</th>
+
+<th>Treatment</th>
+<th>Description</th>
+<th>PIC</th>
+<th>Deadline</th>
+<th>Effectiveness</th>
+<th>Effectiveness Score</th>
+
+<th>Prob Desc</th>
+<th>Prob Score</th>
+<th>Impact Desc</th>
+<th>Impact Score</th>
+<th>Residual Risk</th>
+<th>Residual Risk Adjustment</th>
+<th>Risk Level</th>
+
+<th>Level Adjustment</th>
+
+<th>Code</th>
+<th>Description</th>
+<th>Inherent Impact (Rp)</th>
+<th>Inherent Probability</th>
+<th>Inherent Potential Loss (Rp)</th>
+<th>Residual Impact (Rp)</th>
+<th>Residual Probability</th>
+<th>Residual Potential Loss (Rp)</th>
+</tr>
+
+</thead>
+
+<tbody>
+@foreach($risks as $risk)
+<tr>
+
+{{-- STATUS & ACTIONS --}}
+<td>
+@php
+    $statusClass = match($risk->status) {
+        'Open' => 'open',
+        'Monitoring' => 'monitoring',
+        'Closed' => 'closed',
+        default => 'monitoring',
+    };
+@endphp
+<span class="status-pill {{ $statusClass }}">
+    {{ $risk->status }}
+</span>
+</td>
+
+<td style="white-space: nowrap; text-align: center;">
+@php
+    $canManage = auth()->user()->canManageRiskOwner($risk->risk_owner);
+@endphp
+<div class="risk-action-stack">
+    <a href="{{ route('risks.show', $risk->id) }}" class="btn btn-info btn-xs" title="View" data-toggle="tooltip">
+    <i class="fas fa-eye"></i>
+    </a>
+    @if($canManage)
+        <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-warning btn-xs" title="Edit" data-toggle="tooltip">
+        <i class="fas fa-edit"></i>
+        </a>
+        <button type="button" class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')) { document.getElementById('form-delete-{{ $risk->id }}').submit(); }" title="Delete" data-toggle="tooltip">
+        <i class="fas fa-trash"></i>
+        </button>
+    @endif
+</div>
+@if($canManage)
+    <form id="form-delete-{{ $risk->id }}" action="{{ route('risks.destroy', $risk->id) }}" method="POST" style="display:none;">
+    @csrf
+    @method('DELETE')
+    </form>
+@endif
+</td>
+
+{{-- BASIC INFO --}}
+<td>
+<a href="{{ route('risks.show', $risk->id) }}" class="font-weight-bold text-primary">
+{{ $risk->risk_id }}
+</a>
+</td>
+<td>{{ $risk->year }}</td>
+<td>{{ $risk->risk_title }}</td>
+<td>{{ $risk->risk_description }}</td>
+
+{{-- RISK --}}
+<td>{{ optional($risk->category)->name }}</td>
+<td>{{ optional($risk->causeCategory)->name }}</td>
+<td>{{ $risk->cause }}</td>
+<td>{{ $risk->existing_control }}</td>
+<td>{{ $risk->risk_owner }}</td>
+
+{{-- INHERENT ANALYSIS --}}
+<td>
+@if($risk->inherentAnalysis)
+    {{ $risk->inherentAnalysis->probability_description }}
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->inherentAnalysis)
+    <span class="chip chip-score">{{ $risk->inherentAnalysis->probability_score }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->inherentAnalysis)
+    {{ $risk->inherentAnalysis->impact_description }}
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->inherentAnalysis)
+    <span class="chip chip-score">{{ $risk->inherentAnalysis->impact_score }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->inherentAnalysis)
+    <span class="chip chip-score-risk">{{ $risk->inherentAnalysis->inherent_risk_score }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->inherentAnalysis)
+    @php
+        $inherentLevelClass = match($risk->inherentAnalysis->risk_level){
+            'Low' => 'low',
+            'Low to Moderate' => 'low-moderate',
+            'Moderate' => 'moderate',
+            'Moderate to High' => 'moderate-high',
+            'High' => 'high',
+            default => 'unknown'
+        };
+    @endphp
+    <span class="risk-level-pill {{ $inherentLevelClass }}">
+        {{ $risk->inherentAnalysis->risk_level }}
+    </span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+
+{{-- TREATMENT (First Treatment or Summary) --}}
+@php
+    $firstTreatment = $risk->treatments->first();
+@endphp
+<td>
+@if($firstTreatment)
+    <strong>{{ $firstTreatment->option }}</strong>
+    @if($risk->treatments->count() > 1)
+        <br><small class="text-muted">+{{ $risk->treatments->count() - 1 }} more</small>
+    @endif
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($firstTreatment)
+    {{ Str::limit($firstTreatment->description, 30) }}
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($firstTreatment)
+    {{ $firstTreatment->pic }}
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($firstTreatment)
+    {{ \Carbon\Carbon::parse($firstTreatment->deadline)->format('d-m-Y') }}
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($firstTreatment)
+    <span class="chip chip-score">{{ $firstTreatment->effectiveness }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($firstTreatment)
+    <span class="chip chip-score-adj">{{ $firstTreatment->effectiveness_score }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+
+{{-- RESIDUAL ANALYSIS --}}
+<td>
+@if($risk->residualAnalysis)
+    {{ $risk->residualAnalysis->probability_description }}
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->residualAnalysis)
+    <span class="chip chip-score">{{ $risk->residualAnalysis->probability_score }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->residualAnalysis)
+    {{ $risk->residualAnalysis->impact_description }}
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->residualAnalysis)
+    <span class="chip chip-score">{{ $risk->residualAnalysis->impact_score }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->residualAnalysis)
+    <span class="chip chip-score-risk">{{ $risk->residualAnalysis->residual_risk_score }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->residualAnalysis)
+    <span class="chip chip-score-adj">{{ $risk->residualAnalysis->adjustment ?? $risk->residualAnalysis->risk_adjustment ?? '-' }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->residualAnalysis)
+    @php
+        $residualLevelClass = match($risk->residualAnalysis->risk_level){
+            'Low' => 'low',
+            'Low to Moderate' => 'low-moderate',
+            'Moderate' => 'moderate',
+            'Moderate to High' => 'moderate-high',
+            'High' => 'high',
+            default => 'unknown'
+        };
+    @endphp
+    <span class="risk-level-pill {{ $residualLevelClass }}">
+        {{ $risk->residualAnalysis->risk_level }}
+    </span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@if($risk->residualAnalysis)
+    <span class="chip chip-level-adjust">{{ $risk->residualAnalysis->risk_level_adjustment ?? '-' }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@php
+    $radarGroup = optional($risk->residualAnalysis)->radarGroup;
+    $radarCode = optional($radarGroup)->code ?? optional($risk->residualAnalysis)->radar_code;
+@endphp
+@if($radarCode)
+    <span class="chip chip-radar">{{ $radarCode }}</span>
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+<td>
+@php
+    $radarDescription = optional($radarGroup)->description ?? optional($risk->residualAnalysis)->radar_description;
+@endphp
+@if($radarDescription)
+    {{ $radarDescription }}
+@else
+    <span class="text-muted">-</span>
+@endif
+</td>
+@php
+    $inherentImpactAmount = optional($risk->inherentAnalysis)->impact_amount;
+    $inherentProbability = optional($risk->inherentAnalysis)->probability_percent;
+    $inherentPotentialLoss = optional($risk->inherentAnalysis)->potential_loss;
+    $residualImpactAmountRaw = optional($risk->residualAnalysis)->impact_amount;
+    $residualImpactAmount = is_null($residualImpactAmountRaw) ? $inherentImpactAmount : $residualImpactAmountRaw;
+    $residualProbability = optional($risk->residualAnalysis)->probability_percent;
+    $residualPotentialLoss = optional($risk->residualAnalysis)->potential_loss;
+@endphp
+<td class="text-right">{{ is_null($inherentImpactAmount) ? '-' : number_format((float) $inherentImpactAmount, 0, ',', '.') }}</td>
+<td class="text-center">{{ is_null($inherentProbability) ? '-' : number_format(((float) $inherentProbability) * 100, 2, '.', '') . '%' }}</td>
+<td class="text-right">{{ is_null($inherentPotentialLoss) ? '-' : number_format((float) $inherentPotentialLoss, 0, ',', '.') }}</td>
+<td class="text-right">{{ is_null($residualImpactAmount) ? '-' : number_format((float) $residualImpactAmount, 0, ',', '.') }}</td>
+<td class="text-center">{{ is_null($residualProbability) ? '-' : number_format(((float) $residualProbability) * 100, 2, '.', '') . '%' }}</td>
+<td class="text-right">{{ is_null($residualPotentialLoss) ? '-' : number_format((float) $residualPotentialLoss, 0, ',', '.') }}</td>
+
+</tr>
+@endforeach
+</tbody>
+
+</table>
+</div>
+</div>
+
+@stop
+
+@section('js')
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function(){
+
+let table = $('#riskTable').DataTable({
+responsive:false,
+autoWidth:false,
+scrollX: true,
+pageLength: 5,
+lengthMenu: [[5, 10, 25, 50, 100], [5, 10, 25, 50, 100]],
+dom:
+    "<'row mb-2 align-items-center'<'col-md-6'l><'col-md-6 text-end'f>>" +
+    "rt" +
+    "<'row mt-2'<'col-md-5'i><'col-md-7 text-end'p>>",
+columnDefs: [
+    { targets: 1, orderable: false, searchable: false }
+],
+language: {
+    paginate: {
+        previous: "&laquo; Previous",
+        next: "Next &raquo;"
+    }
+}
+});
+
+const allColumnIndexes = table.columns().indexes().toArray();
+const columnPresetMap = {
+    overview: [
+        0, 1,
+        2, 3, 4, 5,
+        6, 7, 8, 9, 10,
+        15, 16,
+        27, 29, 30,
+        31, 32,
+    ],
+    full: allColumnIndexes,
+    analysis: [
+        0, 1,
+        2, 3, 4, 5,
+        6, 10,
+        11, 12, 13, 14, 15, 16,
+        23, 24, 25, 26, 27, 28,
+        29, 30,
+        31, 32,
+    ],
+    treatment: [
+        0, 1,
+        2, 3, 4, 5,
+        6, 10,
+        17, 18, 19, 20, 21, 22,
+        29, 30,
+    ],
+    quantitative: [
+        0, 1,
+        2, 3, 4, 5,
+        6, 10,
+        29, 30,
+        31, 32,
+        33, 34, 35, 36, 37, 38,
+    ],
+};
+
+function updateColumnGroupHeaders() {
+    $('#riskTable thead tr:first-child th.column-group-head').each(function () {
+        const start = parseInt($(this).data('start'), 10);
+        const end = parseInt($(this).data('end'), 10);
+
+        let visibleCount = 0;
+        for (let i = start; i <= end; i++) {
+            if (table.column(i).visible()) {
+                visibleCount++;
+            }
+        }
+
+        if (visibleCount === 0) {
+            $(this).hide();
+            return;
+        }
+
+        $(this).attr('colspan', visibleCount).show();
+    });
+}
+
+function setActivePresetButton(presetName) {
+    $('[data-column-preset]').removeClass('active btn-primary').addClass('btn-outline-primary');
+
+    const activeButton = $(`[data-column-preset="${presetName}"]`);
+    if (activeButton.length) {
+        activeButton.addClass('active btn-primary').removeClass('btn-outline-primary');
+    }
+}
+
+function applyColumnPreset(presetName) {
+    const selected = columnPresetMap[presetName] || columnPresetMap.overview;
+    const selectedSet = new Set(selected);
+
+    allColumnIndexes.forEach(function (columnIndex) {
+        table.column(columnIndex).visible(selectedSet.has(columnIndex), false);
+    });
+
+    table.columns.adjust().draw(false);
+    updateColumnGroupHeaders();
+    setActivePresetButton(presetName);
+
+    try {
+        localStorage.setItem('risk_table_column_preset', presetName);
+    } catch (error) {
+        // Ignore storage issues (private mode or blocked storage).
+    }
+}
+
+function enforcePagerSpacing() {
+    const paginate = $('#riskTable_wrapper .dataTables_paginate');
+    paginate.find('a.paginate_button').css({
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: '0.35rem',
+        marginRight: '0.35rem'
+    });
+    paginate.find('a.paginate_button.previous').css({
+        marginLeft: '0',
+        marginRight: '0.45rem'
+    });
+    paginate.find('a.paginate_button.next').css({
+        marginLeft: '0.45rem',
+        marginRight: '0'
+    });
+    paginate.find('span').css({
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        margin: '0 0.1rem'
+    });
+}
+
+table.on('draw.dt', function () {
+    enforcePagerSpacing();
+});
+enforcePagerSpacing();
+
+$('[data-column-preset]').on('click', function () {
+    applyColumnPreset($(this).data('column-preset'));
+});
+
+let initialPreset = 'overview';
+try {
+    const savedPreset = localStorage.getItem('risk_table_column_preset');
+    if (savedPreset && columnPresetMap[savedPreset]) {
+        initialPreset = savedPreset;
+    }
+} catch (error) {
+    // Ignore storage read issues.
+}
+
+applyColumnPreset(initialPreset);
+
+$('#ownerFilter').on('change', function(){
+table.column(10).search(this.value).draw();
+});
+
+});
+</script>
+
+@stop
+

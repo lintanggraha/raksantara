@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', config('app.name', 'Risk Management System'))</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+
+    <style>
+        .small-box {
+            position: relative;
+            border-radius: 8px;
+            color: #fff;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+            overflow: hidden;
+        }
+        .small-box .inner h3 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+        .small-box .inner p {
+            margin: 4px 0 0;
+            font-size: 0.85rem;
+            opacity: 0.95;
+        }
+        .small-box .icon {
+            position: absolute;
+            right: 12px;
+            top: 10px;
+            font-size: 2rem;
+            opacity: 0.25;
+        }
+        .small-box .small-box-footer {
+            display: block;
+            margin: 12px -16px -16px;
+            padding: 8px 16px;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+        }
+        .btn-xs {
+            padding: 0.1rem 0.4rem;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;
+        }
+        .float-right {
+            float: right !important;
+        }
+        .mr-2 {
+            margin-right: 0.5rem !important;
+        }
+        .ml-2 {
+            margin-left: 0.5rem !important;
+        }
+        .form-inline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .form-inline .form-control {
+            width: auto;
+        }
+        .form-inline label {
+            margin-bottom: 0;
+        }
+        .navbar,
+        .navbar .container-xl,
+        .navbar .navbar-nav,
+        .navbar .nav-item.dropdown {
+            overflow: visible;
+        }
+        .navbar .nav-item.dropdown > .nav-link {
+            cursor: pointer;
+        }
+        .navbar .dropdown-menu {
+            min-width: 12rem;
+            z-index: 2000;
+        }
+        [data-compliance-menu] .dropdown-item {
+            border-radius: 8px;
+            margin: 2px 6px;
+            padding: 0.5rem 0.75rem;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        [data-compliance-menu] .dropdown-item:hover,
+        [data-compliance-menu] .dropdown-item:focus {
+            background-color: #e8f1ff;
+            color: #0b57d0;
+        }
+        [data-compliance-menu] .dropdown-item.active,
+        [data-compliance-menu] .dropdown-item.active:hover,
+        [data-compliance-menu] .dropdown-item.active:focus {
+            background-color: #206bc4;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+        .select2-container .select2-selection--single {
+            min-height: calc(1.4285714286em + 0.875rem + 2px);
+            padding: 0.4375rem 0.75rem;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            line-height: 1.4285714286em;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+            height: calc(1.4285714286em + 0.875rem);
+        }
+        .select2-container--bootstrap-5 .select2-dropdown .select2-search__field {
+            min-height: 2rem;
+        }
+    </style>
+
+    @yield('css')
+    @stack('styles')
+</head>
+<body>
+<div class="page">
+    <header class="navbar navbar-expand-md d-print-none">
+        <div class="container-xl">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <h1 class="navbar-brand navbar-brand-autodark pe-0 pe-md-3">
+                <a href="{{ route('risks.index') }}">Risk Management System</a>
+            </h1>
+            <div class="navbar-nav flex-row order-md-last">
+                @auth
+                    <div class="nav-item dropdown">
+                        <a
+                            href="#"
+                            class="nav-link d-flex lh-1 text-reset p-0 dropdown-toggle"
+                            id="user-menu-toggle"
+                            data-bs-toggle="dropdown"
+                            data-user-menu-toggle
+                            role="button"
+                            aria-expanded="false"
+                            aria-label="Open user menu"
+                        >
+                            <span class="avatar avatar-sm">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                            <div class="d-none d-xl-block ps-2">
+                                <div>{{ auth()->user()->name }}</div>
+                                <div class="mt-1 small text-secondary">Authenticated User</div>
+                            </div>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow" data-user-menu aria-labelledby="user-menu-toggle">
+                            <a href="{{ route('profile.index') }}" class="dropdown-item">Profile</a>
+                            <a href="{{ route('change.password') }}" class="dropdown-item">Change Password</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item"
+                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                Logout
+                            </a>
+                            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                @csrf
+                            </form>
+                        </div>
+                    </div>
+                @endauth
+            </div>
+            <div class="collapse navbar-collapse" id="main-navbar">
+                <ul class="navbar-nav">
+                    @auth
+                        <li class="nav-item {{ request()->routeIs('risks.*') && !request()->routeIs('risks.heatmap') && !request()->routeIs('risks.recap') ? 'active' : '' }}">
+                            <a class="nav-link" href="{{ route('risks.index') }}">Risk Register</a>
+                        </li>
+                        <li class="nav-item {{ request()->routeIs('risks.heatmap') ? 'active' : '' }}">
+                            <a class="nav-link" href="{{ route('risks.heatmap') }}">Heat Map</a>
+                        </li>
+                        <li class="nav-item {{ request()->routeIs('risks.recap') ? 'active' : '' }}">
+                            <a class="nav-link" href="{{ route('risks.recap') }}">Recap</a>
+                        </li>
+                        <li class="nav-item {{ request()->routeIs('howto') ? 'active' : '' }}">
+                            <a class="nav-link" href="{{ route('howto') }}">How To</a>
+                        </li>
+                        @if(auth()->user()->isComplianceDivision())
+                            <li class="nav-item dropdown {{ request()->routeIs('compliance.*') ? 'active' : '' }}" data-compliance-nav>
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="false">
+                                    Compliance
+                                </a>
+                                <div class="dropdown-menu" data-compliance-menu>
+                                    <a class="dropdown-item {{ request()->routeIs('compliance.internal-audit') ? 'active' : '' }}" href="{{ route('compliance.internal-audit') }}">
+                                        Internal Audit
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('compliance.risk-management') ? 'active' : '' }}" href="{{ route('compliance.risk-management') }}">
+                                        Risk Management
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('compliance.compliance') ? 'active' : '' }}" href="{{ route('compliance.compliance') }}">
+                                        Governance &amp; Compliance
+                                    </a>
+                                </div>
+                            </li>
+                        @endif
+                    @endauth
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-wrapper">
+        @if (trim($__env->yieldContent('content_header')))
+            <div class="page-header d-print-none">
+                <div class="container-xl">
+                    @yield('content_header')
+                </div>
+            </div>
+        @endif
+
+        <div class="page-body">
+            <div class="container-xl">
+                @if (session('success'))
+                    <div class="alert alert-success">{{ session('success') }}</div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert-danger">{{ session('error') }}</div>
+                @endif
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @yield('content')
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    document.querySelectorAll('[data-toggle]').forEach(function (el) {
+        if (!el.hasAttribute('data-bs-toggle')) {
+            el.setAttribute('data-bs-toggle', el.getAttribute('data-toggle'));
+        }
+    });
+
+    if (window.bootstrap) {
+        document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
+            bootstrap.Dropdown.getOrCreateInstance(el);
+        });
+
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+            new bootstrap.Tooltip(el);
+        });
+    }
+
+    // Keep user menu reliable across browsers (including Firefox).
+    const userMenuToggle = document.querySelector('[data-user-menu-toggle]');
+    const userMenu = document.querySelector('[data-user-menu]');
+    if (userMenuToggle && userMenu) {
+        const dropdownInstance = (window.bootstrap && window.bootstrap.Dropdown)
+            ? bootstrap.Dropdown.getOrCreateInstance(userMenuToggle)
+            : null;
+
+        function openUserMenu() {
+            if (dropdownInstance) {
+                dropdownInstance.show();
+            }
+            userMenu.classList.add('show');
+            userMenuToggle.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeUserMenu() {
+            if (dropdownInstance) {
+                dropdownInstance.hide();
+            }
+            userMenu.classList.remove('show');
+            userMenuToggle.setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleUserMenu() {
+            if (userMenu.classList.contains('show')) {
+                closeUserMenu();
+            } else {
+                openUserMenu();
+            }
+        }
+
+        userMenuToggle.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleUserMenu();
+        });
+
+        userMenuToggle.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleUserMenu();
+            } else if (event.key === 'Escape') {
+                closeUserMenu();
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!userMenu.contains(event.target) && !userMenuToggle.contains(event.target)) {
+                closeUserMenu();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeUserMenu();
+            }
+        });
+    }
+
+    function initSearchableSelects(context) {
+        if (!window.jQuery || !$.fn.select2) {
+            return;
+        }
+
+        const $scope = context ? $(context) : $(document);
+
+        $scope.find('select').each(function () {
+            const $select = $(this);
+
+            if ($select.hasClass('no-search-select') || $select.data('noSearch') === true) {
+                return;
+            }
+
+            if ($select.data('select2')) {
+                return;
+            }
+
+            const placeholder = $select.attr('placeholder') || ($select.find('option[value=""]').first().text() || '');
+            const insideModal = $select.closest('.modal').first();
+
+            $select.select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: placeholder,
+                allowClear: $select.find('option[value=""]').length > 0,
+                minimumResultsForSearch: 0,
+                dropdownParent: insideModal.length ? insideModal : $(document.body),
+            });
+        });
+    }
+
+    function normalizeSelect2Width(scope) {
+        const $scope = scope ? $(scope) : $(document);
+
+        $scope.find('select').each(function () {
+            const instance = $(this).data('select2');
+            if (!instance) {
+                return;
+            }
+
+            instance.$container.css('width', '100%');
+        });
+    }
+
+    $(document).ready(function () {
+        initSearchableSelects(document);
+    });
+
+    document.addEventListener('shown.bs.tab', function (event) {
+        const targetSelector = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
+        const tabPane = targetSelector ? document.querySelector(targetSelector) : null;
+
+        if (tabPane) {
+            initSearchableSelects(tabPane);
+            normalizeSelect2Width(tabPane);
+        }
+    });
+
+    const selectObserver = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            mutation.addedNodes.forEach(function (node) {
+                if (!(node instanceof Element)) {
+                    return;
+                }
+
+                if (node.matches('select')) {
+                    initSearchableSelects(node.parentElement || document);
+                    normalizeSelect2Width(node.parentElement || document);
+                    return;
+                }
+
+                if (node.querySelector('select')) {
+                    initSearchableSelects(node);
+                    normalizeSelect2Width(node);
+                }
+            });
+        });
+    });
+
+    selectObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+    });
+
+    // Compliance navbar dropdown: reliable click + hover (desktop) using Bootstrap instance.
+    const complianceNav = document.querySelector('[data-compliance-nav]');
+    const complianceToggle = document.querySelector('[data-compliance-toggle]');
+    const hasBootstrapDropdown = window.bootstrap && window.bootstrap.Dropdown;
+
+    if (complianceNav && complianceToggle && hasBootstrapDropdown) {
+        const complianceDropdown = bootstrap.Dropdown.getOrCreateInstance(complianceToggle);
+        let complianceHideTimer = null;
+
+        function openComplianceMenu() {
+            if (complianceHideTimer) {
+                clearTimeout(complianceHideTimer);
+                complianceHideTimer = null;
+            }
+            complianceDropdown.show();
+        }
+
+        function closeComplianceMenu() {
+            complianceHideTimer = setTimeout(function () {
+                complianceDropdown.hide();
+                complianceHideTimer = null;
+            }, 120);
+        }
+
+        complianceNav.addEventListener('mouseenter', function () {
+            if (!window.matchMedia('(hover: hover)').matches) {
+                return;
+            }
+            openComplianceMenu();
+        });
+
+        complianceNav.addEventListener('mouseleave', function () {
+            if (!window.matchMedia('(hover: hover)').matches) {
+                return;
+            }
+            closeComplianceMenu();
+        });
+
+        complianceNav.addEventListener('focusin', function () {
+            openComplianceMenu();
+        });
+
+        complianceNav.addEventListener('focusout', function () {
+            closeComplianceMenu();
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                complianceDropdown.hide();
+            }
+        });
+    }
+</script>
+
+@yield('js')
+@stack('scripts')
+@stack('scripts_body')
+@stack('script_ckeditor')
+</body>
+</html>
