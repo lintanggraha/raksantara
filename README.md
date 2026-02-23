@@ -1,33 +1,17 @@
 # Risk Management System
 
-SSAS Project - Risk Management application.
+Aplikasi manajemen risiko untuk membantu organisasi mencatat, memantau, dan melaporkan risiko secara terstruktur.
 
-## Security Defaults
+## Gambaran Singkat
 
-- `ALLOW_PUBLIC_REGISTRATION=false`
-- `ALLOW_BOOTSTRAP_SUPERADMIN_REGISTRATION=false`
-- `SUPERADMIN_EMAILS=` (empty by default)
+Risk Management System digunakan untuk:
 
-## Offline Deployment Notes
+- mencatat data risiko dan status penanganannya,
+- memantau perkembangan risiko melalui dashboard monitoring,
+- menampilkan recap dan heat map untuk analisis cepat,
+- mengekspor laporan untuk kebutuhan manajemen dan Board of Directors,
+- menyimpan jejak aktivitas pengguna melalui audit trail.
 
-UI assets untuk layout utama/auth sudah menggunakan file lokal (`public/`) agar tetap berjalan di server tanpa koneksi internet.
+## Tujuan
 
-## Bootstrap Superadmin (Recommended)
-
-Promosikan user existing menjadi superadmin via CLI:
-
-```bash
-php artisan user:promote-superadmin <username>
-```
-
-Opsional set division default:
-
-```bash
-php artisan user:promote-superadmin <username> --division="CO - COMPLIANCE"
-```
-
-Jika user belum ada, bisa sekalian create + promote:
-
-```bash
-php artisan user:promote-superadmin <username> --create --name="Admin RMS" --email="admin@local"
-```
+Mendukung proses pengelolaan risiko yang lebih rapi, terukur, dan mudah dipresentasikan ke stakeholder internal.
