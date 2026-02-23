@@ -31,6 +31,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Bootstrap Superadmin via Registration
+    |--------------------------------------------------------------------------
+    |
+    | Keep this disabled for most deployments. Enabling this allows selected
+    | emails in SUPERADMIN_EMAILS to become superadmin directly at register.
+    |
+    */
+    'allow_bootstrap_superadmin_registration' => env('ALLOW_BOOTSTRAP_SUPERADMIN_REGISTRATION', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bootstrap Superadmin Emails
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated emails allowed to become superadmin immediately after
+    | self registration. Example: admin@company.com,security@company.com
+    |
+    */
+    'superadmin_emails' => array_values(array_filter(array_map('trim', explode(',', (string) env('SUPERADMIN_EMAILS', ''))))),
+
+    /*
+    |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
     |

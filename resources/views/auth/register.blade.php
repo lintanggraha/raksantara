@@ -27,7 +27,7 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Divisi</label>
+            <label class="form-label">Pengajuan Divisi</label>
             @php($divisionOptions = \App\Support\RiskOwnerAccess::options())
             <select name="division" class="form-control @error('division') is-invalid @enderror" required>
                 <option value="">Pilih Divisi</option>
@@ -40,6 +40,7 @@
             @error('division')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
+            <small class="form-hint">Divisi akan aktif setelah diverifikasi superadmin.</small>
         </div>
 
         <div class="mb-3">

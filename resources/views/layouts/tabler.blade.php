@@ -6,12 +6,145 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('app.name', 'Risk Management System'))</title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/tabler/css/tabler.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome-free/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/select2/css/select2-bootstrap-5-theme.min.css') }}">
 
     <style>
+        body {
+            background-color: #f4f6f9;
+        }
+        .page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .page-wrapper {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .page-header {
+            padding: 1rem 0 0.5rem;
+        }
+        .page-body {
+            flex: 1 1 auto;
+            padding: 0.5rem 0 1.5rem;
+        }
+        .container-xl {
+            width: 100%;
+            max-width: 1320px;
+            margin-right: auto;
+            margin-left: auto;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        .navbar-brand-autodark {
+            color: #212529;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .avatar {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #e9ecef;
+            color: #495057;
+            font-weight: 600;
+        }
+        .avatar-sm {
+            width: 2rem;
+            height: 2rem;
+            font-size: 0.875rem;
+        }
+        .form-label {
+            display: inline-block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .form-hint {
+            display: block;
+            margin-top: 0.25rem;
+            color: #6c757d;
+            font-size: 0.8125rem;
+        }
+        .table-vcenter td,
+        .table-vcenter th {
+            vertical-align: middle !important;
+        }
+        .fw-bold {
+            font-weight: 700 !important;
+        }
+        .page-title {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+        .text-end {
+            text-align: right !important;
+        }
+        .text-start {
+            text-align: left !important;
+        }
+        .lh-1 {
+            line-height: 1 !important;
+        }
+        .ps-2 {
+            padding-left: 0.5rem !important;
+        }
+        .me-2 {
+            margin-right: 0.5rem !important;
+        }
+        .dropdown-menu-end {
+            right: 0;
+            left: auto;
+        }
+        .gap-1 {
+            gap: 0.25rem !important;
+        }
+        .gap-2 {
+            gap: 0.5rem !important;
+        }
+        .gap-3 {
+            gap: 1rem !important;
+        }
+        .g-2 {
+            margin-right: -0.5rem;
+            margin-left: -0.5rem;
+        }
+        .g-2 > * {
+            padding-right: 0.5rem;
+            padding-left: 0.5rem;
+        }
+        .g-3 {
+            margin-right: -1rem;
+            margin-left: -1rem;
+        }
+        .g-3 > * {
+            padding-right: 1rem;
+            padding-left: 1rem;
+        }
+        .bg-green-lt {
+            background-color: #d1f0dd;
+            color: #186a3b;
+        }
+        .bg-yellow-lt {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .bg-blue-lt {
+            background-color: #d7ebff;
+            color: #0f4c81;
+        }
+        .bg-secondary-lt {
+            background-color: #e2e3e5;
+            color: #41464b;
+        }
         .small-box {
             position: relative;
             border-radius: 8px;
@@ -72,11 +205,29 @@
         .form-inline label {
             margin-bottom: 0;
         }
+        .btn.with-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .btn.with-icon i {
+            margin: 0;
+            line-height: 1;
+        }
         .navbar,
         .navbar .container-xl,
         .navbar .navbar-nav,
         .navbar .nav-item.dropdown {
             overflow: visible;
+        }
+        .navbar-toggler-icon {
+            display: inline-block;
+            width: 1.5em;
+            height: 1.5em;
+            vertical-align: middle;
+            background: no-repeat center center;
+            background-size: 100% 100%;
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3e%3cpath stroke='rgba%2833,37,41,0.75%29' stroke-width='2' stroke-linecap='round' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
         .navbar .nav-item.dropdown > .nav-link {
             cursor: pointer;
@@ -133,13 +284,13 @@
             min-height: calc(1.4285714286em + 0.875rem + 2px);
             padding: 0.4375rem 0.75rem;
         }
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        .select2-container .select2-selection--single .select2-selection__rendered {
             line-height: 1.4285714286em;
         }
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        .select2-container .select2-selection--single .select2-selection__arrow {
             height: calc(1.4285714286em + 0.875rem);
         }
-        .select2-container--bootstrap-5 .select2-dropdown .select2-search__field {
+        .select2-container .select2-dropdown .select2-search__field {
             min-height: 2rem;
         }
     </style>
@@ -151,7 +302,17 @@
 <div class="page">
     <header class="navbar navbar-expand-md d-print-none">
         <div class="container-xl">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle navigation">
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#main-navbar"
+                data-toggle="collapse"
+                data-target="#main-navbar"
+                aria-controls="main-navbar"
+                aria-expanded="false"
+                aria-label="Toggle navigation"
+            >
                 <span class="navbar-toggler-icon"></span>
             </button>
             <h1 class="navbar-brand navbar-brand-autodark pe-0 pe-md-3">
@@ -165,6 +326,7 @@
                             class="nav-link d-flex lh-1 text-reset p-0 dropdown-toggle"
                             id="user-menu-toggle"
                             data-bs-toggle="dropdown"
+                            data-toggle="dropdown"
                             data-user-menu-toggle
                             role="button"
                             aria-expanded="false"
@@ -173,7 +335,9 @@
                             <span class="avatar avatar-sm">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
                             <div class="d-none d-xl-block ps-2">
                                 <div>{{ auth()->user()->name }}</div>
-                                <div class="mt-1 small text-secondary">Authenticated User</div>
+                                <div class="mt-1 small text-secondary">
+                                    {{ auth()->user()->isSuperadmin() ? 'Superadmin' : 'Authenticated User' }}
+                                </div>
                             </div>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow" data-user-menu aria-labelledby="user-menu-toggle">
@@ -194,34 +358,59 @@
             <div class="collapse navbar-collapse" id="main-navbar">
                 <ul class="navbar-nav">
                     @auth
-                        <li class="nav-item {{ request()->routeIs('risks.*') && !request()->routeIs('risks.heatmap') && !request()->routeIs('risks.recap') ? 'active' : '' }}">
-                            <a class="nav-link nav-link-main" href="{{ route('risks.index') }}">Risk Register</a>
-                        </li>
-                        <li class="nav-item {{ request()->routeIs('risks.heatmap') ? 'active' : '' }}">
-                            <a class="nav-link nav-link-main" href="{{ route('risks.heatmap') }}">Heat Map</a>
-                        </li>
-                        <li class="nav-item {{ request()->routeIs('risks.recap') ? 'active' : '' }}">
-                            <a class="nav-link nav-link-main" href="{{ route('risks.recap') }}">Recap</a>
-                        </li>
-                        <li class="nav-item {{ request()->routeIs('howto') ? 'active' : '' }}">
-                            <a class="nav-link nav-link-main" href="{{ route('howto') }}">How To</a>
-                        </li>
-                        @if(auth()->user()->isComplianceDivision())
-                            <li class="nav-item dropdown {{ request()->routeIs('compliance.*') ? 'active' : '' }}" data-compliance-nav>
-                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="false">
-                                    Compliance
-                                </a>
-                                <div class="dropdown-menu" data-compliance-menu>
-                                    <a class="dropdown-item {{ request()->routeIs('compliance.internal-audit') ? 'active' : '' }}" href="{{ route('compliance.internal-audit') }}">
-                                        Internal Audit
+                        @if(auth()->user()->isSuperadmin())
+                            <li class="nav-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">Dashboard</a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('users.index') }}">User Management</a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('risk-status-approvals.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risk-status-approvals.index') }}">Status Approvals</a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('risk-alerts.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risk-alerts.index') }}">Alerts</a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('audit-logs.index') }}">Audit Trail</a>
+                            </li>
+                        @elseif(auth()->user()->isDivisionVerified())
+                            <li class="nav-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">Monitoring</a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.heatmap') && !request()->routeIs('risks.recap') && !request()->routeIs('risks.dashboard-summary') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risks.index') }}">Risk Register</a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('risks.heatmap') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risks.heatmap') }}">Heat Map</a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('risks.recap') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risks.recap') }}">Recap</a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('howto') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('howto') }}">How To</a>
+                            </li>
+                            @if(auth()->user()->isComplianceDivision())
+                                <li class="nav-item dropdown {{ request()->routeIs('compliance.*') ? 'active' : '' }}" data-compliance-nav>
+                                    <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="false">
+                                        Compliance
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('compliance.risk-management') ? 'active' : '' }}" href="{{ route('compliance.risk-management') }}">
-                                        Risk Management
-                                    </a>
-                                    <a class="dropdown-item {{ request()->routeIs('compliance.compliance') ? 'active' : '' }}" href="{{ route('compliance.compliance') }}">
-                                        Governance &amp; Compliance
-                                    </a>
-                                </div>
+                                    <div class="dropdown-menu" data-compliance-menu>
+                                        <a class="dropdown-item {{ request()->routeIs('compliance.internal-audit*') ? 'active' : '' }}" href="{{ route('compliance.internal-audit') }}">
+                                            Internal Audit
+                                        </a>
+                                        <a class="dropdown-item {{ request()->routeIs('compliance.risk-management*') ? 'active' : '' }}" href="{{ route('compliance.risk-management') }}">
+                                            Risk Management
+                                        </a>
+                                        <a class="dropdown-item {{ request()->routeIs('compliance.compliance*') ? 'active' : '' }}" href="{{ route('compliance.compliance') }}">
+                                            Governance &amp; Compliance
+                                        </a>
+                                    </div>
+                                </li>
+                            @endif
+                        @else
+                            <li class="nav-item {{ request()->routeIs('account.pending') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('account.pending') }}">Pending Approval</a>
                             </li>
                         @endif
                     @endauth
@@ -263,18 +452,34 @@
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ asset('vendor/bootstrap5/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ asset('vendor/tabler/js/tabler.min.js') }}"></script>
+<script src="{{ asset('vendor/select2/js/select2.min.js') }}"></script>
 <script>
     document.querySelectorAll('[data-toggle]').forEach(function (el) {
         if (!el.hasAttribute('data-bs-toggle')) {
             el.setAttribute('data-bs-toggle', el.getAttribute('data-toggle'));
         }
     });
+    document.querySelectorAll('[data-bs-toggle]').forEach(function (el) {
+        if (!el.hasAttribute('data-toggle')) {
+            el.setAttribute('data-toggle', el.getAttribute('data-bs-toggle'));
+        }
+    });
+    document.querySelectorAll('[data-target]').forEach(function (el) {
+        if (!el.hasAttribute('data-bs-target')) {
+            el.setAttribute('data-bs-target', el.getAttribute('data-target'));
+        }
+    });
+    document.querySelectorAll('[data-bs-target]').forEach(function (el) {
+        if (!el.hasAttribute('data-target')) {
+            el.setAttribute('data-target', el.getAttribute('data-bs-target'));
+        }
+    });
 
-    if (window.bootstrap) {
+    const hasBootstrap5 = window.bootstrap && typeof window.bootstrap.Dropdown !== 'undefined';
+    if (hasBootstrap5) {
         document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
             bootstrap.Dropdown.getOrCreateInstance(el);
         });
@@ -282,6 +487,13 @@
         document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
             new bootstrap.Tooltip(el);
         });
+    } else if (window.jQuery) {
+        if ($.fn.dropdown) {
+            $('[data-toggle="dropdown"]').dropdown();
+        }
+        if ($.fn.tooltip) {
+            $('[data-toggle="tooltip"]').tooltip();
+        }
     }
 
     // Keep user menu reliable across browsers (including Firefox).
@@ -291,10 +503,13 @@
         const dropdownInstance = (window.bootstrap && window.bootstrap.Dropdown)
             ? bootstrap.Dropdown.getOrCreateInstance(userMenuToggle)
             : null;
+        const dropdownFallback = (window.jQuery && $.fn.dropdown) ? $(userMenuToggle) : null;
 
         function openUserMenu() {
             if (dropdownInstance) {
                 dropdownInstance.show();
+            } else if (dropdownFallback) {
+                dropdownFallback.dropdown('show');
             }
             userMenu.classList.add('show');
             userMenuToggle.setAttribute('aria-expanded', 'true');
@@ -303,6 +518,8 @@
         function closeUserMenu() {
             if (dropdownInstance) {
                 dropdownInstance.hide();
+            } else if (dropdownFallback) {
+                dropdownFallback.dropdown('hide');
             }
             userMenu.classList.remove('show');
             userMenuToggle.setAttribute('aria-expanded', 'false');
@@ -433,9 +650,13 @@
     const complianceNav = document.querySelector('[data-compliance-nav]');
     const complianceToggle = document.querySelector('[data-compliance-toggle]');
     const hasBootstrapDropdown = window.bootstrap && window.bootstrap.Dropdown;
+    const hasBootstrap4Dropdown = window.jQuery && $.fn.dropdown;
 
-    if (complianceNav && complianceToggle && hasBootstrapDropdown) {
-        const complianceDropdown = bootstrap.Dropdown.getOrCreateInstance(complianceToggle);
+    if (complianceNav && complianceToggle && (hasBootstrapDropdown || hasBootstrap4Dropdown)) {
+        const complianceDropdown = hasBootstrapDropdown
+            ? bootstrap.Dropdown.getOrCreateInstance(complianceToggle)
+            : null;
+        const complianceDropdownFallback = hasBootstrap4Dropdown ? $(complianceToggle) : null;
         let complianceHideTimer = null;
 
         function openComplianceMenu() {
@@ -443,12 +664,20 @@
                 clearTimeout(complianceHideTimer);
                 complianceHideTimer = null;
             }
-            complianceDropdown.show();
+            if (complianceDropdown) {
+                complianceDropdown.show();
+            } else if (complianceDropdownFallback) {
+                complianceDropdownFallback.dropdown('show');
+            }
         }
 
         function closeComplianceMenu() {
             complianceHideTimer = setTimeout(function () {
-                complianceDropdown.hide();
+                if (complianceDropdown) {
+                    complianceDropdown.hide();
+                } else if (complianceDropdownFallback) {
+                    complianceDropdownFallback.dropdown('hide');
+                }
                 complianceHideTimer = null;
             }, 120);
         }
@@ -477,7 +706,11 @@
 
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
-                complianceDropdown.hide();
+                if (complianceDropdown) {
+                    complianceDropdown.hide();
+                } else if (complianceDropdownFallback) {
+                    complianceDropdownFallback.dropdown('hide');
+                }
             }
         });
     }

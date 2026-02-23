@@ -8,6 +8,7 @@ use App\Support\InputValidation;
 use App\Support\RiskOwnerAccess;
 use App\User;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -74,12 +75,45 @@ class RegisterController extends Controller
      */
     protected function create(array $data)
     {
+        $requestedDivision = $data['division'];
+        $isBootstrapSuperadmin = (bool) config('auth.allow_bootstrap_superadmin_registration', false)
+            && $this->isBootstrapSuperadminEmail($data['email'] ?? '');
+
         return User::create([
             'name' => $data['name'],
             'username' => $data['username'],
-            'division' => $data['division'],
+            'division' => $isBootstrapSuperadmin ? $requestedDivision : null,
+            'pending_division' => $isBootstrapSuperadmin ? null : $requestedDivision,
+            'division_verified_at' => $isBootstrapSuperadmin ? now() : null,
+            'is_superadmin' => $isBootstrapSuperadmin,
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
+    }
+
+    protected function registered(Request $request, $user)
+    {
+        if (method_exists($user, 'isDivisionVerified') && !$user->isDivisionVerified()) {
+            return redirect()
+                ->route('account.pending')
+                ->with('success', 'Registrasi berhasil. Akun Anda menunggu verifikasi divisi oleh superadmin.');
+        }
+    }
+
+    private function isBootstrapSuperadminEmail(string $email): bool
+    {
+        $normalized = strtolower(trim($email));
+        if ($normalized === '') {
+            return false;
+        }
+
+        $allowed = array_values(array_filter(array_map(
+            static function ($item): string {
+                return strtolower(trim((string) $item));
+            },
+            (array) config('auth.superadmin_emails', [])
+        )));
+
+        return in_array($normalized, $allowed, true);
     }
 }

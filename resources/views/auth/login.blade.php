@@ -39,6 +39,8 @@
 
 @section('auth_footer')
     <a href="{{ route('password.request') }}">Lupa Password?</a>
+    <br>
+    <small class="text-muted">Masukkan username saat reset. Untuk server offline, hubungi superadmin.</small>
     @if (Route::has('register'))
         <br>
         <a href="{{ route('register') }}">Daftar Akun Baru</a>

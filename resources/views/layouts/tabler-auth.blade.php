@@ -6,11 +6,47 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('app.name', 'Risk Management System'))</title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/tabler/css/tabler.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome-free/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/select2/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/select2/css/select2-bootstrap-5-theme.min.css') }}">
     <style>
+        body {
+            background-color: #f4f6f9;
+        }
+        .page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .page-center {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .container-tight {
+            width: 100%;
+            max-width: 480px;
+        }
+        .card-md {
+            width: 100%;
+        }
+        .navbar-brand-autodark {
+            color: #212529;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .form-label {
+            display: inline-block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .form-hint {
+            display: block;
+            margin-top: 0.25rem;
+            color: #6c757d;
+            font-size: 0.8125rem;
+        }
         .select2-container {
             width: 100% !important;
         }
@@ -18,10 +54,10 @@
             min-height: calc(1.4285714286em + 0.875rem + 2px);
             padding: 0.4375rem 0.75rem;
         }
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        .select2-container .select2-selection--single .select2-selection__rendered {
             line-height: 1.4285714286em;
         }
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        .select2-container .select2-selection--single .select2-selection__arrow {
             height: calc(1.4285714286em + 0.875rem);
         }
     </style>
@@ -68,9 +104,10 @@
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ asset('vendor/bootstrap5/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ asset('vendor/tabler/js/tabler.min.js') }}"></script>
+<script src="{{ asset('vendor/select2/js/select2.min.js') }}"></script>
 <script>
     function initSearchableSelectsAuth(context) {
         if (!window.jQuery || !$.fn.select2) {

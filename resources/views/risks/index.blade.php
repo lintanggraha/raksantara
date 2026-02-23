@@ -2,14 +2,17 @@
 
 @section('title', 'Risk Register')
 
-@section('content_header')
-<h1 class="text-end mb-0">Risk Register Dashboard</h1>
-@stop
-
 @section('content')
 
 {{-- DATATABLE CSS --}}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="{{ asset('vendor/datatables/css/dataTables.bootstrap5.min.css') }}">
+
+@if(session('import_output'))
+    <div class="alert alert-info">
+        <strong>Import Output</strong>
+        <pre class="mb-0 mt-2" style="white-space: pre-wrap;">{{ session('import_output') }}</pre>
+    </div>
+@endif
 
 <style>
 .risk-header {
@@ -77,7 +80,7 @@ table td {
     display: grid;
     grid-template-columns: minmax(260px, 360px) minmax(360px, 1fr);
     gap: 0.9rem 1rem;
-    align-items: start;
+    align-items: end;
 }
 
 .table-control-block {
@@ -105,6 +108,10 @@ table td {
     min-height: 44px;
     display: flex;
     align-items: center;
+}
+
+.table-toolbar-body {
+    justify-content: flex-end;
 }
 
 #ownerFilter {
@@ -412,64 +419,61 @@ thead th {
 @endphp
 
 <div class="row mb-4">
+    <div class="col-md-2">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>{{ $risks->count() }}</h3>
+                <p>Total Risks</p>
+            </div>
+            <div class="icon"><i class="fas fa-layer-group"></i></div>
+        </div>
+    </div>
 
-<div class="col-md-2">
-<div class="small-box bg-info">
-<div class="inner">
-<h3>{{ $risks->count() }}</h3>
-<p>Total Risks</p>
-</div>
-<div class="icon"><i class="fas fa-layer-group"></i></div>
-</div>
-</div>
+    <div class="col-md-2">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>{{ $levelCounts['Low'] }}</h3>
+                <p>Low Risk</p>
+            </div>
+        </div>
+    </div>
 
-<div class="col-md-2">
-<div class="small-box bg-success">
-<div class="inner">
-<h3>{{ $levelCounts['Low'] }}</h3>
-<p>Low Risk</p>
-</div>
-</div>
-</div>
+    <div class="col-md-2">
+        <div class="small-box" style="background:#17a2b8;color:white;">
+            <div class="inner">
+                <h3>{{ $levelCounts['Low to Moderate'] }}</h3>
+                <p>Low to Moderate</p>
+            </div>
+        </div>
+    </div>
 
-<div class="col-md-2">
-<div class="small-box" style="background:#17a2b8;color:white;">
-<div class="inner">
-<h3>{{ $levelCounts['Low to Moderate'] }}</h3>
-<p>Low to Moderate</p>
-</div>
-</div>
-</div>
+    <div class="col-md-2">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>{{ $levelCounts['Moderate'] }}</h3>
+                <p>Moderate Risk</p>
+            </div>
+        </div>
+    </div>
 
-<div class="col-md-2">
-<div class="small-box bg-warning">
-<div class="inner">
-<h3>{{ $levelCounts['Moderate'] }}</h3>
-<p>Moderate Risk</p>
-</div>
-</div>
-</div>
+    <div class="col-md-2">
+        <div class="small-box" style="background:#fd7e14;color:white;">
+            <div class="inner">
+                <h3>{{ $levelCounts['Moderate to High'] }}</h3>
+                <p>Moderate to High</p>
+            </div>
+        </div>
+    </div>
 
-<div class="col-md-2">
-<div class="small-box" style="background:#fd7e14;color:white;">
-<div class="inner">
-<h3>{{ $levelCounts['Moderate to High'] }}</h3>
-<p>Moderate to High</p>
+    <div class="col-md-2">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3>{{ $levelCounts['High'] }}</h3>
+                <p>High Risk</p>
+            </div>
+        </div>
+    </div>
 </div>
-</div>
-</div>
-
-<div class="col-md-2">
-<div class="small-box bg-danger">
-<div class="inner">
-<h3>{{ $levelCounts['High'] }}</h3>
-<p>High Risk</p>
-</div>
-</div>
-</div>
-
-</div>
-
 
 {{-- FILTER --}}
 <div class="table-controls-panel">
@@ -491,26 +495,38 @@ thead th {
         </div>
 
         <div class="table-control-block">
-            <div class="control-label">
-                <i class="fas fa-columns"></i> Column Preset
-            </div>
-            <div class="table-control-body">
-                <div class="column-preset-group">
-                    <button type="button" class="btn btn-sm btn-outline-primary active" data-column-preset="overview">
-                        <i class="fas fa-table"></i> Overview
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="full">
-                        <i class="fas fa-th-large"></i> Full Table
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="analysis">
-                        <i class="fas fa-chart-line"></i> Analysis
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="treatment">
-                        <i class="fas fa-stethoscope"></i> Treatment
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="quantitative">
-                        <i class="fas fa-calculator"></i> Quantitative
-                    </button>
+            <div class="table-control-body table-toolbar-body">
+                <div class="risk-toolbar">
+                    @include('reports.export-buttons', [
+                        'scope' => 'risks',
+                        'scopeLabel' => 'Risk Register',
+                    ])
+                    @if(!auth()->user()->isSuperadmin() && auth()->user()->isComplianceDivision())
+                        <button
+                            type="button"
+                            class="btn btn-dark btn-sm with-icon"
+                            data-bs-toggle="modal"
+                            data-bs-target="#riskImportModal"
+                            data-toggle="modal"
+                            data-target="#riskImportModal"
+                        >
+                            <i class="fas fa-file-import"></i> Import XLS
+                        </button>
+                    @endif
+                    <a href="{{ route('risks.monitoring') }}" class="btn btn-dark btn-sm with-icon">
+                        <i class="fas fa-chart-line"></i> Monitoring
+                    </a>
+                    <a href="{{ route('risks.recap') }}" class="btn btn-info btn-sm with-icon">
+                        <i class="fas fa-chart-bar"></i> Recap
+                    </a>
+                    <a href="{{ route('risks.heatmap') }}" class="btn btn-secondary btn-sm with-icon">
+                        <i class="fas fa-th"></i> Heat Map
+                    </a>
+                    @if(!auth()->user()->isSuperadmin())
+                        <a href="{{ route('risks.create') }}" class="btn btn-primary btn-sm with-icon">
+                            <i class="fas fa-plus"></i> Add Risk
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -525,20 +541,22 @@ thead th {
     <h3 class="risk-table-title">Risk Register Table</h3>
 </div>
 
-<div class="risk-toolbar">
-@include('reports.export-buttons', [
-    'scope' => 'risks',
-    'scopeLabel' => 'Risk Register',
-])
-<a href="{{ route('risks.recap') }}" class="btn btn-info btn-sm with-icon">
-<i class="fas fa-chart-bar"></i> Recap
-</a>
-<a href="{{ route('risks.heatmap') }}" class="btn btn-secondary btn-sm with-icon">
-<i class="fas fa-th"></i> Heat Map
-</a>
-<a href="{{ route('risks.create') }}" class="btn btn-primary btn-sm with-icon">
-<i class="fas fa-plus"></i> Add Risk
-</a>
+<div class="column-preset-group">
+    <button type="button" class="btn btn-sm btn-outline-primary active" data-column-preset="overview">
+        <i class="fas fa-table"></i> Overview
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="full">
+        <i class="fas fa-th-large"></i> Full Table
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="analysis">
+        <i class="fas fa-chart-line"></i> Analysis
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="treatment">
+        <i class="fas fa-stethoscope"></i> Treatment
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-column-preset="quantitative">
+        <i class="fas fa-calculator"></i> Quantitative
+    </button>
 </div>
 </div>
 
@@ -630,7 +648,8 @@ thead th {
 
 <td style="white-space: nowrap; text-align: center;">
 @php
-    $canManage = auth()->user()->canManageRiskOwner($risk->risk_owner);
+    $canManage = !auth()->user()->isSuperadmin()
+        && auth()->user()->canManageRiskOwner($risk->risk_owner);
 @endphp
 <div class="risk-action-stack">
     <a href="{{ route('risks.show', $risk->id) }}" class="btn btn-info btn-xs" title="View" data-toggle="tooltip">
@@ -894,8 +913,8 @@ thead th {
 
 @section('js')
 
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="{{ asset('vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
 
 <script>
 $(document).ready(function(){
@@ -1059,6 +1078,43 @@ table.column(10).search(this.value).draw();
 
 });
 </script>
+
+@if(!auth()->user()->isSuperadmin() && auth()->user()->isComplianceDivision())
+<div class="modal fade" id="riskImportModal" tabindex="-1" aria-labelledby="riskImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('risks.import.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="riskImportModalLabel">Import Risk Register</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Excel File (.xls/.xlsx)</label>
+                        <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
+                        <small class="text-muted">Gunakan template RM-02 yang sama seperti file lama kamu.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Year (Optional)</label>
+                        <input type="number" min="2000" max="2100" name="year" class="form-control" placeholder="Auto detect dari file">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="1" id="dry_run" name="dry_run">
+                        <label class="form-check-label" for="dry_run">
+                            Dry-run dulu (cek hasil tanpa simpan data)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Start Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 @stop
 

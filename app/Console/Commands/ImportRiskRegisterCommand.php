@@ -15,6 +15,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Reader\IReader;
 use PhpOffice\PhpSpreadsheet\Reader\IReadFilter;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -22,7 +23,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class ImportRiskRegisterCommand extends Command
 {
     protected $signature = 'risk:import-register
-        {file : Path ke file .xlsx}
+        {file : Path ke file .xls/.xlsx}
         {--year= : Override year import}
         {--sheet=* : Import hanya sheet tertentu (boleh diulang)}
         {--truncate : Hapus data risk sebelum import}
@@ -31,6 +32,7 @@ class ImportRiskRegisterCommand extends Command
     protected $description = 'Import risk register dari file Excel RM-02';
 
     private const DEFAULT_SHEETS = ['M', 'BT', 'DI', 'QA', 'CR', 'PM', 'OM', 'IF', 'CS', 'RI', 'BS', 'HC', 'CO'];
+    private const ALLOWED_EXTENSIONS = ['xls', 'xlsx'];
 
     private array $riskCategoryMap = [];
     private array $riskCauseCategoryMap = [];
@@ -51,8 +53,9 @@ class ImportRiskRegisterCommand extends Command
             return self::FAILURE;
         }
 
-        if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) !== 'xlsx') {
-            $this->error('File harus berformat .xlsx');
+        $extension = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
+        if (!in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+            $this->error('File harus berformat .xls atau .xlsx');
 
             return self::FAILURE;
         }
@@ -275,9 +278,10 @@ class ImportRiskRegisterCommand extends Command
 
             $riskId = sprintf('%s-%03d', strtoupper($sheetName), $rowNo);
 
-            $risk = Risk::create([
-                'risk_id' => $riskId,
+            $risk = Risk::updateOrCreate([
                 'year' => $year,
+                'risk_id' => $riskId,
+            ], [
                 'risk_title' => $riskTitle,
                 'risk_description' => $riskDescription,
                 'risk_category_id' => $riskCategoryId,
@@ -294,12 +298,17 @@ class ImportRiskRegisterCommand extends Command
                 'risk_score' => $inherentRiskScore,
             ]);
 
+            // Import is idempotent by (year, risk_id): replace treatment rows with latest source data.
+            $risk->treatments()->delete();
+
             $inherentRiskLevel = $this->firstNonEmpty([
                 $this->normalizeRiskLevel($this->cell($worksheet, 'S' . $row)),
                 $inherentRiskScore ? RiskScoreMatrix::getRiskLevel($inherentRiskScore) : null,
             ]);
 
-            RiskInherentAnalysis::create([
+            RiskInherentAnalysis::updateOrCreate([
+                'risk_id' => $risk->id,
+            ], [
                 'risk_id' => $risk->id,
                 'probability_score' => $inherentProbabilityScore,
                 'probability_description' => $inherentProbabilityDescription,
@@ -363,7 +372,9 @@ class ImportRiskRegisterCommand extends Command
                 $adjustmentText = (string) $residualAdjustment;
             }
 
-            RiskResidualAnalysis::create([
+            RiskResidualAnalysis::updateOrCreate([
+                'risk_id' => $risk->id,
+            ], [
                 'risk_id' => $risk->id,
                 'probability_score' => $residualProbabilityScore,
                 'probability_description' => $residualProbabilityDescription,
@@ -417,7 +428,7 @@ class ImportRiskRegisterCommand extends Command
 
     private function listWorksheetNames(string $file): array
     {
-        $reader = IOFactory::createReader('Xlsx');
+        $reader = $this->createSpreadsheetReader($file);
         $reader->setReadDataOnly(true);
         $infos = $reader->listWorksheetInfo($file);
 
@@ -428,7 +439,7 @@ class ImportRiskRegisterCommand extends Command
 
     private function loadWorksheet(string $file, string $sheetName, int $maxRow, int $maxColumnIndex): Worksheet
     {
-        $reader = IOFactory::createReader('Xlsx');
+        $reader = $this->createSpreadsheetReader($file);
         $reader->setReadDataOnly(true);
         $reader->setLoadSheetsOnly([$sheetName]);
         $reader->setReadFilter(new SheetWindowReadFilter(1, $maxRow, $maxColumnIndex));
@@ -441,6 +452,15 @@ class ImportRiskRegisterCommand extends Command
         }
 
         return $worksheet;
+    }
+
+    private function createSpreadsheetReader(string $file): IReader
+    {
+        try {
+            return IOFactory::createReaderForFile($file);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('File Excel tidak dapat dibaca. Pastikan file .xls/.xlsx valid.', 0, $e);
+        }
     }
 
     private function prepareLookupMaps(): void

@@ -27,7 +27,13 @@ class AddCauseAndControlToRisksTable extends Migration
     public function down()
     {
         Schema::table('risks', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('risks', 'existing_control')) {
+                $table->dropColumn('existing_control');
+            }
+
+            if (Schema::hasColumn('risks', 'cause')) {
+                $table->dropColumn('cause');
+            }
         });
     }
 }

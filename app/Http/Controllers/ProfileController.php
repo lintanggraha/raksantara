@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\AuditLogger;
 use App\Support\InputValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +35,7 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $user = \App\User::find(Auth::id());
+        $before = $user ? $user->toArray() : null;
 
         $request->validate([
             'name' => ['required', 'string', 'max:255', 'regex:' . InputValidation::SAFE_TEXT_REGEX],
@@ -44,6 +46,13 @@ class ProfileController extends Controller
         $user->update([
             'name' => $request->name
         ]);
+
+        AuditLogger::logModelEvent(
+            'user.profile.updated',
+            $user,
+            $before,
+            $user->fresh()->toArray()
+        );
 
         return back()->with('success', 'Profile updated');
     }
@@ -69,8 +78,25 @@ class ProfileController extends Controller
             ]);
         }
 
+        if (Hash::check($request->new_password, $user->password)) {
+            return back()->withErrors([
+                'new_password' => 'Password baru tidak boleh sama dengan password lama.'
+            ]);
+        }
+
+        $before = $user->toArray();
+
         $user->password = Hash::make($request->new_password);
+        $user->force_password_change = false;
+        $user->password_changed_at = now();
         $user->save();
+
+        AuditLogger::logModelEvent(
+            'user.password.changed_by_self',
+            $user,
+            $before,
+            $user->fresh()->toArray()
+        );
 
         return back()->with('success', 'Password berhasil diubah');
     }

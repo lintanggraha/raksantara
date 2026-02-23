@@ -7,15 +7,17 @@
 @stop
 
 @section('auth_body')
+    <p class="text-secondary">Gunakan username yang sama dengan akun login Anda.</p>
+
     <form method="POST" action="{{ route('password.update') }}">
         @csrf
 
         <input type="hidden" name="token" value="{{ $token }}">
 
         <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" value="{{ $email ?? old('email') }}" class="form-control @error('email') is-invalid @enderror" required autofocus>
-            @error('email')
+            <label class="form-label">Username</label>
+            <input type="text" name="username" value="{{ $username ?? old('username') }}" class="form-control @error('username') is-invalid @enderror" required autofocus>
+            @error('username')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
@@ -35,4 +37,9 @@
 
         <button type="submit" class="btn btn-primary w-100">Update Password</button>
     </form>
+@stop
+
+@section('auth_footer')
+    <a href="{{ route('login') }}">Kembali ke login</a><br>
+    <small class="text-muted">Jika link reset tidak tersedia, hubungi superadmin.</small>
 @stop

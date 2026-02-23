@@ -24,6 +24,9 @@
             'scope' => 'recap',
             'scopeLabel' => 'Recap',
         ])
+        <a href="{{ route('risks.monitoring') }}" class="btn btn-dark btn-sm with-icon">
+            <i class="fas fa-chart-line"></i> Monitoring
+        </a>
         <a href="{{ route('risks.index') }}" class="btn btn-secondary btn-sm with-icon">
             <i class="fas fa-table"></i> Risk Register
         </a>

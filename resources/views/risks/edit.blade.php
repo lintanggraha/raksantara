@@ -235,6 +235,24 @@
                                 </select>
                             </div>
                         </div>
+                        @if(!auth()->user()->isSuperadmin())
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label>Status Change Reason</label>
+                                    <input
+                                        type="text"
+                                        name="status_change_reason"
+                                        class="form-control"
+                                        maxlength="2000"
+                                        value="{{ old('status_change_reason') }}"
+                                        placeholder="Required when requesting Monitoring / Closed"
+                                    >
+                                    <small class="text-muted">
+                                        Perubahan ke Monitoring/Closed akan dibuat sebagai request approval superadmin.
+                                    </small>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <hr>
@@ -417,6 +435,7 @@
                             @php($rowIndex++)
                             <div class="card mb-2 treatment-row" id="treatment-{{ $rowIndex }}">
                                 <div class="card-body">
+                                    <input type="hidden" name="treatment_id[]" value="{{ $treatment->id }}">
                                     <button type="button" class="btn btn-danger btn-sm float-right" onclick="removeTreatment({{ $rowIndex }})">
                                         <i class="fas fa-trash"></i> Remove
                                     </button>
@@ -964,6 +983,7 @@ function addTreatmentRow() {
     const html = `
         <div class="card mb-2 treatment-row" id="treatment-${treatmentCount}">
             <div class="card-body">
+                <input type="hidden" name="treatment_id[]" value="">
                 <button type="button" class="btn btn-danger btn-sm float-right" onclick="removeTreatment(${treatmentCount})">
                     <i class="fas fa-trash"></i> Remove
                 </button>

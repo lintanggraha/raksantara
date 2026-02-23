@@ -24,4 +24,14 @@ class RiskTreatment extends Model
         return $this->belongsTo(Risk::class);
     }
 
+    public function alerts()
+    {
+        return $this->hasMany(RiskAlert::class);
+    }
+
+    public function attachments()
+    {
+        return $this->morphMany(EvidenceAttachment::class, 'attachable');
+    }
+
 }

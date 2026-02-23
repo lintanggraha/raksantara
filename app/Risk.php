@@ -5,6 +5,7 @@ namespace App;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 
 class Risk extends Model
 {
@@ -58,24 +59,59 @@ class Risk extends Model
         return $this->belongsTo(ImpactScale::class);
     }
 
-    public static function generateRiskId()
+    public static function generateRiskId(?int $year = null): string
     {
-        $year = Carbon::now()->year;
+        $year = $year ?: Carbon::now()->year;
+        $maxNumber = 0;
 
-        $last = self::where('year', $year)
-            ->whereNotNull('risk_id')
-            ->orderBy('risk_id', 'desc')
-            ->first();
+        foreach (
+            self::query()
+                ->where('year', $year)
+                ->whereNotNull('risk_id')
+                ->pluck('risk_id') as $riskId
+        ) {
+            if (preg_match('/^RISK\-' . preg_quote((string) $year, '/') . '\-(\d+)$/', (string) $riskId, $matches) !== 1) {
+                continue;
+            }
 
-        if (!$last) {
-            $nextNumber = 1;
-        } else {
-            // ambil 3 digit terakhir
-            $lastNumber = (int) substr($last->risk_id, -3);
-            $nextNumber = $lastNumber + 1;
+            $number = (int) $matches[1];
+            if ($number > $maxNumber) {
+                $maxNumber = $number;
+            }
         }
 
-        return sprintf('RISK-%d-%03d', $year, $nextNumber);
+        return sprintf('RISK-%d-%03d', $year, $maxNumber + 1);
+    }
+
+    public static function createWithGeneratedRiskId(array $attributes, int $maxAttempts = 5): self
+    {
+        $year = (int) ($attributes['year'] ?? Carbon::now()->year);
+        $attempt = 0;
+
+        while ($attempt < $maxAttempts) {
+            $attempt++;
+            $attributes['year'] = $year;
+            $attributes['risk_id'] = self::generateRiskId($year);
+
+            try {
+                return self::create($attributes);
+            } catch (QueryException $exception) {
+                if (!self::isRiskIdDuplicateException($exception) || $attempt >= $maxAttempts) {
+                    throw $exception;
+                }
+            }
+        }
+
+        throw new \RuntimeException('Unable to generate unique risk ID.');
+    }
+
+    private static function isRiskIdDuplicateException(QueryException $exception): bool
+    {
+        $message = strtolower((string) $exception->getMessage());
+
+        return strpos($message, 'duplicate') !== false
+            && strpos($message, 'risk') !== false
+            && strpos($message, 'id') !== false;
     }
     
     public function treatments()
@@ -91,6 +127,26 @@ class Risk extends Model
     public function residualAnalysis()
     {
         return $this->hasOne(RiskResidualAnalysis::class);
+    }
+
+    public function statusChangeRequests()
+    {
+        return $this->hasMany(RiskStatusChangeRequest::class);
+    }
+
+    public function alerts()
+    {
+        return $this->hasMany(RiskAlert::class);
+    }
+
+    public function attachments()
+    {
+        return $this->morphMany(EvidenceAttachment::class, 'attachable');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(RiskComment::class);
     }
 
     public function creator()

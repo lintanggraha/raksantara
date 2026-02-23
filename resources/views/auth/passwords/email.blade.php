@@ -7,14 +7,18 @@
 @stop
 
 @section('auth_body')
-    <p class="text-secondary">Masukkan email akun Anda, kami kirimkan link reset password.</p>
+    <p class="text-secondary">
+        Masukkan username akun Anda untuk mengajukan reset password.
+        Jika username terdaftar, sistem akan memproses permintaan reset.
+        Jika server offline/tidak terhubung email, hubungi superadmin untuk reset password sementara.
+    </p>
 
     <form method="POST" action="{{ route('password.email') }}">
         @csrf
         <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" required autofocus>
-            @error('email')
+            <label class="form-label">Username</label>
+            <input type="text" name="username" value="{{ old('username') }}" class="form-control @error('username') is-invalid @enderror" required autofocus>
+            @error('username')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
@@ -23,5 +27,6 @@
 @stop
 
 @section('auth_footer')
-    <a href="{{ route('login') }}">Kembali ke login</a>
+    <a href="{{ route('login') }}">Kembali ke login</a><br>
+    <small class="text-muted">Tidak menerima email? Minta reset manual ke superadmin.</small>
 @stop

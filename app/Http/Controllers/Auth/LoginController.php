@@ -38,6 +38,7 @@ class LoginController extends Controller
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
+        $this->middleware('throttle:5,1')->only('login', 'postLogin');
     }
 
     /**
@@ -58,5 +59,12 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    protected function authenticated(Request $request, $user)
+    {
+        if (method_exists($user, 'isDivisionVerified') && !$user->isDivisionVerified()) {
+            return redirect()->route('account.pending');
+        }
     }
 }

@@ -24,6 +24,9 @@
             'scope' => 'heatmap',
             'scopeLabel' => 'Heat Map',
         ])
+        <a href="{{ route('risks.monitoring') }}" class="btn btn-dark btn-sm with-icon">
+            <i class="fas fa-chart-line"></i> Monitoring
+        </a>
         <a href="{{ route('risks.recap') }}" class="btn btn-info btn-sm with-icon">
             <i class="fas fa-chart-bar"></i> Recap
         </a>

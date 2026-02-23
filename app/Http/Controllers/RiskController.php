@@ -4,20 +4,29 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use App\AuditLog;
+use App\EvidenceAttachment;
 use App\Risk;
+use App\RiskAlert;
 use App\RiskCategory;
 use App\RiskCauseCategory;
+use App\RiskComment;
 use App\ImpactCategory;
 use App\ImpactScale;
 use App\RiskTreatment;
 use App\RiskScoreMatrix;
 use App\RiskInherentAnalysis;
 use App\RiskResidualAnalysis;
+use App\RiskStatusChangeRequest;
 use App\RadarGroup;
+use App\Support\AuditLogger;
 use App\Support\InputValidation;
-use App\Support\RiskOwnerAccess;
 
 class RiskController extends Controller
 {
@@ -1034,25 +1043,7 @@ class RiskController extends Controller
             'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
         ]);
 
-        $query = Risk::with([
-            'category',
-            'causeCategory',
-            'impactScale.category',
-            'inherentAnalysis.impactScale',
-            'residualAnalysis.impactScale',
-            'residualAnalysis.radarGroup',
-            'treatments'
-        ]);
-
-        if ($request->risk_category_id) {
-            $query->where('risk_category_id', $request->risk_category_id);
-        }
-
-        if ($request->risk_cause_category_id) {
-            $query->where('risk_cause_category_id', $request->risk_cause_category_id);
-        }
-
-        $risks = $query->get();
+        $risks = $this->buildIndexQuery($request)->get();
 
         $categories = RiskCategory::all();
         $causeCategories = RiskCauseCategory::all();
@@ -1064,8 +1055,37 @@ class RiskController extends Controller
         ));
     }
 
+    public function monitoring(Request $request)
+    {
+        $request->validate([
+            'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
+            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
+        ]);
+
+        $risks = $this->buildIndexQuery($request)->get();
+        $dashboardSummary = $this->buildDashboardSummaryFromCollection($risks);
+
+        return view('risks.monitoring', compact(
+            'dashboardSummary'
+        ));
+    }
+
+    public function dashboardSummary(Request $request)
+    {
+        $request->validate([
+            'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
+            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
+        ]);
+
+        $risks = $this->buildIndexQuery($request)->get();
+
+        return response()->json($this->buildDashboardSummaryFromCollection($risks));
+    }
+
     public function create()
     {
+        $this->ensureRiskWriteAllowed();
+
         $categories = RiskCategory::all();
         $causeCategories = RiskCauseCategory::all();
         $impactCategories = ImpactCategory::all();
@@ -1089,6 +1109,8 @@ class RiskController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureRiskWriteAllowed();
+
         $allowedRiskOwners = $this->allowedRiskOwners();
 
         abort_if(
@@ -1113,8 +1135,7 @@ class RiskController extends Controller
 
         try {
             DB::transaction(function () use ($validated) {
-                $risk = Risk::create([
-                    'risk_id' => Risk::generateRiskId(),
+                $risk = Risk::createWithGeneratedRiskId([
                     'year' => now()->year,
                     'risk_title' => $validated['risk_title'],
                     'risk_category_id' => $validated['risk_category_id'],
@@ -1279,6 +1300,17 @@ class RiskController extends Controller
                         'radar_code' => $radarCode,
                     ]);
                 }
+
+                AuditLogger::logModelEvent(
+                    'risk.created',
+                    $risk,
+                    null,
+                    $risk->fresh([
+                        'inherentAnalysis',
+                        'residualAnalysis',
+                        'treatments',
+                    ])->toArray()
+                );
             });
         } catch (\Throwable $e) {
             $context = [
@@ -1304,23 +1336,48 @@ class RiskController extends Controller
             'category',
             'causeCategory',
             'impactScale.category',
-            'treatments',
+            'attachments.uploader',
+            'treatments.attachments.uploader',
+            'comments' => function ($query) {
+                $query
+                    ->with(['user', 'mentions', 'attachments.uploader'])
+                    ->oldest();
+            },
             'inherentAnalysis.impactScale',
             'residualAnalysis.impactScale',
-            'residualAnalysis.radarGroup'
+            'residualAnalysis.radarGroup',
+            'statusChangeRequests' => function ($query) {
+                $query
+                    ->with(['requester', 'reviewer'])
+                    ->latest();
+            },
+            'alerts' => function ($query) {
+                $query
+                    ->with('treatment')
+                    ->latest();
+            },
         ])->findOrFail($id);
 
-        return view('risks.show', compact('risk'));
+        $activityLogs = $this->loadRiskActivityLogs($risk);
+
+        return view('risks.show', compact('risk', 'activityLogs'));
     }
 
 
     public function edit($id)
     {
+        $this->ensureRiskWriteAllowed();
+
         $risk = Risk::with([
             'inherentAnalysis.impactScale.category',
             'residualAnalysis.impactScale.category',
             'residualAnalysis.radarGroup',
             'treatments',
+            'statusChangeRequests' => function ($query) {
+                $query
+                    ->where('status', 'pending')
+                    ->latest();
+            },
         ])->findOrFail($id);
         $this->ensureCanManageRisk($risk);
         $categories = RiskCategory::all();
@@ -1341,7 +1398,15 @@ class RiskController extends Controller
 
     public function update(Request $request, $id)
     {
-        $risk = Risk::with(['inherentAnalysis', 'residualAnalysis', 'treatments'])->findOrFail($id);
+        $this->ensureRiskWriteAllowed();
+
+        $risk = Risk::with([
+            'inherentAnalysis',
+            'residualAnalysis',
+            'treatments.attachments',
+            'statusChangeRequests',
+            'attachments',
+        ])->findOrFail($id);
         $this->ensureCanManageRisk($risk);
         $allowedRiskOwners = $this->allowedRiskOwners($risk->risk_owner);
 
@@ -1353,8 +1418,73 @@ class RiskController extends Controller
             $this->riskValidationAttributes()
         );
 
+        $statusApprovalRequested = false;
+
         try {
-            DB::transaction(function () use ($risk, $validated) {
+            DB::transaction(function () use ($risk, $validated, &$statusApprovalRequested) {
+                $isSuperadmin = !is_null(auth()->user()) && auth()->user()->isSuperadmin();
+                $requestedStatus = (string) $validated['status'];
+                $currentStatus = (string) $risk->status;
+                $statusToPersist = $currentStatus;
+                $statusReason = trim((string) ($validated['status_change_reason'] ?? ''));
+
+                if ($requestedStatus !== $currentStatus) {
+                    if ($isSuperadmin || $requestedStatus === 'Open') {
+                        $statusToPersist = $requestedStatus;
+                    } elseif (in_array($requestedStatus, ['Monitoring', 'Closed'], true)) {
+                        if ($statusReason === '') {
+                            throw ValidationException::withMessages([
+                                'status_change_reason' => 'Status change reason is required for Monitoring or Closed request.',
+                            ]);
+                        }
+
+                        $statusToPersist = $currentStatus;
+                        $statusApprovalRequested = true;
+
+                        $statusRequest = $risk->statusChangeRequests()
+                            ->where('status', 'pending')
+                            ->where('to_status', $requestedStatus)
+                            ->latest()
+                            ->first();
+
+                        if (is_null($statusRequest)) {
+                            $statusRequest = RiskStatusChangeRequest::create([
+                                'risk_id' => $risk->id,
+                                'requested_by' => auth()->id(),
+                                'from_status' => $currentStatus,
+                                'to_status' => $requestedStatus,
+                                'reason' => $statusReason !== '' ? $statusReason : null,
+                                'status' => 'pending',
+                            ]);
+
+                            AuditLogger::logModelEvent(
+                                'risk.status_change.requested',
+                                $statusRequest,
+                                null,
+                                $statusRequest->toArray()
+                            );
+                        } else {
+                            $beforeRequest = $statusRequest->toArray();
+                            $statusRequest->update([
+                                'requested_by' => auth()->id(),
+                                'from_status' => $currentStatus,
+                                'reason' => $statusReason !== '' ? $statusReason : null,
+                            ]);
+
+                            AuditLogger::logModelEvent(
+                                'risk.status_change.request.updated',
+                                $statusRequest,
+                                $beforeRequest,
+                                $statusRequest->fresh()->toArray()
+                            );
+                        }
+                    } else {
+                        $statusToPersist = $requestedStatus;
+                    }
+                }
+
+                $beforeRisk = $risk->toArray();
+
                 $risk->update([
                     'risk_title' => $validated['risk_title'],
                     'risk_description' => $validated['risk_description'] ?? null,
@@ -1363,12 +1493,14 @@ class RiskController extends Controller
                     'cause' => $validated['cause'] ?? null,
                     'existing_control' => $validated['existing_control'] ?? null,
                     'risk_owner' => $validated['risk_owner'],
-                    'status' => $validated['status'],
+                    'status' => $statusToPersist,
                 ]);
 
                 $totalEffScore = [];
-                $risk->treatments()->delete();
+                $existingTreatments = $risk->treatments->keyBy('id');
+                $keptTreatmentIds = [];
 
+                $treatmentIds = $validated['treatment_id'] ?? [];
                 $treatments = $validated['treatment_option'] ?? [];
                 $descriptions = $validated['treatment_description'] ?? [];
                 $pics = $validated['treatment_pic'] ?? [];
@@ -1388,17 +1520,49 @@ class RiskController extends Controller
                     ];
                     $effScore = $map[$effLabel] ?? 0;
 
-                    RiskTreatment::create([
-                        'risk_id' => $risk->id,
+                    $payload = [
                         'option' => $option,
                         'description' => $descriptions[$key] ?? null,
                         'pic' => $pics[$key] ?? null,
                         'deadline' => $deadlines[$key] ?? null,
                         'effectiveness' => $effLabel,
                         'effectiveness_score' => $effScore,
-                    ]);
+                    ];
+
+                    $requestedTreatmentId = isset($treatmentIds[$key]) ? (int) $treatmentIds[$key] : 0;
+                    if ($requestedTreatmentId > 0) {
+                        $existingTreatment = $existingTreatments->get($requestedTreatmentId);
+                        if (is_null($existingTreatment)) {
+                            throw ValidationException::withMessages([
+                                'treatment_id' => 'Invalid treatment reference.',
+                            ]);
+                        }
+
+                        $existingTreatment->update($payload);
+                        $keptTreatmentIds[] = (int) $existingTreatment->id;
+                    } else {
+                        $createdTreatment = RiskTreatment::create(array_merge(
+                            ['risk_id' => $risk->id],
+                            $payload
+                        ));
+                        $keptTreatmentIds[] = (int) $createdTreatment->id;
+                    }
 
                     $totalEffScore[] = $effScore;
+                }
+
+                $removedTreatments = $risk->treatments()
+                    ->with('attachments')
+                    ->when(!empty($keptTreatmentIds), function ($query) use ($keptTreatmentIds) {
+                        $query->whereNotIn('id', $keptTreatmentIds);
+                    }, function ($query) {
+                        $query->whereNotNull('id');
+                    })
+                    ->get();
+
+                foreach ($removedTreatments as $removedTreatment) {
+                    $this->deleteAttachmentCollection($removedTreatment->attachments, 'evidence.deleted.by_treatment_remove');
+                    $removedTreatment->delete();
                 }
 
                 $hasInherent = isset(
@@ -1541,6 +1705,17 @@ class RiskController extends Controller
                         ]
                     );
                 }
+
+                AuditLogger::logModelEvent(
+                    'risk.updated',
+                    $risk,
+                    $beforeRisk,
+                    $risk->fresh([
+                        'inherentAnalysis',
+                        'residualAnalysis',
+                        'treatments',
+                    ])->toArray()
+                );
             });
         } catch (\Throwable $e) {
             Log::error('RiskController@update failed', [
@@ -1553,14 +1728,36 @@ class RiskController extends Controller
                 ->with('error', 'Failed to update risk. Please check the input and try again.');
         }
 
+        if ($statusApprovalRequested) {
+            return redirect()
+                ->route('risks.index')
+                ->with('success', 'Risk updated. Status change request submitted and waiting for superadmin approval.');
+        }
+
         return redirect()->route('risks.index')->with('success', 'Risk updated successfully with analysis data');
     }
 
     public function destroy($id)
     {
-        $risk = Risk::findOrFail($id);
+        $this->ensureRiskWriteAllowed();
+
+        $risk = Risk::with([
+            'attachments',
+            'treatments.attachments',
+            'inherentAnalysis',
+            'residualAnalysis',
+        ])->findOrFail($id);
         $this->ensureCanManageRisk($risk);
+        $beforeRisk = $risk->toArray();
+
+        $this->deleteAttachmentCollection($risk->attachments, 'evidence.deleted.by_risk_remove');
+        foreach ($risk->treatments as $treatment) {
+            $this->deleteAttachmentCollection($treatment->attachments, 'evidence.deleted.by_treatment_remove');
+        }
+
         $risk->delete();
+
+        AuditLogger::logModelEvent('risk.deleted', $risk, $beforeRisk, null);
 
         return redirect()->route('risks.index')->with('success', 'Risk deleted successfully');
     }
@@ -1611,7 +1808,10 @@ class RiskController extends Controller
             'residual_potential_loss' => ['nullable', 'numeric', $strictInteger, 'min:0'],
             'radar_group_id' => 'nullable|integer|exists:radar_groups,id',
             'radar_description' => 'nullable|string|max:255',
-            'radar_code' => 'nullable|string|max:50|regex:/^[A-Za-z0-9\\/]+$/',
+            'radar_code' => 'nullable|string|max:10|regex:/^[A-Za-z0-9\\/]+$/',
+            'status_change_reason' => ['nullable', 'string', 'max:2000', $textRule5000],
+            'treatment_id' => 'nullable|array|max:20',
+            'treatment_id.*' => 'nullable|integer|min:1',
             'treatment_option' => 'nullable|array|max:20',
             'treatment_option.*' => 'nullable|string|in:Avoidance,Mitigation,Transfer,Acceptance',
             'treatment_description' => 'nullable|array|max:20',
@@ -1651,6 +1851,7 @@ class RiskController extends Controller
             'residual_probability_percent.regex' => InputValidation::strictDecimalMessage(),
             'residual_potential_loss.regex' => InputValidation::strictIntegerMessage(),
             'radar_code.regex' => 'Radar code hanya boleh berisi huruf, angka, dan slash (/).',
+            'status_change_reason.regex' => InputValidation::safeTextMessage(),
         ];
     }
 
@@ -1671,9 +1872,467 @@ class RiskController extends Controller
             'residual_impact_amount' => 'Residual Impact (Rp)',
             'residual_probability_percent' => 'Residual Probability (%)',
             'residual_potential_loss' => 'Residual Potential Loss (Rp)',
+            'status_change_reason' => 'Status Change Reason',
             'treatment_description.*' => 'Treatment Description',
             'treatment_pic.*' => 'Treatment PIC',
         ];
+    }
+
+    private function loadRiskActivityLogs(Risk $risk)
+    {
+        $auditableMap = $this->buildActivityAuditableMap($risk);
+        if (empty($auditableMap)) {
+            return collect();
+        }
+
+        $logs = AuditLog::with('actor')
+            ->where(function ($query) use ($auditableMap) {
+                foreach ($auditableMap as $auditableType => $ids) {
+                    if (empty($ids)) {
+                        continue;
+                    }
+
+                    $query->orWhere(function ($nested) use ($auditableType, $ids) {
+                        $nested
+                            ->where('auditable_type', $auditableType)
+                            ->whereIn('auditable_id', $ids);
+                    });
+                }
+            })
+            ->orderByDesc('created_at')
+            ->limit(150)
+            ->get();
+
+        return $logs->map(function (AuditLog $log) {
+            return [
+                'id' => (int) $log->id,
+                'time' => optional($log->created_at)->format('d-m-Y H:i:s') ?? '-',
+                'actor' => optional($log->actor)->name ?? 'System',
+                'event_label' => $this->activityEventLabel((string) $log->event),
+                'entity' => class_basename((string) $log->auditable_type) . '#' . (string) $log->auditable_id,
+                'details' => $this->activityDetails($log),
+            ];
+        });
+    }
+
+    private function buildActivityAuditableMap(Risk $risk): array
+    {
+        $attachmentIds = collect()
+            ->merge($risk->attachments->pluck('id'))
+            ->merge($risk->treatments->flatMap(function ($treatment) {
+                return $treatment->attachments->pluck('id');
+            }))
+            ->merge($risk->comments->flatMap(function ($comment) {
+                return $comment->attachments->pluck('id');
+            }))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $map = [
+            Risk::class => [(int) $risk->id],
+            RiskTreatment::class => $risk->treatments->pluck('id')->filter()->values()->all(),
+            RiskStatusChangeRequest::class => $risk->statusChangeRequests->pluck('id')->filter()->values()->all(),
+            RiskAlert::class => $risk->alerts->pluck('id')->filter()->values()->all(),
+            RiskComment::class => $risk->comments->pluck('id')->filter()->values()->all(),
+            EvidenceAttachment::class => $attachmentIds,
+        ];
+
+        $inherentId = optional($risk->inherentAnalysis)->id;
+        if (!is_null($inherentId)) {
+            $map[RiskInherentAnalysis::class] = [(int) $inherentId];
+        }
+
+        $residualId = optional($risk->residualAnalysis)->id;
+        if (!is_null($residualId)) {
+            $map[RiskResidualAnalysis::class] = [(int) $residualId];
+        }
+
+        return array_filter($map, function ($ids) {
+            return !empty($ids);
+        });
+    }
+
+    private function activityEventLabel(string $event): string
+    {
+        $labels = [
+            'risk.created' => 'Risk Created',
+            'risk.updated' => 'Risk Updated',
+            'risk.deleted' => 'Risk Deleted',
+            'risk.status_change.requested' => 'Status Change Requested',
+            'risk.status_change.request.updated' => 'Status Change Request Updated',
+            'risk.status_change.approved' => 'Status Change Approved',
+            'risk.status_change.rejected' => 'Status Change Rejected',
+            'risk.status.changed_by_approval' => 'Risk Status Updated by Approval',
+            'risk.comment.created' => 'Comment Created',
+            'risk.comment.updated' => 'Comment Updated',
+            'risk.comment.deleted' => 'Comment Deleted',
+            'evidence.risk.uploaded' => 'Risk Evidence Uploaded',
+            'evidence.treatment.uploaded' => 'Treatment Evidence Uploaded',
+            'evidence.comment.uploaded' => 'Comment Attachment Uploaded',
+            'evidence.deleted' => 'Evidence Deleted',
+            'evidence.deleted.by_comment_remove' => 'Comment Attachment Deleted',
+            'evidence.deleted.by_risk_remove' => 'Risk Attachment Deleted',
+            'evidence.deleted.by_treatment_remove' => 'Treatment Attachment Deleted',
+            'risk.alert.resolved' => 'Risk Alert Resolved',
+        ];
+
+        return $labels[$event] ?? ucwords(str_replace(['.', '_'], ' ', $event));
+    }
+
+    private function activityDetails(AuditLog $log): string
+    {
+        $after = is_array($log->after_state) ? $log->after_state : [];
+        $before = is_array($log->before_state) ? $log->before_state : [];
+
+        if (isset($after['content'])) {
+            return Str::limit((string) $after['content'], 140);
+        }
+
+        if (isset($before['content']) && (string) $before['content'] !== '') {
+            return Str::limit((string) $before['content'], 140);
+        }
+
+        if (isset($after['original_name'])) {
+            return 'File: ' . (string) $after['original_name'];
+        }
+
+        if (isset($before['original_name'])) {
+            return 'File: ' . (string) $before['original_name'];
+        }
+
+        if (isset($after['from_status']) || isset($after['to_status'])) {
+            return sprintf(
+                '%s -> %s',
+                (string) ($after['from_status'] ?? ($before['from_status'] ?? '-')),
+                (string) ($after['to_status'] ?? ($before['to_status'] ?? '-'))
+            );
+        }
+
+        if (isset($before['status']) && isset($after['status']) && (string) $before['status'] !== (string) $after['status']) {
+            return 'Status: ' . (string) $before['status'] . ' -> ' . (string) $after['status'];
+        }
+
+        if (!empty($after)) {
+            return 'Fields: ' . implode(', ', array_slice(array_keys($after), 0, 5));
+        }
+
+        if (!empty($before)) {
+            return 'Fields: ' . implode(', ', array_slice(array_keys($before), 0, 5));
+        }
+
+        return '-';
+    }
+
+    private function buildIndexQuery(Request $request)
+    {
+        $query = Risk::with([
+            'category',
+            'causeCategory',
+            'impactScale.category',
+            'inherentAnalysis.impactScale',
+            'residualAnalysis.impactScale',
+            'residualAnalysis.radarGroup',
+            'treatments',
+        ]);
+
+        if ($request->risk_category_id) {
+            $query->where('risk_category_id', $request->risk_category_id);
+        }
+
+        if ($request->risk_cause_category_id) {
+            $query->where('risk_cause_category_id', $request->risk_cause_category_id);
+        }
+
+        return $query;
+    }
+
+    private function buildDashboardSummaryFromCollection($risks): array
+    {
+        $totalRisks = (int) $risks->count();
+
+        $statusSummary = $this->buildGroupedCountRows($risks->groupBy(function ($risk) {
+            $status = trim((string) ($risk->status ?? 'Unknown'));
+
+            return $status !== '' ? $status : 'Unknown';
+        }));
+
+        $categorySummary = $this->buildGroupedCountRows($risks->groupBy(function ($risk) {
+            $category = trim((string) (optional($risk->category)->name ?? '-'));
+
+            return $category !== '' ? $category : '-';
+        }));
+
+        $ownerSummary = $this->buildGroupedCountRows($risks->groupBy(function ($risk) {
+            $owner = trim((string) ($risk->risk_owner ?? '-'));
+
+            return $owner !== '' ? $owner : '-';
+        }));
+
+        $statusSummaryCollection = collect($statusSummary)->keyBy('label');
+        $openCount = (int) ($statusSummaryCollection->get('Open')['count'] ?? 0);
+        $closedCount = (int) ($statusSummaryCollection->get('Closed')['count'] ?? 0);
+        $monitoringCount = (int) ($statusSummaryCollection->get('Monitoring')['count'] ?? 0);
+
+        $inherentAverage = $this->averageFromCollection($risks, function ($risk) {
+            return optional($risk->inherentAnalysis)->inherent_risk_score;
+        });
+        $residualAverage = $this->averageFromCollection($risks, function ($risk) {
+            return optional($risk->residualAnalysis)->residual_risk_score;
+        });
+        $overallAverage = $this->averageFromCollection($risks, function ($risk) {
+            $residual = optional($risk->residualAnalysis)->residual_risk_score;
+            if (is_numeric($residual)) {
+                return (float) $residual;
+            }
+
+            $inherent = optional($risk->inherentAnalysis)->inherent_risk_score;
+
+            return is_numeric($inherent) ? (float) $inherent : null;
+        });
+
+        $trendRows = $this->buildTrendRows($risks);
+
+        $treatments = $risks->flatMap(function ($risk) {
+            return $risk->treatments->map(function ($treatment) use ($risk) {
+                return [
+                    'risk_id' => (int) $risk->id,
+                    'deadline' => $treatment->deadline,
+                    'effectiveness_score' => $treatment->effectiveness_score,
+                ];
+            });
+        })->values();
+
+        $treatmentCount = (int) $treatments->count();
+        $effectivenessAverageScore = $this->averageFromCollection($treatments, function ($row) {
+            return $row['effectiveness_score'] ?? null;
+        });
+        $mitigationEffectivenessPercent = round($effectivenessAverageScore * 100, 2);
+        $coveredRiskCount = (int) $treatments->pluck('risk_id')->unique()->count();
+        $riskCoveragePercent = $totalRisks > 0
+            ? round(($coveredRiskCount / $totalRisks) * 100, 2)
+            : 0.0;
+
+        $today = Carbon::today();
+        $dueTreatments = $treatments->filter(function ($row) {
+            return !empty($row['deadline']);
+        });
+        $dueCount = (int) $dueTreatments->count();
+        $compliantCount = (int) $dueTreatments->filter(function ($row) use ($today) {
+            try {
+                return Carbon::parse($row['deadline'])->startOfDay()->greaterThanOrEqualTo($today);
+            } catch (\Throwable $e) {
+                return false;
+            }
+        })->count();
+        $overdueCount = max(0, $dueCount - $compliantCount);
+
+        $slaTargetPercent = 95.0;
+        $slaActualPercent = $dueCount > 0
+            ? round(($compliantCount / $dueCount) * 100, 2)
+            : 100.0;
+
+        $varianceRows = $this->buildVarianceRows($risks);
+        $globalVariance = round($inherentAverage - $residualAverage, 2);
+
+        return [
+            'generated_at' => now()->format('Y-m-d H:i:s'),
+            'total_risks' => $totalRisks,
+            'open_count' => $openCount,
+            'closed_count' => $closedCount,
+            'monitoring_count' => $monitoringCount,
+            'summary_by_status' => $statusSummary,
+            'summary_by_category' => $categorySummary,
+            'summary_by_owner' => $ownerSummary,
+            'average_scores' => [
+                'inherent' => $inherentAverage,
+                'residual' => $residualAverage,
+                'overall' => $overallAverage,
+            ],
+            'trend' => $trendRows,
+            'mitigation' => [
+                'treatment_count' => $treatmentCount,
+                'covered_risk_count' => $coveredRiskCount,
+                'risk_coverage_percent' => $riskCoveragePercent,
+                'average_effectiveness_score' => $effectivenessAverageScore,
+                'effectiveness_percent' => $mitigationEffectivenessPercent,
+            ],
+            'sla' => [
+                'target_percent' => $slaTargetPercent,
+                'actual_percent' => $slaActualPercent,
+                'due_count' => $dueCount,
+                'compliant_count' => $compliantCount,
+                'overdue_count' => $overdueCount,
+            ],
+            'variance' => [
+                'global' => $globalVariance,
+                'rows' => $varianceRows,
+            ],
+        ];
+    }
+
+    private function buildGroupedCountRows($grouped): array
+    {
+        return $grouped
+            ->map(function ($items, $label) {
+                return [
+                    'label' => (string) $label,
+                    'count' => (int) $items->count(),
+                ];
+            })
+            ->sortByDesc('count')
+            ->values()
+            ->all();
+    }
+
+    private function averageFromCollection($collection, callable $resolver): float
+    {
+        $numbers = collect($collection)
+            ->map($resolver)
+            ->filter(function ($value) {
+                return is_numeric($value);
+            })
+            ->map(function ($value) {
+                return (float) $value;
+            })
+            ->values();
+
+        if ($numbers->isEmpty()) {
+            return 0.0;
+        }
+
+        return round((float) $numbers->avg(), 2);
+    }
+
+    private function buildTrendRows($risks): array
+    {
+        $trendMap = [];
+        for ($i = 2; $i >= 0; $i--) {
+            $month = Carbon::now()->startOfMonth()->subMonths($i);
+            $key = $month->format('Y-m');
+            $trendMap[$key] = [
+                'month' => $key,
+                'label' => $month->format('M Y'),
+                'inherent_scores' => [],
+                'residual_scores' => [],
+                'overall_scores' => [],
+            ];
+        }
+
+        foreach ($risks as $risk) {
+            $createdAt = optional($risk->created_at);
+            if (is_null($createdAt)) {
+                continue;
+            }
+
+            $key = $createdAt->format('Y-m');
+            if (!isset($trendMap[$key])) {
+                continue;
+            }
+
+            $inherent = optional($risk->inherentAnalysis)->inherent_risk_score;
+            $residual = optional($risk->residualAnalysis)->residual_risk_score;
+            $overall = is_numeric($residual)
+                ? (float) $residual
+                : (is_numeric($inherent) ? (float) $inherent : null);
+
+            if (is_numeric($inherent)) {
+                $trendMap[$key]['inherent_scores'][] = (float) $inherent;
+            }
+
+            if (is_numeric($residual)) {
+                $trendMap[$key]['residual_scores'][] = (float) $residual;
+            }
+
+            if (is_numeric($overall)) {
+                $trendMap[$key]['overall_scores'][] = (float) $overall;
+            }
+        }
+
+        return collect($trendMap)->map(function ($row) {
+            $inherentAvg = !empty($row['inherent_scores'])
+                ? round(array_sum($row['inherent_scores']) / count($row['inherent_scores']), 2)
+                : 0.0;
+            $residualAvg = !empty($row['residual_scores'])
+                ? round(array_sum($row['residual_scores']) / count($row['residual_scores']), 2)
+                : 0.0;
+            $overallAvg = !empty($row['overall_scores'])
+                ? round(array_sum($row['overall_scores']) / count($row['overall_scores']), 2)
+                : 0.0;
+
+            return [
+                'month' => $row['month'],
+                'label' => $row['label'],
+                'inherent' => $inherentAvg,
+                'residual' => $residualAvg,
+                'overall' => $overallAvg,
+            ];
+        })->values()->all();
+    }
+
+    private function buildVarianceRows($risks): array
+    {
+        return $risks->groupBy(function ($risk) {
+            $category = trim((string) (optional($risk->category)->name ?? '-'));
+
+            return $category !== '' ? $category : '-';
+        })->map(function ($items, $category) {
+            $inherent = collect($items)
+                ->map(function ($risk) {
+                    return optional($risk->inherentAnalysis)->inherent_risk_score;
+                })
+                ->filter(function ($value) {
+                    return is_numeric($value);
+                })
+                ->map(function ($value) {
+                    return (float) $value;
+                })
+                ->values();
+
+            $residual = collect($items)
+                ->map(function ($risk) {
+                    return optional($risk->residualAnalysis)->residual_risk_score;
+                })
+                ->filter(function ($value) {
+                    return is_numeric($value);
+                })
+                ->map(function ($value) {
+                    return (float) $value;
+                })
+                ->values();
+
+            $inherentAvg = $inherent->isEmpty() ? 0.0 : (float) $inherent->avg();
+            $residualAvg = $residual->isEmpty() ? 0.0 : (float) $residual->avg();
+            $variance = $inherentAvg - $residualAvg;
+
+            return [
+                'category' => (string) $category,
+                'risk_count' => (int) $items->count(),
+                'avg_inherent' => round($inherentAvg, 2),
+                'avg_residual' => round($residualAvg, 2),
+                'variance' => round($variance, 2),
+            ];
+        })
+            ->sortByDesc(function ($row) {
+                return abs((float) $row['variance']);
+            })
+            ->values()
+            ->all();
+    }
+
+    private function deleteAttachmentCollection($attachments, string $auditEvent): void
+    {
+        foreach ($attachments as $attachment) {
+            $before = $attachment->toArray();
+
+            if (!empty($attachment->storage_path) && Storage::disk('local')->exists($attachment->storage_path)) {
+                Storage::disk('local')->delete($attachment->storage_path);
+            }
+
+            $attachment->delete();
+            AuditLogger::logModelEvent($auditEvent, $attachment, $before, null);
+        }
     }
 
     private function ensureCanManageRisk(Risk $risk): void
@@ -1686,11 +2345,23 @@ class RiskController extends Controller
         );
     }
 
+    private function ensureRiskWriteAllowed(): void
+    {
+        $user = auth()->user();
+        abort_if(
+            !is_null($user) && $user->isSuperadmin(),
+            403,
+            'Superadmin is read-only for risk dashboard.'
+        );
+    }
+
     private function allowedRiskOwners(?string $includeCurrent = null): array
     {
-        return RiskOwnerAccess::allowedRiskOwnersForDivision(
-            optional(auth()->user())->division,
-            $includeCurrent
-        );
+        $user = auth()->user();
+        if (is_null($user)) {
+            return [];
+        }
+
+        return $user->allowedRiskOwners($includeCurrent);
     }
 }
