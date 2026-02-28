@@ -120,6 +120,11 @@ class MonitoringReportWorkflowTest extends TestCase
 
         $overviewSection = collect($monitoring['sections'] ?? [])->firstWhere('title', 'Monitoring Overview');
         $this->assertNotNull($overviewSection);
+        $monitoringSectionTitles = collect($monitoring['sections'] ?? [])->pluck('title')->all();
+        $this->assertContains('KPI Dashboard', $monitoringSectionTitles);
+        $this->assertContains('Heat Map Trends - Historical Comparison', $monitoringSectionTitles);
+        $this->assertContains('Department / Division Performance', $monitoringSectionTitles);
+        $this->assertContains('Root Cause Analysis - Pattern Insights', $monitoringSectionTitles);
 
         $metricMap = collect($overviewSection['rows'] ?? [])
             ->filter(function ($row) {

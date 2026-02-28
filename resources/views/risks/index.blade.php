@@ -68,6 +68,43 @@ table td {
     line-height: 1;
 }
 
+.risk-summary-shell {
+    border: 1px solid #d8e2ef;
+    border-radius: 0.85rem;
+    background: linear-gradient(165deg, #f8fbff 0%, #f3f7fc 100%);
+    padding: 0.85rem;
+    margin-bottom: 0.9rem;
+}
+
+.risk-summary-shell .small-box {
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.risk-tab-panels {
+    margin-top: 0.35rem;
+}
+
+.risk-tab-panel {
+    display: none;
+}
+
+.risk-tab-panel.active {
+    display: block;
+    animation: riskTabFadeIn 0.18s ease;
+}
+
+@keyframes riskTabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .table-controls-panel {
     background: #f8fafc;
     border: 1px solid #dbe7f3;
@@ -418,7 +455,13 @@ thead th {
     }
 @endphp
 
-<div class="row mb-4">
+<div class="risk-summary-shell">
+<div class="mb-2">
+    <h2 class="h4 mb-1">Risk</h2>
+    <small class="text-muted">Last refresh: {{ now()->format('Y-m-d H:i:s') }}</small>
+</div>
+
+<div class="row mb-0">
     <div class="col-md-2">
         <div class="small-box bg-info">
             <div class="inner">
@@ -474,6 +517,15 @@ thead th {
         </div>
     </div>
 </div>
+</div>
+
+@include('risks.partials.register-nav-tabs', [
+    'workspaceMode' => true,
+    'activeRiskTab' => $activeRiskTab ?? 'register',
+])
+
+<div class="risk-tab-panels">
+<div class="risk-tab-panel active" data-risk-tab-panel="register">
 
 {{-- FILTER --}}
 <div class="table-controls-panel">
@@ -483,11 +535,26 @@ thead th {
                 <i class="fas fa-filter"></i> Filter Owner
             </div>
             <div class="table-control-body">
+                @php
+                    $selectedOwnerFilter = trim((string) request('risk_owner', ''));
+                    $ownerFilterOptions = $risks
+                        ->map(function ($risk) {
+                            return \App\Support\RiskOwnerAccess::displayLabel($risk->risk_owner);
+                        })
+                        ->filter(function ($owner) {
+                            return $owner !== '-';
+                        })
+                        ->unique()
+                        ->sort(function ($left, $right) {
+                            return strnatcasecmp((string) $left, (string) $right);
+                        })
+                        ->values();
+                @endphp
                 <select id="ownerFilter" class="form-control">
                     <option value="">All Owner</option>
 
-                    @foreach($risks->pluck('risk_owner')->unique() as $owner)
-                    <option value="{{ $owner }}">{{ $owner }}</option>
+                    @foreach($ownerFilterOptions as $owner)
+                    <option value="{{ $owner }}" {{ $selectedOwnerFilter === (string) $owner ? 'selected' : '' }}>{{ $owner }}</option>
                     @endforeach
 
                 </select>
@@ -515,12 +582,6 @@ thead th {
                     @endif
                     <a href="{{ route('risks.monitoring') }}" class="btn btn-dark btn-sm with-icon">
                         <i class="fas fa-chart-line"></i> Monitoring
-                    </a>
-                    <a href="{{ route('risks.recap') }}" class="btn btn-info btn-sm with-icon">
-                        <i class="fas fa-chart-bar"></i> Recap
-                    </a>
-                    <a href="{{ route('risks.heatmap') }}" class="btn btn-secondary btn-sm with-icon">
-                        <i class="fas fa-th"></i> Heat Map
                     </a>
                     @if(!auth()->user()->isSuperadmin())
                         <a href="{{ route('risks.create') }}" class="btn btn-primary btn-sm with-icon">
@@ -687,7 +748,7 @@ thead th {
 <td>{{ optional($risk->causeCategory)->name }}</td>
 <td>{{ $risk->cause }}</td>
 <td>{{ $risk->existing_control }}</td>
-<td>{{ $risk->risk_owner }}</td>
+<td>{{ \App\Support\RiskOwnerAccess::displayLabel($risk->risk_owner) }}</td>
 
 {{-- INHERENT ANALYSIS --}}
 <td>
@@ -908,6 +969,24 @@ thead th {
 </table>
 </div>
 </div>
+</div>
+
+<div class="risk-tab-panel" data-risk-tab-panel="heatmap">
+    <div class="d-flex justify-content-end mb-2">
+        @include('reports.export-buttons', [
+            'scope' => 'heatmap',
+            'scopeLabel' => 'Heat Map',
+        ])
+    </div>
+    @include('risks.partials.heatmap-content')
+</div>
+
+<div class="risk-tab-panel" data-risk-tab-panel="recap">
+    @include('risks.partials.recap-content', [
+        'recapFormAction' => route('risks.index'),
+    ])
+</div>
+</div>
 
 @stop
 
@@ -1072,9 +1151,87 @@ try {
 
 applyColumnPreset(initialPreset);
 
-$('#ownerFilter').on('change', function(){
-table.column(10).search(this.value).draw();
+const ownerFilterElement = document.getElementById('ownerFilter');
+
+function syncOwnerFilterToUrl(ownerValue) {
+    if (!window.history || typeof window.history.replaceState !== 'function') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    if (ownerValue) {
+        url.searchParams.set('risk_owner', ownerValue);
+    } else {
+        url.searchParams.delete('risk_owner');
+    }
+    window.history.replaceState({}, '', url.toString());
+}
+
+if (ownerFilterElement) {
+    const initialOwnerValue = String(ownerFilterElement.value || '').trim();
+    if (initialOwnerValue !== '') {
+        table.column(10).search(initialOwnerValue).draw();
+    }
+
+    ownerFilterElement.addEventListener('change', function () {
+        const ownerValue = String(ownerFilterElement.value || '').trim();
+        table.column(10).search(ownerValue).draw();
+        syncOwnerFilterToUrl(ownerValue);
+    });
+}
+
+const riskWorkspaceButtons = document.querySelectorAll('[data-risk-workspace-tab]');
+const riskWorkspacePanels = document.querySelectorAll('[data-risk-tab-panel]');
+const riskWorkspaceTabs = ['register', 'heatmap', 'recap'];
+const serverActiveRiskTab = @json($activeRiskTab ?? 'register');
+
+function normalizeRiskWorkspaceTab(value) {
+    const normalized = String(value || '').toLowerCase().trim();
+    if (riskWorkspaceTabs.indexOf(normalized) >= 0) {
+        return normalized;
+    }
+
+    return 'register';
+}
+
+function applyRiskWorkspaceTab(tabId, updateUrl = true) {
+    const safeTab = normalizeRiskWorkspaceTab(tabId);
+
+    riskWorkspaceButtons.forEach(function (button) {
+        const isActive = normalizeRiskWorkspaceTab(button.getAttribute('data-risk-workspace-tab')) === safeTab;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    riskWorkspacePanels.forEach(function (panel) {
+        const panelTab = normalizeRiskWorkspaceTab(panel.getAttribute('data-risk-tab-panel'));
+        panel.classList.toggle('active', panelTab === safeTab);
+    });
+
+    if (safeTab === 'register') {
+        table.columns.adjust().draw(false);
+        updateColumnGroupHeaders();
+    }
+
+    if (updateUrl && window.history && typeof window.history.replaceState === 'function') {
+        const url = new URL(window.location.href);
+        if (safeTab === 'register') {
+            url.searchParams.delete('risk_tab');
+        } else {
+            url.searchParams.set('risk_tab', safeTab);
+        }
+        window.history.replaceState({}, '', url.toString());
+    }
+}
+
+riskWorkspaceButtons.forEach(function (button) {
+    button.addEventListener('click', function (event) {
+        event.preventDefault();
+        applyRiskWorkspaceTab(button.getAttribute('data-risk-workspace-tab'));
+    });
 });
+
+applyRiskWorkspaceTab(serverActiveRiskTab, false);
 
 });
 </script>

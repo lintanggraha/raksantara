@@ -117,6 +117,11 @@ class User extends Authenticatable
         return (bool) $this->force_password_change;
     }
 
+    public function dashboardPreference()
+    {
+        return $this->hasOne(UserDashboardPreference::class, 'user_id');
+    }
+
     private function ownRiskOwnerOptions(): array
     {
         $canonicalDivision = RiskOwnerAccess::canonicalOption($this->division);

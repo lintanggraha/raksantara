@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RiskController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\HealthCheckController;
+use App\Http\Controllers\DashboardPreferenceController;
 use App\Http\Controllers\ComplianceProgramController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\AuditLogController;
@@ -14,10 +16,16 @@ use App\Http\Controllers\RiskStatusApprovalController;
 use App\Http\Controllers\EvidenceAttachmentController;
 use App\Http\Controllers\RiskCommentController;
 use App\Http\Controllers\RiskImportController;
+use App\Http\Controllers\ScheduledReportController;
+use App\Http\Controllers\TrendAnalysisController;
+use App\Http\Controllers\AuditDashboardController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
 ]);
+
+Route::get('/health', [HealthCheckController::class, 'live'])->name('health.live');
+Route::get('/health/ready', [HealthCheckController::class, 'ready'])->name('health.ready');
 
 Route::get('/', function () {
     return redirect()->route('risks.monitoring');
@@ -75,6 +83,11 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
 });
 
 Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function () {
+    Route::get('/dashboard-preferences', [DashboardPreferenceController::class, 'show'])
+        ->name('dashboard-preferences.show');
+    Route::put('/dashboard-preferences', [DashboardPreferenceController::class, 'update'])
+        ->name('dashboard-preferences.update');
+
     Route::get('/impact-scales/{id}', function ($id) {
         return ImpactScale::where('impact_category_id', $id)->get();
     })->whereNumber('id');
@@ -83,6 +96,26 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::get('/risk-heatmap', [RiskController::class, 'heatmap'])->name('risks.heatmap');
     Route::get('/risk-recap', [RiskController::class, 'recap'])->name('risks.recap');
     Route::get('/risk-dashboard-summary', [RiskController::class, 'dashboardSummary'])->name('risks.dashboard-summary');
+    
+    // Trend Analysis
+    Route::get('/trend-analysis', [TrendAnalysisController::class, 'index'])->name('trends.analysis');
+    Route::get('/api/trend-analysis/data', [TrendAnalysisController::class, 'data'])->name('trends.data');
+    Route::get('/audit', [AuditDashboardController::class, 'index'])->name('audit.placeholder');
+    
+    Route::get('/reports/scheduled', [ScheduledReportController::class, 'index'])->name('reports.scheduled.index');
+    Route::post('/reports/scheduled', [ScheduledReportController::class, 'store'])->name('reports.scheduled.store');
+    Route::patch('/reports/scheduled/{scheduledReport}', [ScheduledReportController::class, 'update'])
+        ->whereNumber('scheduledReport')
+        ->name('reports.scheduled.update');
+    Route::patch('/reports/scheduled/{scheduledReport}/toggle', [ScheduledReportController::class, 'toggle'])
+        ->whereNumber('scheduledReport')
+        ->name('reports.scheduled.toggle');
+    Route::post('/reports/scheduled/{scheduledReport}/run-now', [ScheduledReportController::class, 'runNow'])
+        ->whereNumber('scheduledReport')
+        ->name('reports.scheduled.runNow');
+    Route::delete('/reports/scheduled/{scheduledReport}', [ScheduledReportController::class, 'destroy'])
+        ->whereNumber('scheduledReport')
+        ->name('reports.scheduled.destroy');
     Route::view('/how-to', 'how-to')->name('howto');
     Route::middleware('compliance.division')->group(function () {
         Route::get('/compliance/internal-audit', [ComplianceProgramController::class, 'indexInternalAudit'])->name('compliance.internal-audit');

@@ -140,8 +140,8 @@
             <i class="fas fa-chevron-down"></i>
         </button>
         <div class="dropdown-menu dropdown-menu-end report-export-menu" data-report-export-menu>
-            <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => $scope, 'format' => 'xls'], $reportQuery)) }}">
-                <i class="fas fa-file-excel me-2 text-success"></i>{{ $scopeLabel }} - XLS
+            <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => $scope, 'format' => 'xlsx'], $reportQuery)) }}">
+                <i class="fas fa-file-excel me-2 text-success"></i>{{ $scopeLabel }} - XLSX
             </a>
             <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => $scope, 'format' => 'pdf'], $reportQuery)) }}">
                 <i class="fas fa-file-pdf me-2 text-danger"></i>{{ $scopeLabel }} - PDF
@@ -150,8 +150,8 @@
                 <i class="fas fa-file-powerpoint me-2 text-warning"></i>{{ $scopeLabel }} - PPT
             </a>
 
-            <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => 'overall', 'format' => 'xls'], $overallQuery)) }}">
-                <i class="fas fa-file-excel me-2 text-success"></i>{{ $overallLabel }} - XLS
+            <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => 'overall', 'format' => 'xlsx'], $overallQuery)) }}">
+                <i class="fas fa-file-excel me-2 text-success"></i>{{ $overallLabel }} - XLSX
             </a>
             <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => 'overall', 'format' => 'pdf'], $overallQuery)) }}">
                 <i class="fas fa-file-pdf me-2 text-danger"></i>{{ $overallLabel }} - PDF
@@ -167,8 +167,8 @@
             <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => 'board', 'format' => 'pptx'], $overallQuery)) }}">
                 <i class="fas fa-file-powerpoint me-2 text-warning"></i>Board Briefing - PPT
             </a>
-            <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => 'board', 'format' => 'xls'], $overallQuery)) }}">
-                <i class="fas fa-file-excel me-2 text-success"></i>Board Briefing - XLS
+            <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => 'board', 'format' => 'xlsx'], $overallQuery)) }}">
+                <i class="fas fa-file-excel me-2 text-success"></i>Board Briefing - XLSX
             </a>
         </div>
     </div>

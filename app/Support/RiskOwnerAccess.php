@@ -26,6 +26,10 @@ class RiskOwnerAccess
         ],
     ];
 
+    private const DISPLAY_LABEL_ALIASES = [
+        'BUSINESS STRATEGY' => 'Business Strategy',
+    ];
+
     public static function options(): array
     {
         $options = config('risk_owners.options', []);
@@ -128,9 +132,42 @@ class RiskOwnerAccess
             return '';
         }
 
-        $withoutPrefix = preg_replace('/^[A-Z]{2}\s*-\s*/', '', (string) $value);
+        $withoutPrefix = self::stripLabelPrefix((string) $value);
 
         return self::normalize($withoutPrefix);
+    }
+
+    public static function displayLabel(?string $value, string $fallback = '-'): string
+    {
+        $normalizedLabel = self::normalizedLabel($value);
+        if ($normalizedLabel === '') {
+            return $fallback;
+        }
+
+        if (isset(self::DISPLAY_LABEL_ALIASES[$normalizedLabel])) {
+            return self::DISPLAY_LABEL_ALIASES[$normalizedLabel];
+        }
+
+        $canonical = self::canonicalOption($value);
+        $source = !is_null($canonical) ? $canonical : (string) $value;
+        $label = self::stripLabelPrefix($source);
+
+        return $label !== '' ? $label : $fallback;
+    }
+
+    private static function stripLabelPrefix(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $value = (string) preg_replace('/^[A-Z]{2}\s*-\s*/i', '', $value);
+        $value = (string) preg_replace('/^SPV\b[\s:,-]*/i', '', $value);
+        $value = (string) preg_replace('/^[^A-Z0-9]+/i', '', $value);
+        $value = (string) preg_replace('/\s+/', ' ', $value);
+
+        return trim($value);
     }
 
     private static function normalize(?string $value): string

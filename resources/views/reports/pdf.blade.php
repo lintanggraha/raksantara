@@ -5,11 +5,12 @@
     <title>{{ $title }}</title>
     <style>
         body {
-            font-family: DejaVu Sans, sans-serif;
+            font-family: "Segoe UI", Arial, "DejaVu Sans", sans-serif;
             font-size: 10px;
             color: #0f172a;
             margin: 0 16px 40px 16px;
             background: #f5f8fc;
+            line-height: 1.35;
         }
 
         h1 {
@@ -55,7 +56,7 @@
             background: #f8fbff;
         }
 
-        @page { margin: 108px 18px 62px 18px; }
+        @page { margin: 108px 18px 70px 18px; }
 
         .page-number:before { content: counter(page); }
 
@@ -94,18 +95,34 @@
 
         .section {
             margin-bottom: 14px;
-            page-break-inside: avoid;
+            page-break-inside: auto;
             border: 1px solid #d8e3f1;
             background: #ffffff;
             padding: 8px;
         }
 
+        .section + .section {
+            margin-top: 12px;
+        }
+
         .section h2 {
-            margin: 0 0 8px;
+            margin: 0 0 4px;
             font-size: 13px;
             color: #0f2f4f;
             border-left: 4px solid #0f4c81;
             padding-left: 8px;
+            page-break-after: avoid;
+        }
+
+        .section-subtitle {
+            margin: 0 0 8px;
+            font-size: 9px;
+            color: #475569;
+            page-break-after: avoid;
+        }
+
+        .section-keep-together {
+            page-break-inside: avoid;
         }
 
         .section h3 {
@@ -126,6 +143,8 @@
             padding: 4px 5px;
             vertical-align: top;
             word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
 
         .data-table th {
@@ -139,6 +158,19 @@
         .data-table td {
             font-size: 8.8px;
             color: #1f2937;
+        }
+
+        .data-table thead {
+            display: table-header-group;
+        }
+
+        .data-table tfoot {
+            display: table-row-group;
+        }
+
+        .data-table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
         }
 
         .data-table tbody tr:nth-child(even) td {
@@ -215,6 +247,20 @@
             font-size: 8.5px;
         }
 
+        .board-bar-table th {
+            border: 1px solid #d7e1ee;
+            padding: 4px;
+            background: #0f4c81;
+            color: #ffffff;
+            font-size: 8.4px;
+            text-align: left;
+            font-weight: 700;
+        }
+
+        .board-bar-table thead {
+            display: table-header-group;
+        }
+
         .board-bar-label {
             width: 130px;
             font-weight: 700;
@@ -256,6 +302,47 @@
             padding: 4px;
             font-size: 8.5px;
             text-align: center;
+        }
+
+        .board-trend-table thead {
+            display: table-header-group;
+        }
+
+        .board-priority-table th,
+        .board-priority-table td {
+            font-size: 7.9px;
+            padding: 3px 4px;
+        }
+
+        .board-priority-table th:nth-child(1),
+        .board-priority-table td:nth-child(1) { width: 70px; }
+        .board-priority-table th:nth-child(2),
+        .board-priority-table td:nth-child(2) { width: 200px; }
+        .board-priority-table th:nth-child(3),
+        .board-priority-table td:nth-child(3) { width: 110px; }
+        .board-priority-table th:nth-child(4),
+        .board-priority-table td:nth-child(4) { width: 70px; }
+        .board-priority-table th:nth-child(5),
+        .board-priority-table td:nth-child(5) { width: 54px; text-align: right; }
+        .board-priority-table th:nth-child(6),
+        .board-priority-table td:nth-child(6) { width: 54px; text-align: right; }
+        .board-priority-table th:nth-child(7),
+        .board-priority-table td:nth-child(7) { width: 96px; }
+        .board-priority-table th:nth-child(8),
+        .board-priority-table td:nth-child(8) { width: 52px; text-align: right; }
+        .board-priority-table th:nth-child(9),
+        .board-priority-table td:nth-child(9) { width: 62px; text-align: right; }
+        .board-priority-table th:nth-child(10),
+        .board-priority-table td:nth-child(10) { width: 95px; }
+
+        .table-footnote {
+            margin-top: 4px;
+            font-size: 8px;
+            color: #64748b;
+        }
+
+        .board-narrative-table {
+            page-break-inside: avoid;
         }
 
         .empty {
@@ -341,6 +428,66 @@
                     return '';
             }
         };
+
+        $sectionDescriptions = [
+            'board_executive_summary' => 'Ringkasan metrik inti untuk pembacaan cepat oleh Board.',
+            'board_status_chart' => 'Distribusi jumlah risiko per status saat ini.',
+            'board_category_chart' => 'Distribusi eksposur risiko berdasarkan kategori utama.',
+            'board_trend_chart' => 'Perubahan rata-rata skor inherent dan residual dalam periode terakhir.',
+            'board_priority_table' => 'Daftar risiko prioritas tertinggi untuk fokus eskalasi dan tindakan.',
+            'board_narrative' => 'Arahan manajemen berbasis indikator utama risiko.',
+            'monitoring_overview' => 'Ringkasan performa monitoring dan kontrol.',
+            'heatmap_dashboard' => 'Pemetaan posisi risiko pada matriks probabilitas versus dampak.',
+        ];
+
+        $resolveHeadings = function ($section, array $fallback = []) {
+            $headings = is_array($section['headings'] ?? null) ? array_values($section['headings']) : [];
+            if (!empty($headings)) {
+                return $headings;
+            }
+
+            $rows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
+            if (!empty($rows) && is_array($rows[0] ?? null)) {
+                $columnCount = count($rows[0]);
+                if ($columnCount > 0) {
+                    $generated = [];
+                    for ($i = 1; $i <= $columnCount; $i++) {
+                        $generated[] = 'Column ' . $i;
+                    }
+
+                    return $generated;
+                }
+            }
+
+            return $fallback;
+        };
+
+        $hasRenderableContent = function ($section) {
+            $type = (string) ($section['type'] ?? '');
+            $rows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
+            $kpiCards = is_array($section['kpi_cards'] ?? null) ? $section['kpi_cards'] : [];
+            $hasInsight = trim((string) ($section['insight'] ?? '')) !== '';
+
+            if ($type === 'heatmap_dashboard') {
+                $matrix = is_array($section['matrix'] ?? null) ? $section['matrix'] : [];
+                $eventRows = is_array($section['event_rows'] ?? null) ? $section['event_rows'] : [];
+
+                return !empty($matrix) || !empty($eventRows) || $hasInsight;
+            }
+
+            if ($type === 'monitoring_overview' || $type === 'board_executive_summary') {
+                return !empty($rows) || !empty($kpiCards) || $hasInsight;
+            }
+
+            return !empty($rows) || $hasInsight;
+        };
+
+        $renderableSections = [];
+        foreach ((array) $sections as $candidateSection) {
+            if ($hasRenderableContent($candidateSection)) {
+                $renderableSections[] = $candidateSection;
+            }
+        }
     @endphp
 
     <div class="doc-header">
@@ -372,18 +519,30 @@
                 <td class="meta-key">Generated At</td>
                 <td>{{ $generatedAt }}</td>
                 <td class="meta-key">Section Count</td>
-                <td>{{ count($sections) }}</td>
+                <td>{{ count($renderableSections) }}</td>
             </tr>
         </table>
     </div>
 
-    @foreach($sections as $section)
-        <div class="section">
+    @foreach($renderableSections as $section)
+        @php
+            $sectionType = (string) ($section['type'] ?? '');
+            $sectionSubtitle = trim((string) ($section['subtitle'] ?? ($sectionDescriptions[$sectionType] ?? '')));
+            $sectionClass = in_array($sectionType, ['board_narrative'], true)
+                ? 'section section-keep-together'
+                : 'section';
+        @endphp
+        <div class="{{ $sectionClass }}">
             <h2>{{ $section['title'] }}</h2>
+            @if($sectionSubtitle !== '')
+                <div class="section-subtitle">{{ $sectionSubtitle }}</div>
+            @endif
 
-            @if(($section['type'] ?? '') === 'monitoring_overview' || ($section['type'] ?? '') === 'board_executive_summary')
+            @if($sectionType === 'monitoring_overview' || $sectionType === 'board_executive_summary')
                 @php
                     $kpiCards = is_array($section['kpi_cards'] ?? null) ? $section['kpi_cards'] : [];
+                    $overviewRows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
+                    $overviewHeadings = $resolveHeadings($section, ['Metric', 'Value']);
                 @endphp
 
                 @if(!empty($kpiCards))
@@ -410,17 +569,17 @@
                     </table>
                 @endif
 
-                @if(!empty($section['rows']))
+                @if(!empty($overviewRows))
                     <table class="data-table">
                         <thead>
                             <tr>
-                                @foreach($section['headings'] as $heading)
+                                @foreach($overviewHeadings as $heading)
                                     <th>{{ $heading }}</th>
                                 @endforeach
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($section['rows'] as $row)
+                            @foreach($overviewRows as $row)
                                 <tr>
                                     @foreach($row as $cell)
                                         <td>{{ $cell }}</td>
@@ -435,9 +594,10 @@
                 @if(!empty($section['insight']))
                     <div class="board-insight">{{ $section['insight'] }}</div>
                 @endif
-            @elseif(($section['type'] ?? '') === 'board_status_chart' || ($section['type'] ?? '') === 'board_category_chart')
+            @elseif($sectionType === 'board_status_chart' || $sectionType === 'board_category_chart')
                 @php
                     $chartRows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
+                    $chartHeadings = $resolveHeadings($section, ['Label', 'Count']);
                     $maxValue = 0;
                     foreach ($chartRows as $chartRow) {
                         $value = isset($chartRow[1]) ? (float) $chartRow[1] : 0;
@@ -454,6 +614,13 @@
                     <div class="board-chart-title">{{ $section['title'] }}</div>
                     @if(!empty($chartRows))
                         <table class="board-bar-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:130px;">{{ $chartHeadings[0] ?? 'Label' }}</th>
+                                    <th>Distribution</th>
+                                    <th style="width:55px; text-align:right;">{{ $chartHeadings[1] ?? 'Count' }}</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 @foreach($chartRows as $index => $chartRow)
                                     @php
@@ -481,9 +648,10 @@
                 @if(!empty($section['insight']))
                     <div class="board-insight">{{ $section['insight'] }}</div>
                 @endif
-            @elseif(($section['type'] ?? '') === 'board_trend_chart')
+            @elseif($sectionType === 'board_trend_chart')
                 @php
                     $trendRows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
+                    $trendHeadings = $resolveHeadings($section, ['Period', 'Avg Inherent', 'Avg Residual']);
                 @endphp
                 <div class="board-chart-block">
                     <div class="board-chart-title">{{ $section['title'] }}</div>
@@ -491,9 +659,9 @@
                         <table class="board-trend-table">
                             <thead>
                                 <tr>
-                                    <th>Period</th>
-                                    <th>Avg Inherent</th>
-                                    <th>Avg Residual</th>
+                                    <th>{{ $trendHeadings[0] ?? 'Period' }}</th>
+                                    <th>{{ $trendHeadings[1] ?? 'Avg Inherent' }}</th>
+                                    <th>{{ $trendHeadings[2] ?? 'Avg Residual' }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -513,17 +681,64 @@
                 @if(!empty($section['insight']))
                     <div class="board-insight">{{ $section['insight'] }}</div>
                 @endif
-            @elseif(($section['type'] ?? '') === 'board_narrative')
-                @if(!empty($section['rows']))
-                    <table class="data-table">
+            @elseif($sectionType === 'board_priority_table')
+                @php
+                    $priorityRows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
+                    $priorityHeadings = $resolveHeadings($section, [
+                        'Risk ID',
+                        'Risk Event',
+                        'Owner',
+                        'Status',
+                        'Inherent',
+                        'Residual',
+                        'Residual Level',
+                        'Gap',
+                        'Treatments',
+                        'Nearest Deadline',
+                    ]);
+                @endphp
+                @if(!empty($priorityRows))
+                    <table class="data-table board-priority-table">
                         <thead>
                             <tr>
-                                <th style="width: 190px;">Theme</th>
-                                <th>Management Recommendation</th>
+                                @foreach($priorityHeadings as $heading)
+                                    <th>{{ $heading }}</th>
+                                @endforeach
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($section['rows'] as $row)
+                            @foreach($priorityRows as $row)
+                                <tr>
+                                    @foreach($row as $cell)
+                                        <td>{{ $cell }}</td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    <div class="table-footnote">Urutan watchlist: residual score tertinggi, lalu inherent score, lalu jumlah treatment.</div>
+                @else
+                    <div class="empty">No watchlist data available.</div>
+                @endif
+                @if(!empty($section['insight']))
+                    <div class="board-insight">{{ $section['insight'] }}</div>
+                @endif
+            @elseif($sectionType === 'board_narrative')
+                @php
+                    $narrativeRows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
+                    $narrativeHeadings = $resolveHeadings($section, ['Theme', 'Management Recommendation']);
+                @endphp
+                <h3>Management Recommendation Matrix</h3>
+                @if(!empty($narrativeRows))
+                    <table class="data-table board-narrative-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 190px;">{{ $narrativeHeadings[0] ?? 'Theme' }}</th>
+                                <th>{{ $narrativeHeadings[1] ?? 'Management Recommendation' }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($narrativeRows as $row)
                                 <tr>
                                     <td>{{ $row[0] ?? '-' }}</td>
                                     <td>{{ $row[1] ?? '-' }}</td>
@@ -531,10 +746,11 @@
                             @endforeach
                         </tbody>
                     </table>
+                    <div class="table-footnote">Kolom kiri menjelaskan tema risiko, kolom kanan berisi arahan aksi manajemen.</div>
                 @else
                     <div class="empty">No narrative available.</div>
                 @endif
-            @elseif(($section['type'] ?? '') === 'heatmap_dashboard')
+            @elseif($sectionType === 'heatmap_dashboard')
                 @php
                     $matrix = $section['matrix'] ?? [];
                     $eventRows = $section['event_rows'] ?? [];
@@ -601,10 +817,13 @@
                     <div class="empty">No risk data available.</div>
                 @endif
             @elseif(!empty($section['rows']))
+                @php
+                    $defaultHeadings = $resolveHeadings($section);
+                @endphp
                 <table class="data-table">
                     <thead>
                         <tr>
-                            @foreach($section['headings'] as $heading)
+                            @foreach($defaultHeadings as $heading)
                                 <th>{{ $heading }}</th>
                             @endforeach
                         </tr>
@@ -626,10 +845,12 @@
                 <div class="empty">No data available.</div>
             @endif
         </div>
-
-        @if(!$loop->last)
-            <div class="page-break"></div>
-        @endif
     @endforeach
+    @if(empty($renderableSections))
+        <div class="section">
+            <h2>No Report Data</h2>
+            <div class="empty">Tidak ada data yang bisa ditampilkan untuk filter report saat ini.</div>
+        </div>
+    @endif
 </body>
 </html>

@@ -47,6 +47,7 @@ class ReportController extends Controller
             'year' => 'nullable|integer|min:2000|max:2100',
             'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
             'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
+            'risk_owner' => 'nullable|string|max:120',
         ]);
 
         $scope = strtolower($scope);
@@ -64,6 +65,7 @@ class ReportController extends Controller
         $filters = [
             'risk_category_id' => $validated['risk_category_id'] ?? null,
             'risk_cause_category_id' => $validated['risk_cause_category_id'] ?? null,
+            'risk_owner' => $validated['risk_owner'] ?? null,
         ];
         $payload = $this->reportDataService->buildPayload($scope, $year, $filters);
 
@@ -75,6 +77,7 @@ class ReportController extends Controller
                 'year' => $year,
                 'risk_category_id' => $filters['risk_category_id'],
                 'risk_cause_category_id' => $filters['risk_cause_category_id'],
+                'risk_owner' => $filters['risk_owner'],
             ]);
         }
 
@@ -96,6 +99,7 @@ class ReportController extends Controller
                     'scope' => $scope,
                     'format' => $format,
                     'year' => $year,
+                    'risk_owner' => $filters['risk_owner'],
                     'error' => Str::limit($e->getMessage(), 200),
                 ]);
             }
@@ -123,6 +127,7 @@ class ReportController extends Controller
             (string) ($year ?? '-'),
             (string) ($filters['risk_category_id'] ?? '-'),
             (string) ($filters['risk_cause_category_id'] ?? '-'),
+            (string) ($filters['risk_owner'] ?? '-'),
             (string) $request->ip(),
             (string) $request->userAgent(),
         ]);
@@ -174,6 +179,9 @@ class ReportController extends Controller
         $options = new Options();
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('dpi', 110);
+        $options->set('isFontSubsettingEnabled', true);
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);

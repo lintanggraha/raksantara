@@ -161,6 +161,7 @@ class AuditLogController extends Controller
         $scope = (string) ($after['scope'] ?? '-');
         $format = strtoupper((string) ($after['format'] ?? '-'));
         $year = $after['year'] ?? null;
+        $riskOwner = trim((string) ($after['risk_owner'] ?? ''));
 
         $parts = [
             'Scope: ' . $scope,
@@ -169,6 +170,10 @@ class AuditLogController extends Controller
 
         if (!is_null($year) && $year !== '') {
             $parts[] = 'Year: ' . $year;
+        }
+
+        if ($riskOwner !== '') {
+            $parts[] = 'Owner: ' . $riskOwner;
         }
 
         $parts[] = (string) $log->event === 'report.export.failed'

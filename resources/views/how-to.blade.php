@@ -242,7 +242,8 @@
                         <li>Komponen utama:
                             <ul>
                                 <li>Status & Core Metrics (open/monitoring/closed, average scores, variance).</li>
-                                <li>Average Risk Score Trends (menampilkan <strong>3 bulan terakhir</strong>).</li>
+                                <li>Trend Analysis Risiko (pilih <strong>monthly/quarterly/yearly</strong>).</li>
+                                <li>Benchmark Scoring (perbandingan score internal vs baseline industri).</li>
                                 <li>Mitigation Effectiveness & SLA Compliance.</li>
                                 <li>Summary by Category/Owner/Status (dengan pie/bar chart).</li>
                                 <li>Variance Analysis (Inherent vs Residual).</li>
@@ -253,7 +254,7 @@
                         <li>Drag widget dari icon handle untuk ubah urutan sesuai preferensi.</li>
                         <li>Di header dashboard tersedia shortcut ke Risk Register, Recap, Heat Map, dan Add Risk.</li>
                     </ol>
-                    <div class="howto-note">Preferensi widget (urut + visibility) disimpan di browser lokal (localStorage).</div>
+                    <div class="howto-note">Preferensi dashboard (urut widget, visibility, dan trend granularity) disimpan per-user dan otomatis sinkron.</div>
                 </div>
 
                 <div class="tab-pane fade" id="discussion-pane" role="tabpanel" aria-labelledby="discussion-tab">
@@ -286,7 +287,7 @@
                         <li><strong>Recap</strong>: ringkasan metrik risiko per radar/kategori, termasuk view detail kuantitatif.</li>
                         <li><strong>Heat Map</strong>: distribusi risiko inherent/residual pada matriks 5x5.</li>
                         <li>Di halaman Risk Register, Recap, dan Heat Map tersedia tombol <strong>Export Report</strong>.</li>
-                        <li>Pilih format <strong>XLS</strong>, <strong>PDF</strong>, atau <strong>PPTX</strong> sesuai kebutuhan pelaporan.</li>
+                        <li>Pilih format <strong>XLSX</strong>, <strong>PDF</strong>, atau <strong>PPTX</strong> sesuai kebutuhan pelaporan.</li>
                         <li>Untuk Recap, gunakan filter tahun agar output sesuai periode audit/reporting.</li>
                     </ol>
                 </div>

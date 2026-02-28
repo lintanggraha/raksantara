@@ -257,7 +257,8 @@
         .navbar .navbar-nav .nav-link.nav-link-main.dropdown-toggle::after {
             margin-left: 0.4rem;
         }
-        [data-compliance-menu] .dropdown-item {
+        [data-compliance-menu] .dropdown-item,
+        [data-risk-menu] .dropdown-item {
             border-radius: 0;
             margin: 0;
             padding: 0.5rem 0.75rem;
@@ -265,13 +266,18 @@
             transition: color 0.15s ease;
         }
         [data-compliance-menu] .dropdown-item:hover,
-        [data-compliance-menu] .dropdown-item:focus {
+        [data-compliance-menu] .dropdown-item:focus,
+        [data-risk-menu] .dropdown-item:hover,
+        [data-risk-menu] .dropdown-item:focus {
             background-color: transparent !important;
             color: #0b57d0 !important;
         }
         [data-compliance-menu] .dropdown-item.active,
         [data-compliance-menu] .dropdown-item.active:hover,
-        [data-compliance-menu] .dropdown-item.active:focus {
+        [data-compliance-menu] .dropdown-item.active:focus,
+        [data-risk-menu] .dropdown-item.active,
+        [data-risk-menu] .dropdown-item.active:hover,
+        [data-risk-menu] .dropdown-item.active:focus {
             background-color: transparent !important;
             color: #0b57d0 !important;
             font-weight: 600;
@@ -375,17 +381,42 @@
                                 <a class="nav-link nav-link-main" href="{{ route('audit-logs.index') }}">Audit Trail</a>
                             </li>
                         @elseif(auth()->user()->isDivisionVerified())
-                            <li class="nav-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">Monitoring</a>
+                            <li
+                                class="nav-item dropdown {{
+                                    (request()->routeIs('risks.monitoring')
+                                    || (request()->routeIs('risks.*') && !request()->routeIs('risks.dashboard-summary'))
+                                    || request()->routeIs('trends.analysis')) ? 'active' : ''
+                                }}"
+                                data-risk-nav
+                            >
+                                <a
+                                    class="nav-link nav-link-main dropdown-toggle"
+                                    href="#"
+                                    data-bs-toggle="dropdown"
+                                    data-toggle="dropdown"
+                                    data-risk-toggle
+                                    role="button"
+                                    aria-expanded="false"
+                                >
+                                    Risk
+                                </a>
+                                <div class="dropdown-menu" data-risk-menu>
+                                    <a class="dropdown-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}" href="{{ route('risks.monitoring') }}">
+                                        Risk Monitoring
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.dashboard-summary') ? 'active' : '' }}" href="{{ route('risks.index') }}">
+                                        Risk Register
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('trends.analysis') ? 'active' : '' }}" href="{{ route('trends.analysis') }}">
+                                        Risk Trend Analysis
+                                    </a>
+                                </div>
                             </li>
-                            <li class="nav-item {{ request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.heatmap') && !request()->routeIs('risks.recap') && !request()->routeIs('risks.dashboard-summary') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risks.index') }}">Risk Register</a>
+                            <li class="nav-item {{ request()->routeIs('audit.placeholder') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('audit.placeholder') }}">Audit</a>
                             </li>
-                            <li class="nav-item {{ request()->routeIs('risks.heatmap') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risks.heatmap') }}">Heat Map</a>
-                            </li>
-                            <li class="nav-item {{ request()->routeIs('risks.recap') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risks.recap') }}">Recap</a>
+                            <li class="nav-item {{ request()->routeIs('reports.scheduled.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('reports.scheduled.index') }}">Scheduled Reports</a>
                             </li>
                             <li class="nav-item {{ request()->routeIs('howto') ? 'active' : '' }}">
                                 <a class="nav-link nav-link-main" href="{{ route('howto') }}">How To</a>
@@ -646,74 +677,81 @@
         subtree: true,
     });
 
-    // Compliance navbar dropdown: reliable click + hover (desktop) using Bootstrap instance.
-    const complianceNav = document.querySelector('[data-compliance-nav]');
-    const complianceToggle = document.querySelector('[data-compliance-toggle]');
+    // Navbar dropdown helper: reliable click + hover (desktop) using Bootstrap instance.
     const hasBootstrapDropdown = window.bootstrap && window.bootstrap.Dropdown;
     const hasBootstrap4Dropdown = window.jQuery && $.fn.dropdown;
 
-    if (complianceNav && complianceToggle && (hasBootstrapDropdown || hasBootstrap4Dropdown)) {
-        const complianceDropdown = hasBootstrapDropdown
-            ? bootstrap.Dropdown.getOrCreateInstance(complianceToggle)
-            : null;
-        const complianceDropdownFallback = hasBootstrap4Dropdown ? $(complianceToggle) : null;
-        let complianceHideTimer = null;
+    function setupManagedNavbarDropdown(navSelector, toggleSelector) {
+        const nav = document.querySelector(navSelector);
+        const toggle = document.querySelector(toggleSelector);
+        if (!nav || !toggle || (!hasBootstrapDropdown && !hasBootstrap4Dropdown)) {
+            return;
+        }
 
-        function openComplianceMenu() {
-            if (complianceHideTimer) {
-                clearTimeout(complianceHideTimer);
-                complianceHideTimer = null;
+        const dropdownInstance = hasBootstrapDropdown
+            ? bootstrap.Dropdown.getOrCreateInstance(toggle)
+            : null;
+        const dropdownFallback = hasBootstrap4Dropdown ? $(toggle) : null;
+        let hideTimer = null;
+
+        function openMenu() {
+            if (hideTimer) {
+                clearTimeout(hideTimer);
+                hideTimer = null;
             }
-            if (complianceDropdown) {
-                complianceDropdown.show();
-            } else if (complianceDropdownFallback) {
-                complianceDropdownFallback.dropdown('show');
+            if (dropdownInstance) {
+                dropdownInstance.show();
+            } else if (dropdownFallback) {
+                dropdownFallback.dropdown('show');
             }
         }
 
-        function closeComplianceMenu() {
-            complianceHideTimer = setTimeout(function () {
-                if (complianceDropdown) {
-                    complianceDropdown.hide();
-                } else if (complianceDropdownFallback) {
-                    complianceDropdownFallback.dropdown('hide');
+        function closeMenu() {
+            hideTimer = setTimeout(function () {
+                if (dropdownInstance) {
+                    dropdownInstance.hide();
+                } else if (dropdownFallback) {
+                    dropdownFallback.dropdown('hide');
                 }
-                complianceHideTimer = null;
+                hideTimer = null;
             }, 120);
         }
 
-        complianceNav.addEventListener('mouseenter', function () {
+        nav.addEventListener('mouseenter', function () {
             if (!window.matchMedia('(hover: hover)').matches) {
                 return;
             }
-            openComplianceMenu();
+            openMenu();
         });
 
-        complianceNav.addEventListener('mouseleave', function () {
+        nav.addEventListener('mouseleave', function () {
             if (!window.matchMedia('(hover: hover)').matches) {
                 return;
             }
-            closeComplianceMenu();
+            closeMenu();
         });
 
-        complianceNav.addEventListener('focusin', function () {
-            openComplianceMenu();
+        nav.addEventListener('focusin', function () {
+            openMenu();
         });
 
-        complianceNav.addEventListener('focusout', function () {
-            closeComplianceMenu();
+        nav.addEventListener('focusout', function () {
+            closeMenu();
         });
 
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
-                if (complianceDropdown) {
-                    complianceDropdown.hide();
-                } else if (complianceDropdownFallback) {
-                    complianceDropdownFallback.dropdown('hide');
+                if (dropdownInstance) {
+                    dropdownInstance.hide();
+                } else if (dropdownFallback) {
+                    dropdownFallback.dropdown('hide');
                 }
             }
         });
     }
+
+    setupManagedNavbarDropdown('[data-compliance-nav]', '[data-compliance-toggle]');
+    setupManagedNavbarDropdown('[data-risk-nav]', '[data-risk-toggle]');
 </script>
 
 @yield('js')

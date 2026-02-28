@@ -1,0 +1,177 @@
+<?php
+
+return [
+    'generated_at' => '2026-02-06 10:00:00',
+    'period' => [
+        'month_label' => 'Februari 2026',
+        'week_label' => 'W2',
+        'overdue_until' => '2/5/2026',
+    ],
+    'filters' => [
+        'years' => [2025, 2024],
+        'banks' => [
+            'BANK ACEH',
+            'BANK BENGKULU',
+            'BANK SULTENG',
+            'BANK SUMUT',
+            'COLLEGA',
+        ],
+    ],
+    'summary_cards' => [
+        'total_temuan' => [
+            'title' => 'Total Temuan',
+            'rows' => [
+                ['label' => 'Closed', 'count' => 30],
+                ['label' => 'Domain Bank', 'count' => 5],
+                ['label' => 'On Progress', 'count' => 41],
+            ],
+            'grand_total' => 76,
+        ],
+        'resume_temuan' => [
+            'title' => 'Resume Temuan',
+            'rows' => [
+                ['label' => 'Closed', 'count' => 30],
+                ['label' => 'Domain Bank', 'count' => 5],
+                ['label' => 'On Progress', 'count' => 41],
+            ],
+            'grand_total' => 76,
+        ],
+        'temuan_jatuh_tempo' => [
+            'title' => 'Temuan Jatuh Tempo',
+            'rows' => [
+                ['label' => 'Closed', 'count' => 24],
+                ['label' => 'Domain Bank', 'count' => 3],
+                ['label' => 'On Progress', 'count' => 2],
+            ],
+            'grand_total' => 29,
+        ],
+    ],
+    'rekap_rows' => [
+        ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Jaringan Komunikasi Data', 'total' => 2, 'closed' => 0, 'on_progress' => 2, 'domain_bank' => 0],
+        ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Operasional', 'total' => 2, 'closed' => 0, 'on_progress' => 2, 'domain_bank' => 0],
+        ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Operasional DC & DRC', 'total' => 23, 'closed' => 0, 'on_progress' => 23, 'domain_bank' => 0],
+        ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Organisasi & Manajemen', 'total' => 7, 'closed' => 0, 'on_progress' => 7, 'domain_bank' => 0],
+        ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Pengembangan Aplikasi', 'total' => 2, 'closed' => 0, 'on_progress' => 2, 'domain_bank' => 0],
+        ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Service Desk', 'total' => 3, 'closed' => 0, 'on_progress' => 3, 'domain_bank' => 0],
+        ['region' => 'Region 1', 'bank' => 'BANK ACEH', 'year' => '2024', 'auditee' => 'Pentest CBS', 'total' => 7, 'closed' => 7, 'on_progress' => 0, 'domain_bank' => 0],
+        ['region' => 'Region 1', 'bank' => 'BANK BENGKULU', 'year' => '2025', 'auditee' => 'Audit Pentest SCV', 'total' => 8, 'closed' => 8, 'on_progress' => 0, 'domain_bank' => 0],
+        ['region' => 'Region 1', 'bank' => 'BANK BENGKULU', 'year' => '2025', 'auditee' => 'Pemenuhan KHP TI Bank Bengkulu', 'total' => 5, 'closed' => 3, 'on_progress' => 2, 'domain_bank' => 0],
+        ['region' => 'Region 1', 'bank' => 'BANK SUMUT', 'year' => '2024', 'auditee' => 'Audit DC & DRC 2024', 'total' => 8, 'closed' => 6, 'on_progress' => 0, 'domain_bank' => 2],
+        ['region' => 'Region 2', 'bank' => 'BANK SULTENG', 'year' => '2024', 'auditee' => 'Audit SCV', 'total' => 9, 'closed' => 6, 'on_progress' => 0, 'domain_bank' => 3],
+    ],
+    'maps' => [
+        'points' => [
+            ['bank' => 'BANK ACEH', 'lat' => 5.5483, 'lng' => 95.3238, 'total' => 7, 'closed' => 7, 'domain_bank' => 0, 'on_progress' => 0],
+            ['bank' => 'BANK BENGKULU', 'lat' => -3.8004, 'lng' => 102.2655, 'total' => 13, 'closed' => 11, 'domain_bank' => 0, 'on_progress' => 2],
+            ['bank' => 'BANK SUMUT', 'lat' => 3.5952, 'lng' => 98.6722, 'total' => 8, 'closed' => 6, 'domain_bank' => 2, 'on_progress' => 0],
+            ['bank' => 'BANK SULTENG', 'lat' => -0.8986, 'lng' => 119.8506, 'total' => 9, 'closed' => 6, 'domain_bank' => 3, 'on_progress' => 0],
+            ['bank' => 'COLLEGA', 'lat' => -6.2596, 'lng' => 106.7972, 'total' => 39, 'closed' => 0, 'domain_bank' => 0, 'on_progress' => 39],
+        ],
+    ],
+    'progress' => [
+        'by_bank_rows' => [
+            ['group' => 'BANK ACEH', 'total' => 7, 'counts' => ['Closed' => 7, 'Domain Bank' => 0, 'On Progress' => 0], 'percentages' => ['Closed' => 100.00, 'Domain Bank' => 0.00, 'On Progress' => 0.00]],
+            ['group' => 'BANK BENGKULU', 'total' => 13, 'counts' => ['Closed' => 11, 'Domain Bank' => 0, 'On Progress' => 2], 'percentages' => ['Closed' => 84.62, 'Domain Bank' => 0.00, 'On Progress' => 15.38]],
+            ['group' => 'BANK SULTENG', 'total' => 9, 'counts' => ['Closed' => 6, 'Domain Bank' => 3, 'On Progress' => 0], 'percentages' => ['Closed' => 66.67, 'Domain Bank' => 33.33, 'On Progress' => 0.00]],
+            ['group' => 'BANK SUMUT', 'total' => 8, 'counts' => ['Closed' => 6, 'Domain Bank' => 2, 'On Progress' => 0], 'percentages' => ['Closed' => 75.00, 'Domain Bank' => 25.00, 'On Progress' => 0.00]],
+            ['group' => 'COLLEGA', 'total' => 39, 'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 39], 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+        ],
+        'by_region_rows' => [
+            ['group' => 'Region', 'total' => 76, 'counts' => ['Closed' => 30, 'Domain Bank' => 5, 'On Progress' => 41], 'percentages' => ['Closed' => 39.47, 'Domain Bank' => 6.58, 'On Progress' => 53.95]],
+        ],
+        'by_product_rows' => [
+            ['group' => 'ALL DIVISI', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'CONVEN, CBS SY..', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'CBS SYARIAH', 'percentages' => ['Closed' => 100.00, 'Domain Bank' => 0.00, 'On Progress' => 0.00]],
+            ['group' => 'CR', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'CR, ITOM', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'DC', 'percentages' => ['Closed' => 100.00, 'Domain Bank' => 0.00, 'On Progress' => 0.00]],
+            ['group' => 'HCFL', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'HCFL, CR', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'HCFL, INFRA', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'INFRA', 'percentages' => ['Closed' => 10.34, 'Domain Bank' => 0.00, 'On Progress' => 89.66]],
+            ['group' => 'INFRA & ITOM', 'percentages' => ['Closed' => 75.00, 'Domain Bank' => 25.00, 'On Progress' => 0.00]],
+            ['group' => 'INFRA, BUSSINES SU..', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'ITOM', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'RFR', 'percentages' => ['Closed' => 81.25, 'Domain Bank' => 18.75, 'On Progress' => 0.00]],
+            ['group' => 'SURROUNDING', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+            ['group' => 'SURROUNDING, INFRA', 'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00]],
+        ],
+    ],
+    'trend' => [
+        'created' => [
+            'labels' => ['BANK ACEH', 'BANK BENGKULU', 'BANK SULTENG', 'BANK SUMUT', 'COLLEGA'],
+            'datasets' => [
+                ['label' => 'Closed', 'borderColor' => '#f59e0b', 'backgroundColor' => '#f59e0b', 'data' => [7, 11, 6, 6, 0]],
+                ['label' => 'Domain Bank', 'borderColor' => '#ef4444', 'backgroundColor' => '#ef4444', 'data' => [0, 0, 3, 2, 0]],
+                ['label' => 'On Progress', 'borderColor' => '#f9a8d4', 'backgroundColor' => '#f9a8d4', 'data' => [0, 2, 0, 0, 39]],
+            ],
+        ],
+        'closed' => [
+            'labels' => ['BANK ACEH', 'BANK BENGKULU', 'BANK SULTENG', 'BANK SUMUT', 'COLLEGA'],
+            'datasets' => [
+                ['label' => 'Closed', 'borderColor' => '#f59e0b', 'backgroundColor' => '#f59e0b', 'data' => [0, 0, 0, 0, 0]],
+            ],
+        ],
+    ],
+    'detail_rows' => [
+        ['bank' => 'BANK ACEH', 'date' => '28', 'month' => 'March', 'year' => '2024', 'product' => 'CBS SYARIAH', 'product_name' => 'OLIBS 724 BE', 'status_detail' => 'Closed 100%', 'pic' => 'CBS SYARIAH', 'log_css' => 'DK202402055', 'status_summary' => 'Closed', 'task' => 'Implementasi hardening web dan server sesuai hasil audit pentest.', 'assigned_to' => 'Null', 'is_overdue' => true],
+        ['bank' => 'BANK ACEH', 'date' => '29', 'month' => 'February', 'year' => '2024', 'product' => 'CBS SYARIAH', 'product_name' => 'OLIBS 724 BE', 'status_detail' => 'Closed 100%', 'pic' => 'CBS', 'log_css' => 'DK202402053', 'status_summary' => 'Closed', 'task' => 'Perbaikan parameter keamanan aplikasi dan validasi penutupan temuan.', 'assigned_to' => 'Null', 'is_overdue' => true],
+        ['bank' => 'BANK BENGKULU', 'date' => '9', 'month' => 'September', 'year' => '2025', 'product' => 'INFRA', 'product_name' => 'CBS', 'status_detail' => 'Closed 100%', 'pic' => 'INFRA', 'log_css' => 'GP202507058', 'status_summary' => 'Closed', 'task' => 'Penyelesaian temuan keamanan endpoint dan monitoring patching.', 'assigned_to' => 'Null', 'is_overdue' => true],
+        ['bank' => 'BANK BENGKULU', 'date' => '9', 'month' => 'September', 'year' => '2025', 'product' => 'INFRA', 'product_name' => 'FDS', 'status_detail' => 'On Progress', 'pic' => 'INFRA', 'log_css' => 'GP202507063', 'status_summary' => 'On Progress', 'task' => 'Penguatan kapasitas data center dan monitoring utilisasi server.', 'assigned_to' => 'Null', 'is_overdue' => true],
+        ['bank' => 'BANK BENGKULU', 'date' => '17', 'month' => 'July', 'year' => '2024', 'product' => 'RFR', 'product_name' => 'SCV', 'status_detail' => 'Closed 100%', 'pic' => 'RFR', 'log_css' => 'GP202507059', 'status_summary' => 'Closed', 'task' => 'Close control issue dan validasi evidence compliance.', 'assigned_to' => 'Null', 'is_overdue' => true],
+        ['bank' => 'BANK SUMUT', 'date' => '-', 'month' => '-', 'year' => '2024', 'product' => 'INFRA & ITOM', 'product_name' => 'INFRA & ITOM', 'status_detail' => 'Closed 100%', 'pic' => 'INFRA & ITOM', 'log_css' => 'SUMUT-2024-001', 'status_summary' => 'Closed', 'task' => 'Serial number, storage capacity, dan backup data sudah ditindaklanjuti.', 'assigned_to' => 'Null', 'is_overdue' => false],
+        ['bank' => 'BANK SUMUT', 'date' => '-', 'month' => '-', 'year' => '2024', 'product' => 'INFRA & ITOM', 'product_name' => 'INFRA & ITOM', 'status_detail' => 'Domain Bank', 'pic' => 'REGION 2', 'log_css' => 'SUMUT-2024-002', 'status_summary' => 'Domain Bank', 'task' => 'Tindak lanjut berada pada domain bank (outside scope internal close).', 'assigned_to' => 'Null', 'is_overdue' => false],
+        ['bank' => 'BANK SULTENG', 'date' => '12', 'month' => 'June', 'year' => '2024', 'product' => 'DC', 'product_name' => 'SCV', 'status_detail' => 'Closed 100%', 'pic' => 'ITOM', 'log_css' => 'CP202405052', 'status_summary' => 'Closed', 'task' => 'Perbaikan parameter akses dan patching server kritikal.', 'assigned_to' => 'Null', 'is_overdue' => true],
+        ['bank' => 'BANK SULTENG', 'date' => '31', 'month' => 'May', 'year' => '2025', 'product' => 'RFR', 'product_name' => 'SCV', 'status_detail' => 'Domain Bank', 'pic' => 'REGION 2', 'log_css' => 'CP202405004', 'status_summary' => 'Domain Bank', 'task' => 'Beberapa temuan menunggu closure dari pihak domain bank.', 'assigned_to' => 'Null', 'is_overdue' => true],
+        ['bank' => 'COLLEGA', 'date' => '-', 'month' => '-', 'year' => '2025', 'product' => 'ALL DIVISI', 'product_name' => 'ALL DIVISI', 'status_detail' => 'On Progress', 'pic' => 'ALL DIVISI', 'log_css' => 'COLLEGA-001', 'status_summary' => 'On Progress', 'task' => 'Koordinasi lintas divisi terkait penyelesaian hasil audit internal.', 'assigned_to' => 'Null', 'is_overdue' => false],
+        ['bank' => 'COLLEGA', 'date' => '-', 'month' => '-', 'year' => '2025', 'product' => 'CR', 'product_name' => 'CR', 'status_detail' => 'On Progress', 'pic' => 'CR', 'log_css' => 'COLLEGA-002', 'status_summary' => 'On Progress', 'task' => 'Perbaikan proses manual dan kontrol dokumentasi sesuai rekomendasi audit.', 'assigned_to' => 'Null', 'is_overdue' => false],
+        ['bank' => 'COLLEGA', 'date' => '-', 'month' => '-', 'year' => '2025', 'product' => 'HCFL, INFRA', 'product_name' => 'HCFL, INFRA', 'status_detail' => 'On Progress', 'pic' => 'HCFL, INFRA', 'log_css' => 'COLLEGA-003', 'status_summary' => 'On Progress', 'task' => 'Validasi konfigurasi endpoint, patching, dan observasi evidence operasional.', 'assigned_to' => 'Null', 'is_overdue' => false],
+    ],
+    'duedate_maturity' => [
+        'by_bank' => [
+            ['group' => 'BANK ACEH', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 7, 'grand_total' => 7],
+            ['group' => 'BANK BENGKULU', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 7, 'grand_total' => 13],
+            ['group' => 'BANK SULTENG', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 9, 'grand_total' => 9],
+            ['group' => 'Grand Total', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 23, 'grand_total' => 29, 'is_total' => true],
+        ],
+        'by_division' => [
+            ['group' => 'CBS SYARIAH', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 7, 'grand_total' => 7],
+            ['group' => 'INFRA', '<=6 Bulan' => 5, '<=9 Bulan' => 0, '>9 Bulan' => 0, 'grand_total' => 5],
+            ['group' => 'ITOM', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 1, 'grand_total' => 1],
+            ['group' => 'REGION 2', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 8, 'grand_total' => 8],
+            ['group' => 'RFR', '<=6 Bulan' => 0, '<=9 Bulan' => 1, '>9 Bulan' => 7, 'grand_total' => 8],
+            ['group' => 'Grand Total', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 23, 'grand_total' => 29, 'is_total' => true],
+        ],
+        'by_product' => [
+            ['group' => 'CBS SYARIAH', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 7, 'grand_total' => 7],
+            ['group' => 'DC', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 1, 'grand_total' => 1],
+            ['group' => 'INFRA', '<=6 Bulan' => 5, '<=9 Bulan' => 0, '>9 Bulan' => 0, 'grand_total' => 5],
+            ['group' => 'RFR', '<=6 Bulan' => 0, '<=9 Bulan' => 1, '>9 Bulan' => 15, 'grand_total' => 16],
+            ['group' => 'Grand Total', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 23, 'grand_total' => 29, 'is_total' => true],
+        ],
+        'pie_by_bank' => [
+            ['label' => 'BANK SULTENG >9 Bulan', 'count' => 9],
+            ['label' => 'BANK ACEH >9 Bulan', 'count' => 7],
+            ['label' => 'BANK BENGKULU >9 Bulan', 'count' => 7],
+            ['label' => 'BANK BENGKULU <=6 Bulan', 'count' => 5],
+            ['label' => 'BANK BENGKULU <=9 Bulan', 'count' => 1],
+        ],
+        'pie_by_division' => [
+            ['label' => 'REGION 2 >9 Bulan', 'count' => 8],
+            ['label' => 'CBS SYARIAH >9 Bulan', 'count' => 7],
+            ['label' => 'RFR >9 Bulan', 'count' => 7],
+            ['label' => 'INFRA <=6 Bulan', 'count' => 5],
+            ['label' => 'RFR <=9 Bulan', 'count' => 1],
+            ['label' => 'ITOM >9 Bulan', 'count' => 1],
+        ],
+        'pie_by_product' => [
+            ['label' => 'RFR >9 Bulan', 'count' => 15],
+            ['label' => 'CBS SYARIAH >9 Bulan', 'count' => 7],
+            ['label' => 'INFRA <=6 Bulan', 'count' => 5],
+            ['label' => 'RFR <=9 Bulan', 'count' => 1],
+            ['label' => 'DC >9 Bulan', 'count' => 1],
+        ],
+        'grand_total' => 29,
+    ],
+];

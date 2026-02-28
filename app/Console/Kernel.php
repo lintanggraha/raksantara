@@ -25,6 +25,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('risk:scan-alerts --days=3')->dailyAt('07:00');
+        $schedule->command('reports:dispatch-scheduled')->everyMinute();
     }
 
     /**

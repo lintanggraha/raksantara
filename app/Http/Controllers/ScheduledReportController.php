@@ -1,0 +1,259 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\RiskCategory;
+use App\RiskCauseCategory;
+use App\ScheduledReport;
+use App\ScheduledReportRun;
+use App\Services\ReportDataService;
+use App\Services\ScheduledReportDispatchService;
+use App\Support\RiskOwnerAccess;
+use DateTimeZone;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+
+class ScheduledReportController extends Controller
+{
+    public function index(Request $request)
+    {
+        $this->ensureSchedulerAllowed();
+
+        $schedules = ScheduledReport::query()
+            ->where('user_id', auth()->id())
+            ->orderByDesc('created_at')
+            ->get();
+
+        $scheduleIds = $schedules->pluck('id')->filter()->values();
+        $runHistory = $scheduleIds->isEmpty()
+            ? collect()
+            : ScheduledReportRun::query()
+                ->whereIn('scheduled_report_id', $scheduleIds)
+                ->orderByDesc('ran_at')
+                ->limit(500)
+                ->get()
+                ->groupBy('scheduled_report_id');
+
+        $editingSchedule = null;
+        $editId = $request->query('edit');
+        if (is_numeric($editId)) {
+            $editingSchedule = $schedules->firstWhere('id', (int) $editId);
+        }
+
+        $categories = RiskCategory::query()->orderBy('name')->get(['id', 'name']);
+        $causeCategories = RiskCauseCategory::query()->orderBy('name')->get(['id', 'name']);
+
+        $timezones = DateTimeZone::listIdentifiers();
+        $timezones = array_values(array_unique(array_merge([
+            'Asia/Jakarta',
+            'Asia/Singapore',
+            'UTC',
+        ], $timezones)));
+
+        $selectedOwnerFromEdit = null;
+        if ($editingSchedule instanceof ScheduledReport && is_array($editingSchedule->filters)) {
+            $selectedOwnerFromEdit = $editingSchedule->filters['risk_owner'] ?? null;
+        }
+
+        $riskOwners = optional(auth()->user())->allowedRiskOwners($selectedOwnerFromEdit) ?: [];
+        if (!empty($selectedOwnerFromEdit) && !in_array($selectedOwnerFromEdit, $riskOwners, true)) {
+            $riskOwners[] = (string) $selectedOwnerFromEdit;
+        }
+        usort($riskOwners, function ($left, $right) {
+            return strnatcasecmp(
+                RiskOwnerAccess::displayLabel((string) $left, (string) $left),
+                RiskOwnerAccess::displayLabel((string) $right, (string) $right)
+            );
+        });
+
+        return view('reports.scheduled.index', compact(
+            'schedules',
+            'runHistory',
+            'editingSchedule',
+            'categories',
+            'causeCategories',
+            'timezones',
+            'riskOwners'
+        ));
+    }
+
+    public function store(Request $request, ScheduledReportDispatchService $dispatchService): RedirectResponse
+    {
+        $this->ensureSchedulerAllowed();
+
+        $validated = $this->validateScheduleInput($request);
+        $this->persistSchedule($validated, $dispatchService);
+
+        return redirect()->route('reports.scheduled.index')->with('success', 'Scheduled report berhasil dibuat.');
+    }
+
+    public function update(
+        Request $request,
+        ScheduledReport $scheduledReport,
+        ScheduledReportDispatchService $dispatchService
+    ): RedirectResponse {
+        $this->ensureSchedulerAllowed();
+        $this->authorizeSchedule($scheduledReport);
+
+        $validated = $this->validateScheduleInput($request);
+        $this->persistSchedule($validated, $dispatchService, $scheduledReport);
+
+        return redirect()->route('reports.scheduled.index')->with('success', 'Scheduled report berhasil diperbarui.');
+    }
+
+    public function toggle(ScheduledReport $scheduledReport, ScheduledReportDispatchService $dispatchService): RedirectResponse
+    {
+        $this->ensureSchedulerAllowed();
+        $this->authorizeSchedule($scheduledReport);
+
+        $scheduledReport->is_active = !$scheduledReport->is_active;
+        if ($scheduledReport->is_active) {
+            $scheduledReport->next_run_at = $dispatchService->computeNextRunAt(
+                (string) $scheduledReport->frequency,
+                (string) $scheduledReport->send_time,
+                (string) $scheduledReport->timezone,
+                is_null($scheduledReport->day_of_week) ? null : (int) $scheduledReport->day_of_week,
+                is_null($scheduledReport->day_of_month) ? null : (int) $scheduledReport->day_of_month
+            );
+        } else {
+            $scheduledReport->next_run_at = null;
+        }
+
+        $scheduledReport->save();
+
+        return redirect()->route('reports.scheduled.index')->with('success', 'Status schedule berhasil diperbarui.');
+    }
+
+    public function runNow(
+        ScheduledReport $scheduledReport,
+        ScheduledReportDispatchService $dispatchService,
+        ReportDataService $reportDataService
+    ): RedirectResponse {
+        $this->ensureSchedulerAllowed();
+        $this->authorizeSchedule($scheduledReport);
+
+        $result = $dispatchService->dispatchSchedule($scheduledReport->loadMissing('user'), $reportDataService, 'manual');
+        if ($result['success'] ?? false) {
+            return redirect()->route('reports.scheduled.index')->with(
+                'success',
+                'Scheduled report berhasil dijalankan. Terkirim ke ' . (int) ($result['recipient_count'] ?? 0) . ' penerima.'
+            );
+        }
+
+        return redirect()
+            ->route('reports.scheduled.index')
+            ->withErrors([
+                'schedule_run' => 'Gagal menjalankan schedule "' . $scheduledReport->name . '": ' . (string) ($result['error'] ?? 'Unknown error'),
+            ]);
+    }
+
+    public function destroy(ScheduledReport $scheduledReport): RedirectResponse
+    {
+        $this->ensureSchedulerAllowed();
+        $this->authorizeSchedule($scheduledReport);
+
+        $scheduledReport->delete();
+
+        return redirect()->route('reports.scheduled.index')->with('success', 'Scheduled report berhasil dihapus.');
+    }
+
+    private function authorizeSchedule(ScheduledReport $scheduledReport): void
+    {
+        abort_unless((int) $scheduledReport->user_id === (int) auth()->id(), 403);
+    }
+
+    private function ensureSchedulerAllowed(): void
+    {
+        abort_if(optional(auth()->user())->isSuperadmin(), 403, 'Superadmin is read-only for risk dashboard.');
+    }
+
+    private function validateScheduleInput(Request $request): array
+    {
+        return $request->validate([
+            'name' => 'required|string|max:120',
+            'scope' => 'required|in:monitoring,board,risks,heatmap,recap,overall',
+            'format' => 'required|in:pdf,xlsx,pptx',
+            'frequency' => 'required|in:daily,weekly,monthly',
+            'send_time' => ['required', 'regex:/^(?:[01]\d|2[0-3]):[0-5]\d$/'],
+            'day_of_week' => 'nullable|integer|min:0|max:6|required_if:frequency,weekly',
+            'day_of_month' => 'nullable|integer|min:1|max:28|required_if:frequency,monthly',
+            'timezone' => 'required|timezone',
+            'recipients' => 'nullable|string|max:1000',
+            'year' => 'nullable|integer|min:2000|max:2100',
+            'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
+            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
+            'risk_owner' => 'nullable|string|max:120',
+        ]);
+    }
+
+    private function persistSchedule(
+        array $validated,
+        ScheduledReportDispatchService $dispatchService,
+        ?ScheduledReport $scheduledReport = null
+    ): ScheduledReport {
+        $recipients = $dispatchService->parseRecipients(
+            (string) ($validated['recipients'] ?? ''),
+            (string) (optional(auth()->user())->email ?? '')
+        );
+
+        if (empty($recipients)) {
+            throw ValidationException::withMessages([
+                'recipients' => 'Isi minimal satu email penerima yang valid.',
+            ]);
+        }
+
+        $riskOwner = null;
+        if (!empty($validated['risk_owner'])) {
+            $riskOwner = RiskOwnerAccess::canonicalOption((string) $validated['risk_owner'])
+                ?: trim((string) $validated['risk_owner']);
+        }
+
+        $filters = [
+            'year' => array_key_exists('year', $validated) ? $validated['year'] : null,
+            'risk_category_id' => $validated['risk_category_id'] ?? null,
+            'risk_cause_category_id' => $validated['risk_cause_category_id'] ?? null,
+            'risk_owner' => $riskOwner,
+        ];
+
+        $isActive = is_null($scheduledReport) ? true : (bool) $scheduledReport->is_active;
+        $dayOfWeek = $validated['frequency'] === 'weekly' ? (int) ($validated['day_of_week'] ?? 1) : null;
+        $dayOfMonth = $validated['frequency'] === 'monthly' ? (int) ($validated['day_of_month'] ?? 1) : null;
+
+        $nextRunAt = $isActive
+            ? $dispatchService->computeNextRunAt(
+                (string) $validated['frequency'],
+                (string) $validated['send_time'],
+                (string) $validated['timezone'],
+                $dayOfWeek,
+                $dayOfMonth
+            )
+            : null;
+
+        $payload = [
+            'name' => (string) $validated['name'],
+            'scope' => (string) $validated['scope'],
+            'format' => (string) $validated['format'],
+            'frequency' => (string) $validated['frequency'],
+            'send_time' => (string) $validated['send_time'],
+            'day_of_week' => $dayOfWeek,
+            'day_of_month' => $dayOfMonth,
+            'timezone' => (string) $validated['timezone'],
+            'recipients' => $recipients,
+            'filters' => $filters,
+            'next_run_at' => $nextRunAt,
+        ];
+
+        if (is_null($scheduledReport)) {
+            $payload['user_id'] = (int) auth()->id();
+            $payload['is_active'] = true;
+
+            return ScheduledReport::query()->create($payload);
+        }
+
+        $scheduledReport->fill($payload);
+        $scheduledReport->save();
+
+        return $scheduledReport;
+    }
+}

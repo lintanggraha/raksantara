@@ -5,7 +5,9 @@ namespace App\Services;
 use App\RadarGroup;
 use App\Risk;
 use App\RiskScoreMatrix;
+use App\Support\RiskOwnerAccess;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class ReportDataService
 {
@@ -23,10 +25,15 @@ class ReportDataService
                     'sections' => $this->buildMonitoringSections($risks),
                 ];
             case 'board':
+                $sections = [];
+                $sections = array_merge($sections, $this->buildBoardSections($risks));
+                $sections = array_merge($sections, $this->buildHeatmapSections($risks));
+                $sections = array_merge($sections, $this->buildRecapSections($risks));
+
                 return [
                     'title' => 'Board of Directors Risk Briefing',
                     'file' => $year ? ('board-risk-briefing-' . $year) : 'board-risk-briefing',
-                    'sections' => $this->buildBoardSections($risks),
+                    'sections' => $sections,
                 ];
             case 'risks':
                 return [
@@ -68,6 +75,7 @@ class ReportDataService
         $normalized = [
             'risk_category_id' => null,
             'risk_cause_category_id' => null,
+            'risk_owner' => null,
         ];
 
         if (array_key_exists('risk_category_id', $filters) && is_numeric($filters['risk_category_id'])) {
@@ -76,6 +84,13 @@ class ReportDataService
 
         if (array_key_exists('risk_cause_category_id', $filters) && is_numeric($filters['risk_cause_category_id'])) {
             $normalized['risk_cause_category_id'] = (int) $filters['risk_cause_category_id'];
+        }
+
+        if (array_key_exists('risk_owner', $filters)) {
+            $owner = trim((string) $filters['risk_owner']);
+            if ($owner !== '') {
+                $normalized['risk_owner'] = RiskOwnerAccess::canonicalOption($owner) ?: $owner;
+            }
         }
 
         return $normalized;
@@ -89,6 +104,7 @@ class ReportDataService
             'inherentAnalysis',
             'residualAnalysis.radarGroup',
             'treatments',
+            'creator',
         ])->orderBy('id');
 
         if (!is_null($year)) {
@@ -101,6 +117,10 @@ class ReportDataService
 
         if (!empty($filters['risk_cause_category_id'])) {
             $query->where('risk_cause_category_id', (int) $filters['risk_cause_category_id']);
+        }
+
+        if (!empty($filters['risk_owner'])) {
+            $query->where('risk_owner', (string) $filters['risk_owner']);
         }
 
         return $query->get();
@@ -121,7 +141,7 @@ class ReportDataService
                 (string) ($risk->risk_title ?: '-'),
                 (string) (optional($risk->category)->name ?: '-'),
                 (string) (optional($risk->causeCategory)->name ?: '-'),
-                (string) ($risk->risk_owner ?: '-'),
+                RiskOwnerAccess::displayLabel($risk->risk_owner),
                 (string) ($risk->status ?: '-'),
                 (string) (optional($risk->inherentAnalysis)->inherent_risk_score ?: '-'),
                 (string) (optional($risk->inherentAnalysis)->risk_level ?: '-'),
@@ -298,8 +318,8 @@ class ReportDataService
 
             $buckets[$radarCode]['risk_n']++;
 
-            $owner = trim((string) ($risk->risk_owner ?: '-'));
-            if ($owner !== '') {
+            $owner = RiskOwnerAccess::displayLabel($risk->risk_owner);
+            if ($owner !== '-') {
                 $buckets[$radarCode]['owners'][$owner] = true;
             }
 
@@ -512,15 +532,41 @@ class ReportDataService
             ['Generated At', (string) ($summary['generated_at'] ?? '-')],
         ];
 
-        $trendRows = [];
-        foreach (($summary['trend'] ?? []) as $row) {
-            $trendRows[] = [
-                (string) ($row['label'] ?? ($row['month'] ?? '-')),
+        $trendQuarterlyRows = [];
+        foreach (($summary['trend_quarterly'] ?? []) as $row) {
+            $trendQuarterlyRows[] = [
+                (string) ($row['label'] ?? ($row['period'] ?? '-')),
                 (string) number_format((float) ($row['inherent'] ?? 0), 2, '.', ''),
                 (string) number_format((float) ($row['residual'] ?? 0), 2, '.', ''),
                 (string) number_format((float) ($row['overall'] ?? 0), 2, '.', ''),
             ];
         }
+
+        $trendYearlyRows = [];
+        foreach (($summary['trend_yearly'] ?? []) as $row) {
+            $trendYearlyRows[] = [
+                (string) ($row['label'] ?? ($row['period'] ?? '-')),
+                (string) number_format((float) ($row['inherent'] ?? 0), 2, '.', ''),
+                (string) number_format((float) ($row['residual'] ?? 0), 2, '.', ''),
+                (string) number_format((float) ($row['overall'] ?? 0), 2, '.', ''),
+            ];
+        }
+
+        $benchmarkScoring = (array) ($summary['benchmark_scoring'] ?? []);
+        $benchmarkRows = [
+            ['Internal Average Score', (string) number_format((float) ($benchmarkScoring['internal_average_score'] ?? 0), 2, '.', '')],
+            ['Industry Baseline Score', (string) number_format((float) ($benchmarkScoring['industry_baseline_score'] ?? 0), 2, '.', '')],
+            ['Target Score', (string) number_format((float) ($benchmarkScoring['target_score'] ?? 0), 2, '.', '')],
+            ['Gap vs Industry', (string) number_format((float) ($benchmarkScoring['gap_vs_industry'] ?? 0), 2, '.', '')],
+            ['Gap vs Target', (string) number_format((float) ($benchmarkScoring['gap_vs_target'] ?? 0), 2, '.', '')],
+            ['Position', (string) ($benchmarkScoring['position_label'] ?? '-')],
+            ['Industry Source', (string) ($benchmarkScoring['source_name'] ?? '-')],
+            ['Source Reference', (string) ($benchmarkScoring['source_reference'] ?? '-')],
+            ['Source Year', (string) ($benchmarkScoring['source_year'] ?? '-')],
+            ['Score Scale', (string) ($benchmarkScoring['score_scale_min'] ?? 1) . '-' . (string) ($benchmarkScoring['score_scale_max'] ?? 25)],
+            ['Methodology', (string) ($benchmarkScoring['methodology'] ?? '-')],
+            ['Position Reason', (string) ($benchmarkScoring['position_reason'] ?? '-')],
+        ];
 
         $performanceRows = [
             ['Mitigation - Treatment Count', (string) ($summary['mitigation']['treatment_count'] ?? 0)],
@@ -534,6 +580,82 @@ class ReportDataService
             ['SLA - Compliant Count', (string) ($summary['sla']['compliant_count'] ?? 0)],
             ['SLA - Overdue Count', (string) ($summary['sla']['overdue_count'] ?? 0)],
         ];
+
+        $kpiDashboard = (array) ($summary['kpi_dashboard'] ?? []);
+        $kpiRows = [
+            ['Avg Response Time (Days)', (string) number_format((float) ($kpiDashboard['avg_response_time_days'] ?? 0), 2, '.', '')],
+            ['Response SLA Threshold (Days)', (string) ($kpiDashboard['response_sla_days'] ?? 7)],
+            ['Response Within SLA', (string) number_format((float) ($kpiDashboard['response_within_sla_percent'] ?? 0), 2, '.', '') . '%'],
+            ['Treatment Effectiveness Rate', (string) number_format((float) ($kpiDashboard['treatment_effectiveness_rate'] ?? 0), 2, '.', '') . '%'],
+            ['Risk Treatment Coverage Rate', (string) number_format((float) ($kpiDashboard['risk_treatment_coverage_rate'] ?? 0), 2, '.', '') . '%'],
+            ['Closed Risk Rate', (string) number_format((float) ($kpiDashboard['closed_risk_rate'] ?? 0), 2, '.', '') . '%'],
+            ['Overdue Treatment Rate', (string) number_format((float) ($kpiDashboard['overdue_treatment_rate'] ?? 0), 2, '.', '') . '%'],
+            ['Response Sample Count', (string) ($kpiDashboard['response_sample_count'] ?? 0)],
+        ];
+
+        $heatmapTrendPayload = (array) ($summary['heatmap_trends'] ?? []);
+        $heatmapTrendRows = [];
+        foreach (($heatmapTrendPayload['rows'] ?? []) as $row) {
+            $heatmapTrendRows[] = [
+                (string) ($row['label'] ?? '-'),
+                (string) ($row['risk_count'] ?? 0),
+                (string) ($row['inherent_high_count'] ?? 0),
+                (string) ($row['residual_high_count'] ?? 0),
+                (string) ($row['high_risk_reduction'] ?? 0),
+                (string) number_format((float) ($row['avg_inherent_score'] ?? 0), 2, '.', ''),
+                (string) number_format((float) ($row['avg_residual_score'] ?? 0), 2, '.', ''),
+                (string) ($row['dominant_residual_cell'] ?? '-'),
+            ];
+        }
+        $heatmapComparisonRows = [
+            ['Latest Period', (string) ($heatmapTrendPayload['latest_period'] ?? '-')],
+            ['Previous Period', (string) ($heatmapTrendPayload['previous_period'] ?? '-')],
+            ['Latest Residual High-Risk Count', (string) ($heatmapTrendPayload['latest_residual_high_count'] ?? 0)],
+            ['Previous Residual High-Risk Count', (string) ($heatmapTrendPayload['previous_residual_high_count'] ?? 0)],
+            ['Change Residual High-Risk Count', (string) ($heatmapTrendPayload['change_residual_high_count'] ?? 0)],
+            ['Direction', (string) ($heatmapTrendPayload['direction'] ?? '-')],
+        ];
+
+        $departmentPerformancePayload = (array) ($summary['department_performance'] ?? []);
+        $departmentRows = [];
+        foreach (($departmentPerformancePayload['rows'] ?? []) as $row) {
+            $departmentRows[] = [
+                (string) ($row['rank'] ?? '-'),
+                (string) ($row['division'] ?? '-'),
+                (string) ($row['risk_count'] ?? 0),
+                (string) number_format((float) ($row['closed_rate'] ?? 0), 2, '.', '') . '%',
+                (string) number_format((float) ($row['avg_residual_score'] ?? 0), 2, '.', ''),
+                (string) number_format((float) ($row['treatment_coverage_percent'] ?? 0), 2, '.', '') . '%',
+                (string) number_format((float) ($row['avg_response_time_days'] ?? 0), 2, '.', ''),
+                (string) number_format((float) ($row['performance_score'] ?? 0), 2, '.', ''),
+            ];
+        }
+
+        $rootCausePayload = (array) ($summary['root_cause_analysis'] ?? []);
+        $rootCauseCategoryRows = [];
+        foreach (($rootCausePayload['top_categories'] ?? []) as $row) {
+            $rootCauseCategoryRows[] = [
+                (string) ($row['category'] ?? '-'),
+                (string) ($row['count'] ?? 0),
+                (string) number_format((float) ($row['share_percent'] ?? 0), 2, '.', '') . '%',
+                (string) number_format((float) ($row['avg_residual_score'] ?? 0), 2, '.', ''),
+            ];
+        }
+        $rootCauseKeywordRows = [];
+        foreach (($rootCausePayload['top_keywords'] ?? []) as $row) {
+            $rootCauseKeywordRows[] = [
+                (string) ($row['keyword'] ?? '-'),
+                (string) ($row['count'] ?? 0),
+            ];
+        }
+        $rootCausePatternRows = [];
+        foreach (($rootCausePayload['patterns'] ?? []) as $row) {
+            $rootCausePatternRows[] = [
+                (string) ($row['pattern'] ?? '-'),
+                (string) ($row['evidence'] ?? '-'),
+                (string) ($row['recommendation'] ?? '-'),
+            ];
+        }
 
         $breakdownRows = [];
         $appendBreakdownRows = function (string $group, array $rows) use (&$breakdownRows): void {
@@ -581,14 +703,59 @@ class ReportDataService
                 ],
             ],
             [
-                'title' => 'Monitoring Trend Scores',
-                'headings' => ['Month', 'Inherent', 'Residual', 'Overall'],
-                'rows' => $trendRows,
+                'title' => 'Trend Analysis by Quarter',
+                'headings' => ['Quarter', 'Inherent', 'Residual', 'Overall'],
+                'rows' => $trendQuarterlyRows,
+            ],
+            [
+                'title' => 'Trend Analysis by Year',
+                'headings' => ['Year', 'Inherent', 'Residual', 'Overall'],
+                'rows' => $trendYearlyRows,
+            ],
+            [
+                'title' => 'Benchmark Scoring',
+                'headings' => ['Metric', 'Value'],
+                'rows' => $benchmarkRows,
             ],
             [
                 'title' => 'Monitoring Mitigation & SLA',
                 'headings' => ['Indicator', 'Value'],
                 'rows' => $performanceRows,
+            ],
+            [
+                'title' => 'KPI Dashboard',
+                'headings' => ['Metric', 'Value'],
+                'rows' => $kpiRows,
+            ],
+            [
+                'title' => 'Heat Map Trends - Historical Comparison',
+                'headings' => ['Quarter', 'Risk Count', 'Inherent High', 'Residual High', 'Reduction', 'Avg Inherent', 'Avg Residual', 'Dominant Residual Cell'],
+                'rows' => $heatmapTrendRows,
+            ],
+            [
+                'title' => 'Heat Map Trend Snapshot',
+                'headings' => ['Metric', 'Value'],
+                'rows' => $heatmapComparisonRows,
+            ],
+            [
+                'title' => 'Department / Division Performance',
+                'headings' => ['Rank', 'Division', 'Risk Count', 'Closed Rate', 'Avg Residual', 'Coverage', 'Avg Response (Days)', 'Performance Score'],
+                'rows' => $departmentRows,
+            ],
+            [
+                'title' => 'Root Cause Analysis - Top Categories',
+                'headings' => ['Cause Category', 'Count', 'Share', 'Avg Residual'],
+                'rows' => $rootCauseCategoryRows,
+            ],
+            [
+                'title' => 'Root Cause Analysis - Recurring Keywords',
+                'headings' => ['Keyword', 'Occurrences'],
+                'rows' => $rootCauseKeywordRows,
+            ],
+            [
+                'title' => 'Root Cause Analysis - Pattern Insights',
+                'headings' => ['Pattern', 'Evidence', 'Recommendation'],
+                'rows' => $rootCausePatternRows,
             ],
             [
                 'title' => 'Monitoring Breakdown',
@@ -607,6 +774,7 @@ class ReportDataService
     {
         $risks = collect($risks)->values();
         $totalRisks = (int) $risks->count();
+        $responseTimeByRiskId = $this->buildResponseTimeByRiskId($risks);
 
         $statusSummary = $this->buildGroupedCountRows($risks->groupBy(function ($risk) {
             $status = trim((string) ($risk->status ?? 'Unknown'));
@@ -621,9 +789,7 @@ class ReportDataService
         }));
 
         $ownerSummary = $this->buildGroupedCountRows($risks->groupBy(function ($risk) {
-            $owner = trim((string) ($risk->risk_owner ?? '-'));
-
-            return $owner !== '' ? $owner : '-';
+            return RiskOwnerAccess::displayLabel($risk->risk_owner);
         }));
 
         $statusSummaryCollection = collect($statusSummary)->keyBy('label');
@@ -648,7 +814,9 @@ class ReportDataService
             return is_numeric($inherent) ? (float) $inherent : null;
         });
 
-        $trendRows = $this->buildTrendRows($risks);
+        $trendMonthlyRows = $this->buildTrendRows($risks, 'monthly');
+        $trendQuarterlyRows = $this->buildTrendRows($risks, 'quarterly');
+        $trendYearlyRows = $this->buildTrendRows($risks, 'yearly');
 
         $treatments = $risks->flatMap(function ($risk) {
             return $risk->treatments->map(function ($treatment) use ($risk) {
@@ -691,6 +859,27 @@ class ReportDataService
 
         $varianceRows = $this->buildVarianceRows($risks);
         $globalVariance = round($inherentAverage - $residualAverage, 2);
+        $benchmarkScoring = $this->buildBenchmarkScoring($overallAverage);
+        $kpiDashboard = $this->buildKpiDashboard(
+            $totalRisks,
+            $closedCount,
+            $mitigationEffectivenessPercent,
+            $riskCoveragePercent,
+            $dueCount,
+            $overdueCount,
+            $responseTimeByRiskId
+        );
+        $heatmapTrends = $this->buildHeatmapTrends($risks);
+        $departmentPerformance = $this->buildDepartmentPerformance($risks, $responseTimeByRiskId);
+        $rootCauseAnalysis = $this->buildRootCauseAnalysis($risks, $overallAverage);
+        $portfolioOverview = [
+            'by_priority' => $this->buildPrioritySummary($risks),
+            'by_category' => array_slice($categorySummary, 0, 6),
+            'by_division' => $this->buildDivisionSummary($risks, 6),
+            'treatment_timeline' => $this->buildTreatmentTimelineSummary($risks),
+            'risk_status' => $statusSummary,
+            'top_risks' => $this->buildTopRiskRows($risks, 10),
+        ];
 
         return [
             'generated_at' => now()->format('Y-m-d H:i:s'),
@@ -706,7 +895,12 @@ class ReportDataService
                 'residual' => $residualAverage,
                 'overall' => $overallAverage,
             ],
-            'trend' => $trendRows,
+            'trend' => $trendQuarterlyRows,
+            'trend_monthly' => $trendMonthlyRows,
+            'trend_quarterly' => $trendQuarterlyRows,
+            'trend_yearly' => $trendYearlyRows,
+            'trend_granularity' => 'quarterly',
+            'benchmark_scoring' => $benchmarkScoring,
             'mitigation' => [
                 'treatment_count' => $treatmentCount,
                 'covered_risk_count' => $coveredRiskCount,
@@ -714,6 +908,11 @@ class ReportDataService
                 'average_effectiveness_score' => $effectivenessAverageScore,
                 'effectiveness_percent' => $mitigationEffectivenessPercent,
             ],
+            'kpi_dashboard' => $kpiDashboard,
+            'heatmap_trends' => $heatmapTrends,
+            'department_performance' => $departmentPerformance,
+            'root_cause_analysis' => $rootCauseAnalysis,
+            'portfolio_overview' => $portfolioOverview,
             'sla' => [
                 'target_percent' => $slaTargetPercent,
                 'actual_percent' => $slaActualPercent,
@@ -726,6 +925,741 @@ class ReportDataService
                 'rows' => $varianceRows,
             ],
         ];
+    }
+
+    private function buildResponseTimeByRiskId($risks): array
+    {
+        $responseByRiskId = [];
+
+        foreach ($risks as $risk) {
+            $riskId = (int) ($risk->id ?? 0);
+            $createdAt = $risk->created_at;
+            if ($riskId <= 0 || is_null($createdAt)) {
+                continue;
+            }
+
+            $firstTreatment = collect($risk->treatments ?? [])
+                ->filter(function ($treatment) {
+                    return !is_null(optional($treatment)->created_at);
+                })
+                ->sortBy('created_at')
+                ->first();
+
+            $firstTreatmentAt = optional($firstTreatment)->created_at;
+            if (is_null($firstTreatmentAt)) {
+                continue;
+            }
+
+            try {
+                $hours = Carbon::parse($createdAt)->diffInHours(Carbon::parse($firstTreatmentAt));
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            $responseByRiskId[$riskId] = round(max(0.0, (float) $hours) / 24, 2);
+        }
+
+        return $responseByRiskId;
+    }
+
+    private function buildKpiDashboard(
+        int $totalRisks,
+        int $closedCount,
+        float $mitigationEffectivenessPercent,
+        float $riskCoveragePercent,
+        int $dueCount,
+        int $overdueCount,
+        array $responseTimeByRiskId
+    ): array {
+        $responseSlaDays = 7;
+        $responseSamples = collect($responseTimeByRiskId)
+            ->values()
+            ->filter(function ($value) {
+                return is_numeric($value);
+            })
+            ->map(function ($value) {
+                return (float) $value;
+            })
+            ->values();
+
+        $responseSampleCount = (int) $responseSamples->count();
+        $avgResponseTimeDays = $responseSampleCount > 0
+            ? round((float) $responseSamples->avg(), 2)
+            : 0.0;
+        $responseWithinSlaCount = (int) $responseSamples->filter(function ($value) use ($responseSlaDays) {
+            return (float) $value <= $responseSlaDays;
+        })->count();
+        $responseWithinSlaPercent = $responseSampleCount > 0
+            ? round(($responseWithinSlaCount / $responseSampleCount) * 100, 2)
+            : 0.0;
+        $closedRiskRate = $totalRisks > 0
+            ? round(($closedCount / $totalRisks) * 100, 2)
+            : 0.0;
+        $overdueTreatmentRate = $dueCount > 0
+            ? round(($overdueCount / $dueCount) * 100, 2)
+            : 0.0;
+
+        return [
+            'avg_response_time_days' => $avgResponseTimeDays,
+            'response_sla_days' => $responseSlaDays,
+            'response_sample_count' => $responseSampleCount,
+            'response_within_sla_count' => $responseWithinSlaCount,
+            'response_within_sla_percent' => $responseWithinSlaPercent,
+            'treatment_effectiveness_rate' => round($mitigationEffectivenessPercent, 2),
+            'risk_treatment_coverage_rate' => round($riskCoveragePercent, 2),
+            'closed_risk_rate' => $closedRiskRate,
+            'overdue_treatment_rate' => $overdueTreatmentRate,
+        ];
+    }
+
+    private function buildHeatmapTrends($risks, int $periodCount = 6): array
+    {
+        $periodCount = max(2, $periodCount);
+        $highRiskThreshold = 16;
+        $periodMap = [];
+        $cursor = Carbon::now()->firstOfQuarter();
+
+        for ($i = $periodCount - 1; $i >= 0; $i--) {
+            $period = (clone $cursor)->subQuarters($i);
+            $key = $period->format('Y') . '-Q' . $period->quarter;
+            $periodMap[$key] = [
+                'period' => $key,
+                'label' => 'Q' . $period->quarter . ' ' . $period->format('Y'),
+                'risk_count' => 0,
+                'inherent_high_count' => 0,
+                'residual_high_count' => 0,
+                'inherent_score_sum' => 0.0,
+                'residual_score_sum' => 0.0,
+                'inherent_score_count' => 0,
+                'residual_score_count' => 0,
+                'residual_cells' => [],
+            ];
+        }
+
+        foreach ($risks as $risk) {
+            $createdAt = $risk->created_at;
+            if (is_null($createdAt)) {
+                continue;
+            }
+
+            $period = Carbon::parse($createdAt)->firstOfQuarter();
+            $key = $period->format('Y') . '-Q' . $period->quarter;
+            if (!isset($periodMap[$key])) {
+                continue;
+            }
+
+            $periodMap[$key]['risk_count']++;
+
+            $inherentScore = optional($risk->inherentAnalysis)->inherent_risk_score;
+            if (is_numeric($inherentScore)) {
+                $inherentScore = (float) $inherentScore;
+                $periodMap[$key]['inherent_score_sum'] += $inherentScore;
+                $periodMap[$key]['inherent_score_count']++;
+                if ($inherentScore >= $highRiskThreshold) {
+                    $periodMap[$key]['inherent_high_count']++;
+                }
+            }
+
+            $residualScore = optional($risk->residualAnalysis)->residual_risk_score;
+            if (is_numeric($residualScore)) {
+                $residualScore = (float) $residualScore;
+                $periodMap[$key]['residual_score_sum'] += $residualScore;
+                $periodMap[$key]['residual_score_count']++;
+                if ($residualScore >= $highRiskThreshold) {
+                    $periodMap[$key]['residual_high_count']++;
+                }
+            }
+
+            $residualProbability = (int) (optional($risk->residualAnalysis)->probability_score ?? 0);
+            $residualImpact = (int) (optional($risk->residualAnalysis)->impact_score ?? 0);
+            if ($residualProbability >= 1 && $residualProbability <= 5 && $residualImpact >= 1 && $residualImpact <= 5) {
+                $cellKey = 'P' . $residualProbability . 'xI' . $residualImpact;
+                $periodMap[$key]['residual_cells'][$cellKey] = (int) (($periodMap[$key]['residual_cells'][$cellKey] ?? 0) + 1);
+            }
+        }
+
+        $rows = collect($periodMap)->map(function ($row) {
+            $dominantCell = '-';
+            if (!empty($row['residual_cells'])) {
+                arsort($row['residual_cells']);
+                $dominantCellKey = (string) array_key_first($row['residual_cells']);
+                if ($dominantCellKey !== '') {
+                    $dominantCell = preg_replace('/xI/', ' x I', $dominantCellKey);
+                }
+            }
+
+            $inherentAvg = (int) $row['inherent_score_count'] > 0
+                ? round((float) $row['inherent_score_sum'] / (int) $row['inherent_score_count'], 2)
+                : 0.0;
+            $residualAvg = (int) $row['residual_score_count'] > 0
+                ? round((float) $row['residual_score_sum'] / (int) $row['residual_score_count'], 2)
+                : 0.0;
+            $highRiskReduction = (int) $row['inherent_high_count'] - (int) $row['residual_high_count'];
+
+            return [
+                'period' => (string) $row['period'],
+                'label' => (string) $row['label'],
+                'risk_count' => (int) $row['risk_count'],
+                'inherent_high_count' => (int) $row['inherent_high_count'],
+                'residual_high_count' => (int) $row['residual_high_count'],
+                'high_risk_reduction' => $highRiskReduction,
+                'avg_inherent_score' => $inherentAvg,
+                'avg_residual_score' => $residualAvg,
+                'dominant_residual_cell' => (string) ($dominantCell ?: '-'),
+            ];
+        })->values()->all();
+
+        $latest = !empty($rows) ? $rows[count($rows) - 1] : null;
+        $previous = count($rows) > 1 ? $rows[count($rows) - 2] : null;
+        $latestResidualHigh = (int) ($latest['residual_high_count'] ?? 0);
+        $previousResidualHigh = (int) ($previous['residual_high_count'] ?? 0);
+        $changeResidualHigh = $latestResidualHigh - $previousResidualHigh;
+        $direction = $changeResidualHigh < 0
+            ? 'improving'
+            : ($changeResidualHigh > 0 ? 'deteriorating' : 'stable');
+
+        return [
+            'rows' => $rows,
+            'latest_period' => (string) ($latest['label'] ?? '-'),
+            'previous_period' => (string) ($previous['label'] ?? '-'),
+            'latest_residual_high_count' => $latestResidualHigh,
+            'previous_residual_high_count' => $previousResidualHigh,
+            'change_residual_high_count' => $changeResidualHigh,
+            'direction' => $direction,
+        ];
+    }
+
+    private function buildDepartmentPerformance($risks, array $responseTimeByRiskId): array
+    {
+        $today = Carbon::today();
+        $grouped = collect($risks)->groupBy(function ($risk) {
+            return RiskOwnerAccess::displayLabel($risk->risk_owner);
+        });
+
+        $rows = $grouped->map(function ($items, $division) use ($responseTimeByRiskId, $today) {
+            $items = collect($items)->values();
+            $riskCount = (int) $items->count();
+            $closedCount = (int) $items->filter(function ($risk) {
+                return strtolower(trim((string) ($risk->status ?? ''))) === 'closed';
+            })->count();
+            $closedRate = $riskCount > 0 ? round(($closedCount / $riskCount) * 100, 2) : 0.0;
+
+            $avgResidualScore = $this->averageFromCollection($items, function ($risk) {
+                return optional($risk->residualAnalysis)->residual_risk_score;
+            });
+
+            $coveredRiskCount = (int) $items->filter(function ($risk) {
+                return collect($risk->treatments ?? [])->isNotEmpty();
+            })->count();
+            $coveragePercent = $riskCount > 0 ? round(($coveredRiskCount / $riskCount) * 100, 2) : 0.0;
+
+            $responseSamples = $items->map(function ($risk) use ($responseTimeByRiskId) {
+                $riskId = (int) ($risk->id ?? 0);
+                $value = $responseTimeByRiskId[$riskId] ?? null;
+
+                return is_numeric($value) ? (float) $value : null;
+            })->filter(function ($value) {
+                return is_numeric($value);
+            })->values();
+
+            $avgResponseTimeDays = $responseSamples->isEmpty()
+                ? 0.0
+                : round((float) $responseSamples->avg(), 2);
+            $responseWithinSlaPercent = $responseSamples->isEmpty()
+                ? 0.0
+                : round(($responseSamples->filter(function ($value) {
+                    return (float) $value <= 7;
+                })->count() / $responseSamples->count()) * 100, 2);
+
+            $riskReductionValues = $items->map(function ($risk) {
+                $inherent = optional($risk->inherentAnalysis)->inherent_risk_score;
+                $residual = optional($risk->residualAnalysis)->residual_risk_score;
+                if (!is_numeric($inherent) || !is_numeric($residual) || (float) $inherent <= 0) {
+                    return null;
+                }
+
+                $reduction = (((float) $inherent - (float) $residual) / (float) $inherent) * 100;
+
+                return max(0.0, min(100.0, $reduction));
+            })->filter(function ($value) {
+                return is_numeric($value);
+            })->values();
+
+            $riskReductionPercent = $riskReductionValues->isEmpty()
+                ? 0.0
+                : round((float) $riskReductionValues->avg(), 2);
+
+            $priorityTemplate = [
+                'low' => 0,
+                'moderate' => 0,
+                'high' => 0,
+                'extreme' => 0,
+            ];
+            $inherentPriority = $priorityTemplate;
+            $residualPriority = $priorityTemplate;
+
+            foreach ($items as $risk) {
+                $inherentBucket = $this->resolveRiskPriorityBucket(optional($risk->inherentAnalysis)->inherent_risk_score);
+                if (!is_null($inherentBucket)) {
+                    $inherentPriority[$inherentBucket] = (int) ($inherentPriority[$inherentBucket] + 1);
+                }
+
+                $residualBucket = $this->resolveRiskPriorityBucket(optional($risk->residualAnalysis)->residual_risk_score);
+                if (!is_null($residualBucket)) {
+                    $residualPriority[$residualBucket] = (int) ($residualPriority[$residualBucket] + 1);
+                }
+            }
+
+            $treatments = $items->flatMap(function ($risk) {
+                return collect($risk->treatments ?? [])->values();
+            })->values();
+            $activityCount = (int) $treatments->count();
+            $dueTreatments = $treatments->filter(function ($treatment) {
+                return !empty($treatment->deadline);
+            });
+            $dueCount = (int) $dueTreatments->count();
+            $overdueCount = (int) $dueTreatments->filter(function ($treatment) use ($today) {
+                try {
+                    return Carbon::parse($treatment->deadline)->startOfDay()->lt($today);
+                } catch (\Throwable $e) {
+                    return false;
+                }
+            })->count();
+            $effectivenessScore = $this->averageFromCollection($treatments, function ($treatment) {
+                return optional($treatment)->effectiveness_score;
+            });
+            $effectivenessPercent = round($effectivenessScore * 100, 2);
+
+            $residualComponent = max(0.0, 100.0 - min(100.0, $avgResidualScore * 4));
+            $responseComponent = $responseSamples->isEmpty()
+                ? 50.0
+                : max(0.0, 100.0 - min(100.0, $avgResponseTimeDays * 8));
+            $performanceScore = round(
+                ($closedRate * 0.30) +
+                ($coveragePercent * 0.20) +
+                ($residualComponent * 0.25) +
+                ($responseComponent * 0.15) +
+                ($riskReductionPercent * 0.10),
+                2
+            );
+
+            return [
+                'division' => (string) $division,
+                'risk_count' => $riskCount,
+                'closed_rate' => $closedRate,
+                'avg_residual_score' => $avgResidualScore,
+                'treatment_coverage_percent' => $coveragePercent,
+                'avg_response_time_days' => $avgResponseTimeDays,
+                'response_within_sla_percent' => $responseWithinSlaPercent,
+                'risk_reduction_percent' => $riskReductionPercent,
+                'performance_score' => $performanceScore,
+                'priority_breakdown' => [
+                    'inherent' => $inherentPriority,
+                    'residual' => $residualPriority,
+                ],
+                'treatment_stats' => [
+                    'activity_count' => $activityCount,
+                    'due_count' => $dueCount,
+                    'overdue_count' => $overdueCount,
+                    'effectiveness_percent' => $effectivenessPercent,
+                ],
+            ];
+        })->sortByDesc('performance_score')->values();
+
+        $rankedRows = $rows->values()->map(function ($row, $index) {
+            $row['rank'] = (int) $index + 1;
+
+            return $row;
+        })->all();
+
+        $averageScore = !empty($rankedRows)
+            ? round((float) collect($rankedRows)->avg('performance_score'), 2)
+            : 0.0;
+        $topDivision = !empty($rankedRows)
+            ? (string) ($rankedRows[0]['division'] ?? '-')
+            : '-';
+        $totalRisks = (int) collect($rankedRows)->sum(function ($row) {
+            return (int) ($row['risk_count'] ?? 0);
+        });
+
+        return [
+            'rows' => $rankedRows,
+            'average_score' => $averageScore,
+            'top_division' => $topDivision,
+            'total_risks' => $totalRisks,
+            'division_count' => (int) count($rankedRows),
+        ];
+    }
+
+    private function resolveRiskPriorityBucket($score): ?string
+    {
+        if (!is_numeric($score)) {
+            return null;
+        }
+
+        $numeric = (float) $score;
+        if ($numeric <= 5) {
+            return 'low';
+        }
+
+        if ($numeric <= 10) {
+            return 'moderate';
+        }
+
+        if ($numeric <= 15) {
+            return 'high';
+        }
+
+        return 'extreme';
+    }
+
+    private function resolveRiskDisplayScore(Risk $risk): float
+    {
+        $residualScore = optional($risk->residualAnalysis)->residual_risk_score;
+        if (is_numeric($residualScore)) {
+            return round((float) $residualScore, 2);
+        }
+
+        $inherentScore = optional($risk->inherentAnalysis)->inherent_risk_score;
+        if (is_numeric($inherentScore)) {
+            return round((float) $inherentScore, 2);
+        }
+
+        $baseScore = $risk->risk_score;
+        if (is_numeric($baseScore)) {
+            return round((float) $baseScore, 2);
+        }
+
+        return 0.0;
+    }
+
+    private function resolveRiskPriorityLabel(?string $bucket): string
+    {
+        $map = [
+            'low' => 'Low',
+            'moderate' => 'Moderate',
+            'high' => 'High',
+            'extreme' => 'Extreme',
+        ];
+
+        $normalized = strtolower(trim((string) $bucket));
+
+        return $map[$normalized] ?? '-';
+    }
+
+    private function buildPrioritySummary($risks): array
+    {
+        $bucketCounts = [
+            'low' => 0,
+            'moderate' => 0,
+            'high' => 0,
+            'extreme' => 0,
+        ];
+
+        foreach ($risks as $risk) {
+            $bucket = $this->resolveRiskPriorityBucket($this->resolveRiskDisplayScore($risk));
+            if (is_null($bucket)) {
+                continue;
+            }
+
+            $bucketCounts[$bucket] = (int) ($bucketCounts[$bucket] + 1);
+        }
+
+        return [
+            ['label' => 'Low', 'count' => (int) $bucketCounts['low']],
+            ['label' => 'Moderate', 'count' => (int) $bucketCounts['moderate']],
+            ['label' => 'High', 'count' => (int) $bucketCounts['high']],
+            ['label' => 'Extreme', 'count' => (int) $bucketCounts['extreme']],
+        ];
+    }
+
+    private function buildDivisionSummary($risks, int $limit = 6): array
+    {
+        $limit = max(1, $limit);
+
+        return collect($risks)
+            ->groupBy(function ($risk) {
+                return RiskOwnerAccess::displayLabel($risk->risk_owner);
+            })
+            ->map(function ($items, $label) {
+                return [
+                    'label' => (string) $label,
+                    'count' => (int) collect($items)->count(),
+                ];
+            })
+            ->sortByDesc('count')
+            ->take($limit)
+            ->values()
+            ->all();
+    }
+
+    private function buildTreatmentTimelineSummary($risks): array
+    {
+        $today = Carbon::today();
+        $dueSoonThreshold = (clone $today)->addDays(14);
+        $counts = [
+            'overdue' => 0,
+            'due_soon' => 0,
+            'on_track' => 0,
+            'no_deadline' => 0,
+        ];
+
+        $treatments = collect($risks)->flatMap(function ($risk) {
+            return collect($risk->treatments ?? [])->values();
+        })->values();
+
+        foreach ($treatments as $treatment) {
+            $deadline = optional($treatment)->deadline;
+            if (empty($deadline)) {
+                $counts['no_deadline'] = (int) ($counts['no_deadline'] + 1);
+                continue;
+            }
+
+            try {
+                $deadlineDate = Carbon::parse($deadline)->startOfDay();
+            } catch (\Throwable $e) {
+                $counts['no_deadline'] = (int) ($counts['no_deadline'] + 1);
+                continue;
+            }
+
+            if ($deadlineDate->lt($today)) {
+                $counts['overdue'] = (int) ($counts['overdue'] + 1);
+                continue;
+            }
+
+            if ($deadlineDate->lte($dueSoonThreshold)) {
+                $counts['due_soon'] = (int) ($counts['due_soon'] + 1);
+                continue;
+            }
+
+            $counts['on_track'] = (int) ($counts['on_track'] + 1);
+        }
+
+        return [
+            ['label' => 'Overdue', 'count' => (int) $counts['overdue']],
+            ['label' => 'Due Soon', 'count' => (int) $counts['due_soon']],
+            ['label' => 'On Track', 'count' => (int) $counts['on_track']],
+            ['label' => 'No Deadline', 'count' => (int) $counts['no_deadline']],
+        ];
+    }
+
+    private function buildTopRiskRows($risks, int $limit = 10): array
+    {
+        $limit = max(1, $limit);
+
+        return collect($risks)->map(function ($risk) {
+            $riskValue = $this->resolveRiskDisplayScore($risk);
+            $priorityBucket = $this->resolveRiskPriorityBucket($riskValue) ?: 'low';
+            $division = RiskOwnerAccess::displayLabel($risk->risk_owner);
+            $category = trim((string) (optional($risk->category)->name ?? '-'));
+            $owner = trim((string) (optional($risk->creator)->name ?? ''));
+            if ($owner === '') {
+                $owner = $division;
+            }
+
+            $likelihood = optional($risk->residualAnalysis)->probability_score;
+            if (!is_numeric($likelihood)) {
+                $likelihood = optional($risk->inherentAnalysis)->probability_score;
+            }
+            if (!is_numeric($likelihood)) {
+                $likelihood = $risk->probability_score;
+            }
+
+            $impact = optional($risk->residualAnalysis)->impact_score;
+            if (!is_numeric($impact)) {
+                $impact = optional($risk->inherentAnalysis)->impact_score;
+            }
+            if (!is_numeric($impact)) {
+                $impact = $risk->impact_score;
+            }
+
+            $description = trim((string) ($risk->risk_description ?: $risk->cause ?: '-'));
+            if ($description === '') {
+                $description = '-';
+            }
+
+            $controlFocus = trim((string) ($risk->existing_control ?: '-'));
+            if ($controlFocus === '') {
+                $controlFocus = '-';
+            }
+
+            return [
+                '_sort_score' => $riskValue,
+                'risk_id' => (string) ($risk->risk_id ?: ('RISK-' . (string) ($risk->id ?? '-'))),
+                'risk_title' => (string) ($risk->risk_title ?: '-'),
+                'description' => Str::limit($description, 110),
+                'priority_bucket' => $priorityBucket,
+                'priority_label' => $this->resolveRiskPriorityLabel($priorityBucket),
+                'risk_value' => round($riskValue, 2),
+                'division' => $division,
+                'owner' => $owner,
+                'category' => $category !== '' ? $category : '-',
+                'likelihood' => is_numeric($likelihood) ? (int) $likelihood : null,
+                'impact' => is_numeric($impact) ? (int) $impact : null,
+                'control_focus' => Str::limit($controlFocus, 72),
+            ];
+        })
+            ->sortByDesc('_sort_score')
+            ->take($limit)
+            ->values()
+            ->map(function ($row) {
+                unset($row['_sort_score']);
+
+                return $row;
+            })
+            ->all();
+    }
+
+    private function buildRootCauseAnalysis($risks, float $overallAverageScore): array
+    {
+        $risks = collect($risks)->values();
+        $totalRisks = (int) $risks->count();
+        $topCategories = $risks->groupBy(function ($risk) {
+            $category = trim((string) (optional($risk->causeCategory)->name ?? 'Tanpa Kategori'));
+
+            return $category !== '' ? $category : 'Tanpa Kategori';
+        })->map(function ($items, $label) use ($totalRisks) {
+            $count = (int) collect($items)->count();
+            $sharePercent = $totalRisks > 0
+                ? round(($count / $totalRisks) * 100, 2)
+                : 0.0;
+            $avgResidualScore = $this->averageFromCollection($items, function ($risk) {
+                return optional($risk->residualAnalysis)->residual_risk_score;
+            });
+
+            return [
+                'category' => (string) $label,
+                'count' => $count,
+                'share_percent' => $sharePercent,
+                'avg_residual_score' => $avgResidualScore,
+            ];
+        })->sortByDesc('count')->take(6)->values()->all();
+
+        $topKeywords = $this->extractCauseKeywords($risks);
+        $patterns = [];
+
+        if (!empty($topCategories)) {
+            $dominantCategory = $topCategories[0];
+            if ((float) ($dominantCategory['share_percent'] ?? 0) >= 35) {
+                $patterns[] = [
+                    'pattern' => 'Klaster Penyebab Dominan',
+                    'evidence' => (string) ($dominantCategory['category'] ?? '-') . ' menyumbang ' . number_format((float) ($dominantCategory['share_percent'] ?? 0), 2, '.', '') . '% dari risiko.',
+                    'recommendation' => 'Prioritaskan redesign kontrol dan checklist pencegahan untuk kategori penyebab ini.',
+                ];
+            }
+        }
+
+        $aboveAverageCategory = collect($topCategories)->first(function ($row) use ($overallAverageScore) {
+            return (float) ($row['avg_residual_score'] ?? 0) > (float) $overallAverageScore
+                && (int) ($row['count'] ?? 0) >= 2;
+        });
+        if (is_array($aboveAverageCategory)) {
+            $patterns[] = [
+                'pattern' => 'Kategori Penyebab Residual Tinggi',
+                'evidence' => (string) ($aboveAverageCategory['category'] ?? '-') . ' memiliki rata-rata skor residual ' . number_format((float) ($aboveAverageCategory['avg_residual_score'] ?? 0), 2, '.', ''),
+                'recommendation' => 'Eskalasi kategori ini untuk review mitigasi terfokus bersama divisi owner.',
+            ];
+        }
+
+        if (!empty($topKeywords) && (int) ($topKeywords[0]['count'] ?? 0) >= 2) {
+            $patterns[] = [
+                'pattern' => 'Kata Kunci Akar Penyebab Berulang',
+                'evidence' => 'Kata kunci "' . (string) ($topKeywords[0]['keyword'] ?? '-') . '" muncul pada ' . (string) ($topKeywords[0]['count'] ?? 0) . ' penyebab risiko.',
+                'recommendation' => 'Buat rencana aksi tematik dan pantau kemunculan ulang bulanan untuk klaster kata kunci ini.',
+            ];
+        }
+
+        if (empty($patterns)) {
+            $patterns[] = [
+                'pattern' => 'Sinyal Pola Masih Terbatas',
+                'evidence' => 'Dataset saat ini belum menunjukkan pola konsentrasi yang dominan.',
+                'recommendation' => 'Tingkatkan konsistensi pernyataan penyebab dan lanjutkan pemantauan tren dari waktu ke waktu.',
+            ];
+        }
+
+        return [
+            'top_categories' => $topCategories,
+            'top_keywords' => $topKeywords,
+            'patterns' => $patterns,
+        ];
+    }
+
+    private function extractCauseKeywords($risks, int $limit = 8): array
+    {
+        $limit = max(1, $limit);
+        $stopWords = [
+            'dan', 'yang', 'dengan', 'untuk', 'pada', 'dari', 'atau', 'karena', 'akibat',
+            'tidak', 'belum', 'sudah', 'dalam', 'oleh', 'serta', 'pihak', 'adanya', 'terjadi',
+            'risk', 'risiko', 'issue', 'masalah', 'proses', 'process', 'internal', 'external',
+            'system', 'sistem', 'data', 'the', 'and', 'with', 'from', 'that', 'this', 'into',
+            'terhadap', 'kurangnya', 'kurang', 'dilakukan', 'lakukan', 'melakukan', 'terdampak',
+            'dampak', 'adalah', 'sebagai', 'antara', 'melalui', 'berdasarkan', 'terkait', 'masih',
+            'dapat', 'akan', 'perlu', 'setelah', 'sebelum', 'setiap', 'semua', 'banyak', 'lebih',
+            'sangat', 'agar', 'guna', 'supaya', 'sehingga', 'namun', 'maupun', 'bila', 'jika',
+            'ketika', 'saat', 'tanpa', 'dimana', 'tersebut', 'lainnya', 'maka', 'yaitu', 'yakni',
+        ];
+        $stopWordLookup = array_fill_keys($stopWords, true);
+        $isStopWord = function (string $word) use ($stopWordLookup): bool {
+            if (isset($stopWordLookup[$word])) {
+                return true;
+            }
+
+            if (strlen($word) > 5 && substr($word, -3) === 'nya') {
+                $baseWord = substr($word, 0, -3);
+                if ($baseWord !== '' && isset($stopWordLookup[$baseWord])) {
+                    return true;
+                }
+            }
+
+            if (strlen($word) > 6 && substr($word, 0, 2) === 'di') {
+                $baseWord = substr($word, 2);
+                if ($baseWord !== '' && isset($stopWordLookup[$baseWord])) {
+                    return true;
+                }
+            }
+
+            if (strlen($word) > 7 && substr($word, 0, 3) === 'ter') {
+                $baseWord = substr($word, 3);
+                if ($baseWord !== '' && isset($stopWordLookup[$baseWord])) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+        $keywords = [];
+
+        foreach ($risks as $risk) {
+            $cause = strtolower(trim((string) ($risk->cause ?? '')));
+            if ($cause === '') {
+                continue;
+            }
+
+            $tokens = preg_split('/[^a-z0-9]+/i', $cause) ?: [];
+            foreach ($tokens as $token) {
+                $word = strtolower(trim((string) $token));
+                if ($word === '' || strlen($word) < 4 || is_numeric($word)) {
+                    continue;
+                }
+
+                if ($isStopWord($word)) {
+                    continue;
+                }
+
+                $keywords[$word] = (int) (($keywords[$word] ?? 0) + 1);
+            }
+        }
+
+        arsort($keywords);
+        $rows = [];
+        foreach (array_slice($keywords, 0, $limit, true) as $keyword => $count) {
+            $rows[] = [
+                'keyword' => (string) $keyword,
+                'count' => (int) $count,
+            ];
+        }
+
+        return $rows;
     }
 
     private function buildGroupedCountRows($grouped): array
@@ -761,15 +1695,33 @@ class ReportDataService
         return round((float) $numbers->avg(), 2);
     }
 
-    private function buildTrendRows($risks): array
+    private function buildTrendRows($risks, string $granularity = 'monthly'): array
     {
+        $granularity = $this->normalizeTrendGranularity($granularity);
+
+        $periodCount = [
+            'monthly' => 6,
+            'quarterly' => 8,
+            'yearly' => 5,
+        ][$granularity];
+
         $trendMap = [];
-        for ($i = 2; $i >= 0; $i--) {
-            $month = Carbon::now()->startOfMonth()->subMonths($i);
-            $key = $month->format('Y-m');
+        $start = Carbon::now();
+        for ($i = $periodCount - 1; $i >= 0; $i--) {
+            if ($granularity === 'monthly') {
+                $period = (clone $start)->startOfMonth()->subMonths($i);
+                $key = $period->format('Y-m');
+            } elseif ($granularity === 'quarterly') {
+                $period = (clone $start)->firstOfQuarter()->subQuarters($i);
+                $key = $period->format('Y') . '-Q' . $period->quarter;
+            } else {
+                $period = (clone $start)->startOfYear()->subYears($i);
+                $key = $period->format('Y');
+            }
+
             $trendMap[$key] = [
-                'month' => $key,
-                'label' => $month->format('M Y'),
+                'period' => $key,
+                'label' => $this->buildTrendLabel($period, $granularity),
                 'inherent_scores' => [],
                 'residual_scores' => [],
                 'overall_scores' => [],
@@ -782,7 +1734,14 @@ class ReportDataService
                 continue;
             }
 
-            $key = $createdAt->format('Y-m');
+            if ($granularity === 'monthly') {
+                $key = $createdAt->format('Y-m');
+            } elseif ($granularity === 'quarterly') {
+                $key = $createdAt->format('Y') . '-Q' . $createdAt->quarter;
+            } else {
+                $key = $createdAt->format('Y');
+            }
+
             if (!isset($trendMap[$key])) {
                 continue;
             }
@@ -818,13 +1777,83 @@ class ReportDataService
                 : 0.0;
 
             return [
-                'month' => $row['month'],
-                'label' => $row['label'],
+                'period' => (string) $row['period'],
+                'label' => (string) $row['label'],
                 'inherent' => $inherentAvg,
                 'residual' => $residualAvg,
                 'overall' => $overallAvg,
             ];
         })->values()->all();
+    }
+
+    private function normalizeTrendGranularity(string $granularity): string
+    {
+        $normalized = strtolower(trim($granularity));
+        if (!in_array($normalized, ['monthly', 'quarterly', 'yearly'], true)) {
+            return 'quarterly';
+        }
+
+        return $normalized;
+    }
+
+    private function buildTrendLabel(Carbon $period, string $granularity): string
+    {
+        if ($granularity === 'monthly') {
+            return $period->format('M Y');
+        }
+
+        if ($granularity === 'quarterly') {
+            return 'Q' . $period->quarter . ' ' . $period->format('Y');
+        }
+
+        return $period->format('Y');
+    }
+
+    private function buildBenchmarkScoring(float $internalAverageScore): array
+    {
+        $industryBaseline = (float) config('risk_benchmark.industry_baseline_score', 12.0);
+        $targetScore = (float) config('risk_benchmark.target_score', 9.0);
+        $sourceName = (string) config(
+            'risk_benchmark.industry_source_name',
+            'NHSCFA Risk Management Guidance (public-sector 5x5 governance benchmark)'
+        );
+        $sourceReference = (string) config(
+            'risk_benchmark.industry_source_reference',
+            'https://cfa.nhs.uk/about-nhscfa/information-hub/corporate-information-governance/risk-management-guidance (score 9+ discussion trigger; 12+ escalation threshold)'
+        );
+        $sourceYear = (int) config('risk_benchmark.industry_source_year', 2022);
+        $scaleMin = 1;
+        $scaleMax = 25;
+
+        $position = 'above_industry_risk';
+        $label = 'Above Industry Risk';
+        $positionReason = 'Internal average is above industry baseline (' . round($internalAverageScore, 2) . ' > ' . round($industryBaseline, 2) . ').';
+        if ($internalAverageScore <= $targetScore) {
+            $position = 'ahead_of_target';
+            $label = 'Ahead of Target';
+            $positionReason = 'Internal average is at or below target (' . round($internalAverageScore, 2) . ' <= ' . round($targetScore, 2) . ').';
+        } elseif ($internalAverageScore <= $industryBaseline) {
+            $position = 'better_than_industry';
+            $label = 'Better Than Industry';
+            $positionReason = 'Internal average is below industry baseline but still above target (' . round($internalAverageScore, 2) . ' <= ' . round($industryBaseline, 2) . ').';
+        }
+
+        return [
+            'industry_baseline_score' => round($industryBaseline, 2),
+            'target_score' => round($targetScore, 2),
+            'internal_average_score' => round($internalAverageScore, 2),
+            'gap_vs_industry' => round($internalAverageScore - $industryBaseline, 2),
+            'gap_vs_target' => round($internalAverageScore - $targetScore, 2),
+            'position' => $position,
+            'position_label' => $label,
+            'source_name' => $sourceName,
+            'source_reference' => $sourceReference,
+            'source_year' => $sourceYear,
+            'score_scale_min' => $scaleMin,
+            'score_scale_max' => $scaleMax,
+            'methodology' => 'Internal Avg = average of overall risk score (Residual if available, fallback Inherent) on the active filter. Baseline 12 and target 9 follow NHSCFA 5x5 governance thresholds (12+ escalated risk, 9+ discussion trigger). Lower score indicates lower risk exposure on a ' . $scaleMin . '-' . $scaleMax . ' scale.',
+            'position_reason' => $positionReason,
+        ];
     }
 
     private function buildVarianceRows($risks): array
@@ -913,7 +1942,7 @@ class ReportDataService
                 return [
                     'risk_id' => (string) ($risk->risk_id ?: '-'),
                     'risk_title' => (string) ($risk->risk_title ?: '-'),
-                    'owner' => (string) ($risk->risk_owner ?: '-'),
+                    'owner' => RiskOwnerAccess::displayLabel($risk->risk_owner),
                     'status' => (string) ($risk->status ?: '-'),
                     'inherent_score' => round($inherentScore, 2),
                     'residual_score' => round($residualScore, 2),
@@ -1421,7 +2450,8 @@ class ReportDataService
     {
         $menuCodes = $this->recapFormulaMenuCodes();
 
-        $value = strtoupper(trim((string) ($risk->risk_owner ?: '')));
+        $canonicalOwner = RiskOwnerAccess::canonicalOption($risk->risk_owner);
+        $value = strtoupper(trim((string) ($canonicalOwner ?: ($risk->risk_owner ?: ''))));
         if ($value === '') {
             return 'OTHER';
         }
