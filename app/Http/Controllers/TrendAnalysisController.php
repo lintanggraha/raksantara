@@ -3,12 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Risk;
+use App\Support\RiskAnalyticsCacheVersion;
 use App\Support\RiskOwnerAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class TrendAnalysisController extends Controller
 {
+    private const TREND_ANALYSIS_CACHE_TTL_SECONDS = 300;
+
     /**
      * Tampilkan halaman Risk Trend Analysis
      */
@@ -21,13 +26,14 @@ class TrendAnalysisController extends Controller
 
         $granularity = $request->input('granularity', 'quarterly');
         $daysBack = (int) $request->input('days', 365);
+        $payload = $this->getCachedTrendPayload($granularity, $daysBack);
 
-        $trendData = $this->calculateTrendData($granularity, $daysBack);
-        $statistics = $this->calculateTrendStatistics($trendData);
-        $categories = $this->calculateCategoryTrends($granularity, $daysBack);
-        $statusTrends = $this->calculateStatusTrends($trendData);
-        $ownerTrends = $this->calculateOwnerTrends($daysBack);
-        $heatmapTrends = $this->calculateHeatmapTrends($granularity, $daysBack);
+        $trendData = $payload['trendData'];
+        $statistics = $payload['statistics'];
+        $categories = $payload['categories'];
+        $statusTrends = $payload['statusTrends'];
+        $ownerTrends = $payload['ownerTrends'];
+        $heatmapTrends = $payload['heatmapTrends'];
 
         return view('trends.analysis', compact(
             'trendData',
@@ -53,42 +59,83 @@ class TrendAnalysisController extends Controller
 
         $granularity = $request->input('granularity', 'quarterly');
         $daysBack = (int) $request->input('days', 365);
-
-        $trendData = $this->calculateTrendData($granularity, $daysBack);
-        $statistics = $this->calculateTrendStatistics($trendData);
-        $categories = $this->calculateCategoryTrends($granularity, $daysBack);
-        $statusTrends = $this->calculateStatusTrends($trendData);
-        $ownerTrends = $this->calculateOwnerTrends($daysBack);
-        $heatmapTrends = $this->calculateHeatmapTrends($granularity, $daysBack);
+        $payload = $this->getCachedTrendPayload($granularity, $daysBack);
 
         return response()->json([
-            'trend' => $trendData,
-            'statistics' => $statistics,
-            'categories' => $categories,
-            'status' => $statusTrends,
-            'owners' => $ownerTrends,
-            'heatmap_trends' => $heatmapTrends,
+            'trend' => $payload['trendData'],
+            'statistics' => $payload['statistics'],
+            'categories' => $payload['categories'],
+            'status' => $payload['statusTrends'],
+            'owners' => $payload['ownerTrends'],
+            'heatmap_trends' => $payload['heatmapTrends'],
         ]);
+    }
+
+    private function getCachedTrendPayload(string $granularity, int $daysBack): array
+    {
+        $userId = (int) (optional(auth()->user())->id ?? 0);
+        $cacheKey = implode(':', [
+            'risk',
+            'trend_analysis',
+            'v2',
+            'cv' . RiskAnalyticsCacheVersion::current(),
+            'u' . $userId,
+            'g' . $granularity,
+            'd' . $daysBack,
+        ]);
+
+        return Cache::remember($cacheKey, now()->addSeconds(self::TREND_ANALYSIS_CACHE_TTL_SECONDS), function () use ($granularity, $daysBack) {
+            return $this->buildTrendPayload($granularity, $daysBack);
+        });
+    }
+
+    private function buildTrendPayload(string $granularity, int $daysBack): array
+    {
+        $risks = $this->loadTrendRisks($daysBack);
+        $trendData = $this->calculateTrendData($risks, $granularity);
+
+        return [
+            'trendData' => $trendData,
+            'statistics' => $this->calculateTrendStatistics($trendData),
+            'categories' => $this->calculateCategoryTrends($risks),
+            'statusTrends' => $this->calculateStatusTrends($trendData),
+            'ownerTrends' => $this->calculateOwnerTrends($risks),
+            'heatmapTrends' => $this->calculateHeatmapTrends($risks, $granularity),
+        ];
+    }
+
+    private function loadTrendRisks(int $daysBack): Collection
+    {
+        $startDate = now()->subDays($daysBack)->startOfDay();
+
+        return Risk::query()
+            ->select([
+                'id',
+                'risk_category_id',
+                'risk_owner',
+                'status',
+                'created_at',
+            ])
+            ->with([
+                'category:id,name',
+                'inherentAnalysis:id,risk_id,inherent_risk_score',
+                'residualAnalysis:id,risk_id,residual_risk_score,probability_score,impact_score',
+            ])
+            ->where('created_at', '>=', $startDate)
+            ->orderBy('created_at')
+            ->get();
     }
 
     /**
      * Hitung trend data risk score seiring waktu
      */
-    private function calculateTrendData(string $granularity, int $daysBack): array
+    private function calculateTrendData(Collection $risks, string $granularity): array
     {
-        $startDate = now()->subDays($daysBack)->startOfDay();
-
-        $query = Risk::with(['inherentAnalysis', 'residualAnalysis'])
-            ->where('created_at', '>=', $startDate)
-            ->orderBy('created_at');
-
-        $risks = $query->get();
-
         if ($risks->isEmpty()) {
             return [];
         }
 
-        $grouped = $this->groupByPeriod($risks, $granularity, $startDate);
+        $grouped = $this->groupByPeriod($risks, $granularity);
 
         return $this->aggregateTrendMetrics($grouped, $granularity);
     }
@@ -96,12 +143,14 @@ class TrendAnalysisController extends Controller
     /**
      * Kelompokkan risk berdasarkan periode (monthly, quarterly, yearly)
      */
-    private function groupByPeriod($risks, string $granularity, Carbon $startDate): array
+    private function groupByPeriod(Collection $risks, string $granularity): array
     {
         $grouped = [];
 
         foreach ($risks as $risk) {
-            $createdAt = Carbon::parse($risk->created_at)->startOfDay();
+            $createdAt = $risk->created_at instanceof Carbon
+                ? $risk->created_at->copy()->startOfDay()
+                : Carbon::parse($risk->created_at)->startOfDay();
             $key = $this->getPeriodKey($createdAt, $granularity);
 
             if (!isset($grouped[$key])) {
@@ -299,13 +348,13 @@ class TrendAnalysisController extends Controller
     /**
      * Hitung trend per kategori risk
      */
-    private function calculateCategoryTrends(string $granularity, int $daysBack): array
+    private function calculateCategoryTrends(Collection $risks): array
     {
-        $startDate = now()->subDays($daysBack);
+        if ($risks->isEmpty()) {
+            return [];
+        }
 
-        $data = Risk::with(['category', 'inherentAnalysis', 'residualAnalysis'])
-            ->where('created_at', '>=', $startDate)
-            ->get()
+        $data = $risks
             ->groupBy('risk_category_id')
             ->map(function ($risks, $categoryId) {
                 $category = optional($risks->first()->category)->name ?? 'Uncategorized';
@@ -359,13 +408,13 @@ class TrendAnalysisController extends Controller
     /**
      * Ringkasan risiko per owner/divisi untuk chart konsentrasi.
      */
-    private function calculateOwnerTrends(int $daysBack): array
+    private function calculateOwnerTrends(Collection $risks): array
     {
-        $startDate = now()->subDays($daysBack)->startOfDay();
+        if ($risks->isEmpty()) {
+            return [];
+        }
 
-        $data = Risk::with(['inherentAnalysis', 'residualAnalysis'])
-            ->where('created_at', '>=', $startDate)
-            ->get()
+        $data = $risks
             ->groupBy(function ($risk) {
                 return RiskOwnerAccess::displayLabel($risk->risk_owner);
             })
@@ -405,14 +454,8 @@ class TrendAnalysisController extends Controller
     /**
      * Trend high-risk exposure per periode berdasarkan score >= 16.
      */
-    private function calculateHeatmapTrends(string $granularity, int $daysBack): array
+    private function calculateHeatmapTrends(Collection $risks, string $granularity): array
     {
-        $startDate = now()->subDays($daysBack)->startOfDay();
-        $risks = Risk::with(['inherentAnalysis', 'residualAnalysis'])
-            ->where('created_at', '>=', $startDate)
-            ->orderBy('created_at')
-            ->get();
-
         if ($risks->isEmpty()) {
             return [
                 'rows' => [],
@@ -425,7 +468,7 @@ class TrendAnalysisController extends Controller
             ];
         }
 
-        $grouped = $this->groupByPeriod($risks, $granularity, $startDate);
+        $grouped = $this->groupByPeriod($risks, $granularity);
         $highRiskThreshold = 16;
         $rows = [];
 

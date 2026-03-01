@@ -419,7 +419,7 @@
                                 <a class="nav-link nav-link-main" href="{{ route('reports.scheduled.index') }}">Scheduled Reports</a>
                             </li>
                             <li class="nav-item {{ request()->routeIs('howto') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('howto') }}">How To</a>
+                                <a class="nav-link nav-link-main" href="{{ route('howto') }}">User Guide</a>
                             </li>
                             @if(auth()->user()->isComplianceDivision())
                                 <li class="nav-item dropdown {{ request()->routeIs('compliance.*') ? 'active' : '' }}" data-compliance-nav>

@@ -8,6 +8,7 @@ use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\AuditLog;
@@ -27,10 +28,13 @@ use App\RiskStatusChangeRequest;
 use App\RadarGroup;
 use App\Support\AuditLogger;
 use App\Support\InputValidation;
+use App\Support\RiskAnalyticsCacheVersion;
 use App\Support\RiskOwnerAccess;
 
 class RiskController extends Controller
 {
+    private const DASHBOARD_SUMMARY_CACHE_TTL_SECONDS = 300;
+
     public function heatmap()
     {
         $risks = Risk::with([
@@ -1087,11 +1091,8 @@ class RiskController extends Controller
             'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
         ]);
 
-        $risks = $this->buildIndexQuery($request)->get();
-        $dashboardSummary = $this->buildDashboardSummaryFromCollection(
-            $risks,
-            $this->resolvePreferredTrendGranularity($request)
-        );
+        $trendGranularity = $this->resolvePreferredTrendGranularity($request);
+        $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
 
         return view('risks.monitoring', compact(
             'dashboardSummary'
@@ -1106,14 +1107,82 @@ class RiskController extends Controller
             'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
         ]);
 
-        $risks = $this->buildIndexQuery($request)->get();
+        $trendGranularity = $this->resolvePreferredTrendGranularity($request);
+        $summary = $this->getCachedDashboardSummary($request, $trendGranularity);
 
-        return response()->json(
-            $this->buildDashboardSummaryFromCollection(
-                $risks,
-                $this->resolvePreferredTrendGranularity($request)
-            )
-        );
+        return response()->json($summary);
+    }
+
+    private function getCachedDashboardSummary(Request $request, string $trendGranularity): array
+    {
+        $cacheKey = $this->buildDashboardSummaryCacheKey($request, $trendGranularity);
+
+        return Cache::remember($cacheKey, now()->addSeconds(self::DASHBOARD_SUMMARY_CACHE_TTL_SECONDS), function () use ($request, $trendGranularity) {
+            $risks = $this->buildDashboardSummaryQuery($request)->get();
+
+            return $this->buildDashboardSummaryFromCollection($risks, $trendGranularity);
+        });
+    }
+
+    private function buildDashboardSummaryCacheKey(Request $request, string $trendGranularity): string
+    {
+        $userId = (int) (optional(auth()->user())->id ?? 0);
+        $categoryId = (int) $request->input('risk_category_id', 0);
+        $causeCategoryId = (int) $request->input('risk_cause_category_id', 0);
+
+        return implode(':', [
+            'risk',
+            'dashboard_summary',
+            'v2',
+            'cv' . RiskAnalyticsCacheVersion::current(),
+            'u' . $userId,
+            'g' . $trendGranularity,
+            'cat' . $categoryId,
+            'cause' . $causeCategoryId,
+        ]);
+    }
+
+    private function buildDashboardSummaryQuery(Request $request)
+    {
+        $query = Risk::query()
+            ->select([
+                'id',
+                'risk_id',
+                'risk_title',
+                'risk_description',
+                'cause',
+                'existing_control',
+                'risk_owner',
+                'status',
+                'risk_category_id',
+                'risk_cause_category_id',
+                'created_by',
+                'created_at',
+                'probability_score',
+                'impact_score',
+                'risk_score',
+            ])
+            ->with([
+                'category:id,name',
+                'causeCategory:id,name',
+                'creator:id,name',
+                'inherentAnalysis:id,risk_id,inherent_risk_score,probability_score,impact_score',
+                'residualAnalysis:id,risk_id,residual_risk_score,probability_score,impact_score,adjustment,risk_adjustment',
+                'treatments' => function ($query) {
+                    $query->select(['id', 'risk_id', 'deadline', 'effectiveness_score', 'created_at'])
+                        ->orderBy('created_at');
+                },
+            ]);
+
+        if ($request->risk_category_id) {
+            $query->where('risk_category_id', $request->risk_category_id);
+        }
+
+        if ($request->risk_cause_category_id) {
+            $query->where('risk_cause_category_id', $request->risk_cause_category_id);
+        }
+
+        return $query;
     }
 
     public function create()

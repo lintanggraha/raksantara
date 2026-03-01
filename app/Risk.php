@@ -62,22 +62,26 @@ class Risk extends Model
     public static function generateRiskId(?int $year = null): string
     {
         $year = $year ?: Carbon::now()->year;
+        $prefix = 'RISK-' . $year . '-';
         $maxNumber = 0;
+        $driver = self::query()->getConnection()->getDriverName();
 
-        foreach (
-            self::query()
+        if ($driver === 'mysql') {
+            $maxNumber = (int) (self::query()
                 ->where('year', $year)
-                ->whereNotNull('risk_id')
-                ->pluck('risk_id') as $riskId
-        ) {
+                ->where('risk_id', 'like', $prefix . '%')
+                ->selectRaw("MAX(CAST(SUBSTRING_INDEX(risk_id, '-', -1) AS UNSIGNED)) as max_number")
+                ->value('max_number') ?? 0);
+
+            return sprintf('RISK-%d-%03d', $year, $maxNumber + 1);
+        }
+
+        foreach (self::query()->where('year', $year)->whereNotNull('risk_id')->pluck('risk_id') as $riskId) {
             if (preg_match('/^RISK\-' . preg_quote((string) $year, '/') . '\-(\d+)$/', (string) $riskId, $matches) !== 1) {
                 continue;
             }
 
-            $number = (int) $matches[1];
-            if ($number > $maxNumber) {
-                $maxNumber = $number;
-            }
+            $maxNumber = max($maxNumber, (int) $matches[1]);
         }
 
         return sprintf('RISK-%d-%03d', $year, $maxNumber + 1);

@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\RiskScoreMatrix;
+use App\Http\Controllers\Api\AuthenticatedUserController;
+use App\Http\Controllers\Api\RiskScoreMatrixController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,27 +15,7 @@ use App\RiskScoreMatrix;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
+Route::middleware('auth:api')->get('/user', AuthenticatedUserController::class);
 
 // Risk Score Matrix API
-Route::get('/risk-score-matrix', function (Request $request) {
-    $validated = $request->validate([
-        'prob' => 'required|integer|between:1,5',
-        'impact' => 'required|integer|between:1,5',
-    ]);
-
-    $prob = (int) $validated['prob'];
-    $impact = (int) $validated['impact'];
-    
-    $score = RiskScoreMatrix::getScore($prob, $impact);
-    $level = RiskScoreMatrix::getRiskLevel($score);
-    
-    return response()->json([
-        'probability_score' => $prob,
-        'impact_score' => $impact,
-        'risk_score' => $score,
-        'risk_level' => $level,
-    ]);
-});
+Route::get('/risk-score-matrix', RiskScoreMatrixController::class);

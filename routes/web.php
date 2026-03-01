@@ -1,8 +1,8 @@
 <?php
 
-use App\ImpactScale;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AppEntryController;
 use App\Http\Controllers\RiskController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProfileController;
@@ -27,22 +27,14 @@ Auth::routes([
 Route::get('/health', [HealthCheckController::class, 'live'])->name('health.live');
 Route::get('/health/ready', [HealthCheckController::class, 'ready'])->name('health.ready');
 
-Route::get('/', function () {
-    return redirect()->route('risks.monitoring');
-})->middleware('auth');
+Route::get('/', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
 
-Route::get('/home', function () {
-    return redirect()->route('risks.monitoring');
-})->middleware('auth');
+Route::get('/home', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
 
-Route::get('/dashboard', function () {
-    return redirect()->route('risks.monitoring');
-})->middleware('auth');
+Route::get('/dashboard', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
 
 Route::middleware(['auth', 'password.changed'])->group(function () {
-    Route::get('/account/pending-approval', function () {
-        return view('account.pending-approval');
-    })->name('account.pending');
+    Route::get('/account/pending-approval', [AppEntryController::class, 'pendingApproval'])->name('account.pending');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -88,9 +80,7 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::put('/dashboard-preferences', [DashboardPreferenceController::class, 'update'])
         ->name('dashboard-preferences.update');
 
-    Route::get('/impact-scales/{id}', function ($id) {
-        return ImpactScale::where('impact_category_id', $id)->get();
-    })->whereNumber('id');
+    Route::get('/impact-scales/{id}', [AppEntryController::class, 'impactScales'])->whereNumber('id');
 
     Route::get('/risk-monitoring', [RiskController::class, 'monitoring'])->name('risks.monitoring');
     Route::get('/risk-heatmap', [RiskController::class, 'heatmap'])->name('risks.heatmap');
@@ -116,7 +106,8 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::delete('/reports/scheduled/{scheduledReport}', [ScheduledReportController::class, 'destroy'])
         ->whereNumber('scheduledReport')
         ->name('reports.scheduled.destroy');
-    Route::view('/how-to', 'how-to')->name('howto');
+    Route::view('/user-guide', 'how-to')->name('howto');
+    Route::redirect('/how-to', '/user-guide');
     Route::middleware('compliance.division')->group(function () {
         Route::get('/compliance/internal-audit', [ComplianceProgramController::class, 'indexInternalAudit'])->name('compliance.internal-audit');
         Route::get('/compliance/internal-audit/create', [ComplianceProgramController::class, 'createInternalAudit'])->name('compliance.internal-audit.create');

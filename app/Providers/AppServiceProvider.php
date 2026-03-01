@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Observers\RiskAnalyticsObserver;
+use App\Risk;
+use App\RiskInherentAnalysis;
+use App\RiskResidualAnalysis;
+use App\RiskTreatment;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
@@ -26,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(191);
+        Risk::observe(RiskAnalyticsObserver::class);
+        RiskTreatment::observe(RiskAnalyticsObserver::class);
+        RiskInherentAnalysis::observe(RiskAnalyticsObserver::class);
+        RiskResidualAnalysis::observe(RiskAnalyticsObserver::class);
 
         if (app()->environment('production')) {
             URL::forceScheme('https');
