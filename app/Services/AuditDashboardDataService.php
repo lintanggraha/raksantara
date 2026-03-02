@@ -634,8 +634,15 @@ class AuditDashboardDataService
         $taskText = trim((string) ($row['task'] ?? ''));
         $ownerSource = trim((string) ($row['auditee'] ?? $row['division'] ?? ''));
 
-        $bankRaw = trim((string) ($row['bank'] ?? ''));
-        $bank = $this->resolveBankLabel([$bankRaw, $title, $taskText, $ownerSource]);
+        $bankRaw = strtoupper(trim((string) ($row['bank'] ?? '')));
+        $bank = $bankRaw === ''
+            ? $this->resolveBankLabel([$title, $taskText, $ownerSource])
+            : $this->resolveBankLabel([$bankRaw, $title, $taskText, $ownerSource]);
+
+        if ($bankRaw !== '' && $bank === $this->defaultBankName() && !Str::contains($bankRaw, $this->defaultBankName())) {
+            // Keep explicit bank from import even if it is not listed in config mapping.
+            $bank = $bankRaw;
+        }
 
         $status = $this->normalizeStatus(
             (string) ($row['status_label'] ?? $row['status'] ?? ''),
@@ -805,7 +812,7 @@ class AuditDashboardDataService
     {
         return [
             'labels' => array_map(function ($row) {
-                return (string) ($row['bank'] . ' - ' . Str::limit((string) $row['auditee'], 24));
+                return (string) ($row['bank'] . ' - ' . (string) ($row['auditee'] ?? '-'));
             }, $rekapRows),
             'datasets' => [
                 [

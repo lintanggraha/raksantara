@@ -183,6 +183,67 @@
     border-radius: 999px;
 }
 
+.audit-pie-shell {
+    height: 320px;
+}
+
+.audit-pie-legend {
+    margin-top: 0.6rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.55rem;
+    max-height: 180px;
+    overflow: auto;
+}
+
+.audit-pie-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    color: #334155;
+    margin-bottom: 0.3rem;
+}
+
+.audit-pie-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex: 0 0 auto;
+}
+
+.audit-pie-legend-label {
+    flex: 1 1 auto;
+}
+
+.audit-pie-legend-count {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.audit-rekap-map {
+    margin-top: 0.65rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.55rem;
+    max-height: 180px;
+    overflow: auto;
+}
+
+.audit-rekap-map-item {
+    display: grid;
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+    gap: 0.35rem;
+    margin-bottom: 0.32rem;
+    font-size: 0.73rem;
+    line-height: 1.35;
+    color: #334155;
+}
+
+.audit-rekap-map-key {
+    font-weight: 700;
+    color: #0f3d73;
+}
+
 @media (max-width: 1199px) {
     .audit-progress-col,
     .audit-progress-right,
@@ -221,11 +282,8 @@
             Data posisi {{ $period['month_label'] ?? '-' }} ({{ $period['week_label'] ?? '-' }}) | Refresh: {{ $auditDashboard['generated_at'] ?? '-' }}
         </div>
     </div>
-    <div class="audit-header-actions">
+    <div class="audit-header-actions d-flex flex-wrap gap-2 align-items-center justify-content-end">
         <form method="GET" action="{{ route('audit.placeholder') }}" class="d-flex align-items-center flex-wrap gap-2">
-            @if(request()->query('source') === 'import-preview')
-                <input type="hidden" name="source" value="import-preview">
-            @endif
             <select name="year" class="form-select form-select-sm">
                 <option value="">All Years</option>
                 @foreach(($filters['years'] ?? []) as $yearOption)
@@ -248,6 +306,11 @@
             <a href="{{ route('audit.placeholder') }}" class="btn btn-outline-secondary btn-sm with-icon">
                 <i class="fas fa-undo"></i> Reset
             </a>
+            @if(auth()->check() && !auth()->user()->isSuperadmin() && auth()->user()->isComplianceDivision())
+                <button type="button" class="btn btn-primary btn-sm with-icon" data-bs-toggle="modal" data-bs-target="#auditImportModal" data-toggle="modal" data-target="#auditImportModal">
+                    <i class="fas fa-file-import"></i> Import XLS
+                </button>
+            @endif
         </form>
     </div>
 </div>
@@ -394,8 +457,9 @@
                     <div class="audit-rekap-chart-col" style="grid-column: span 6;">
                         <div class="audit-panel">
                             <div class="audit-panel-head">Rekap Detail Temuan Bar</div>
-                            <div class="audit-panel-body">
-                                <canvas id="auditRekapBarChart" height="380"></canvas>
+                            <div class="audit-panel-body audit-table-scroll" style="max-height: 560px;">
+                                <canvas id="auditRekapBarChart" height="520"></canvas>
+                                <div id="auditRekapBarMap" class="audit-rekap-map"></div>
                             </div>
                         </div>
                     </div>
@@ -768,7 +832,10 @@
                         <div class="audit-panel">
                             <div class="audit-panel-head">Pie - Bank</div>
                             <div class="audit-panel-body">
-                                <canvas id="auditDuePieBank" height="220"></canvas>
+                                <div class="audit-pie-shell">
+                                    <canvas id="auditDuePieBank" height="320"></canvas>
+                                </div>
+                                <div id="auditDuePieBankLegend" class="audit-pie-legend"></div>
                             </div>
                         </div>
                     </div>
@@ -776,7 +843,10 @@
                         <div class="audit-panel">
                             <div class="audit-panel-head">Pie - Divisi</div>
                             <div class="audit-panel-body">
-                                <canvas id="auditDuePieDivision" height="220"></canvas>
+                                <div class="audit-pie-shell">
+                                    <canvas id="auditDuePieDivision" height="320"></canvas>
+                                </div>
+                                <div id="auditDuePieDivisionLegend" class="audit-pie-legend"></div>
                             </div>
                         </div>
                     </div>
@@ -784,7 +854,10 @@
                         <div class="audit-panel">
                             <div class="audit-panel-head">Pie - Product</div>
                             <div class="audit-panel-body">
-                                <canvas id="auditDuePieProduct" height="220"></canvas>
+                                <div class="audit-pie-shell">
+                                    <canvas id="auditDuePieProduct" height="320"></canvas>
+                                </div>
+                                <div id="auditDuePieProductLegend" class="audit-pie-legend"></div>
                             </div>
                         </div>
                     </div>
@@ -794,10 +867,36 @@
     </div>
 </div>
 <script id="auditDashboardPayload" type="application/json">@json($auditDashboard)</script>
+@if(auth()->check() && !auth()->user()->isSuperadmin() && auth()->user()->isComplianceDivision())
+<div class="modal fade" id="auditImportModal" tabindex="-1" aria-labelledby="auditImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('audit.import.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="auditImportModalLabel">Import Audit Monitoring</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Excel File (.xls/.xlsx)</label>
+                        <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
+                        <small class="text-muted">Gunakan file summary monitoring audit. Sistem akan memprioritaskan sheet <strong>SUMMARY UPDATE</strong>.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Start Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @section('js')
-<script src="{{ asset('adminlte-v2/bower_components/chart.js/Chart.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 (function () {
@@ -813,8 +912,13 @@
         payload = {};
     }
 
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        payload = {};
+    }
+
     const statusColors = payload.status_colors || {};
     const fallbackColors = ['#2563eb', '#14b8a6', '#f59e0b', '#ef4444', '#22c55e', '#f97316', '#8b5cf6'];
+    const chartInstances = [];
 
     function toColor(label, index) {
         return statusColors[label] || fallbackColors[index % fallbackColors.length];
@@ -872,24 +976,109 @@
             return null;
         }
 
+        const declaredHeight = Number(canvas.getAttribute('height') || 0);
+        if (canvas.parentElement && declaredHeight > 0) {
+            // Chart.js v2 responsive needs a measurable parent height.
+            canvas.parentElement.style.position = canvas.parentElement.style.position || 'relative';
+            if (!canvas.parentElement.style.height) {
+                canvas.parentElement.style.height = declaredHeight + 'px';
+            }
+            canvas.style.height = declaredHeight + 'px';
+        }
+
         const ctx = canvas.getContext('2d');
-        return new window.Chart(ctx, config);
+        const chart = new window.Chart(ctx, config);
+        chartInstances.push(chart);
+
+        return chart;
+    }
+
+    function refreshCharts() {
+        chartInstances.forEach(function (chart) {
+            if (!chart) {
+                return;
+            }
+
+            if (typeof chart.resize === 'function') {
+                chart.resize();
+            }
+
+            if (typeof chart.update === 'function') {
+                chart.update();
+            }
+        });
     }
 
     const rekapBar = (((payload.rekap || {}).bar_chart) || {});
-    renderChart('auditRekapBarChart', chartConfig('bar', rekapBar.labels || [], rekapBar.datasets || [], {
-        scales: {
-            yAxes: [{
-                ticks: {
-                    beginAtZero: true,
+    const rekapRawLabels = rekapBar.labels || [];
+    const rekapLabels = rekapRawLabels.map(function (_, index) {
+        return '#' + (index + 1);
+    });
+    const rekapCanvas = document.getElementById('auditRekapBarChart');
+    if (rekapCanvas) {
+        const dynamicHeight = Math.max(520, rekapLabels.length * 24);
+        rekapCanvas.setAttribute('height', String(dynamicHeight));
+    }
+    const rekapMapNode = document.getElementById('auditRekapBarMap');
+    if (rekapMapNode) {
+        if (rekapRawLabels.length === 0) {
+            rekapMapNode.innerHTML = '<div class="text-muted small">No rekap mapping.</div>';
+        } else {
+            rekapMapNode.innerHTML = rekapRawLabels.map(function (label, index) {
+                return [
+                    '<div class="audit-rekap-map-item">',
+                    '<div class="audit-rekap-map-key">#' + (index + 1) + '</div>',
+                    '<div>' + escapeHtml(label) + '</div>',
+                    '</div>',
+                ].join('');
+            }).join('');
+        }
+    }
+
+    renderChart('auditRekapBarChart', chartConfig('horizontalBar', rekapLabels, rekapBar.datasets || [], {
+        legend: {
+            position: 'top',
+            labels: {
+                boxWidth: 11,
+                fontSize: 11,
+            },
+        },
+        tooltips: {
+            mode: 'nearest',
+            intersect: true,
+            callbacks: {
+                title: function (tooltipItems) {
+                    if (!tooltipItems || !tooltipItems.length) {
+                        return '';
+                    }
+
+                    const index = Number(tooltipItems[0].index || 0);
+
+                    return '#'+ (index + 1) + ' ' + String(rekapRawLabels[index] || '');
                 },
-            }],
+            },
+        },
+        scales: {
             xAxes: [{
                 stacked: false,
+                gridLines: {
+                    color: '#e2e8f0',
+                },
+                ticks: {
+                    beginAtZero: true,
+                    precision: 0,
+                },
+            }],
+            yAxes: [{
+                stacked: false,
+                gridLines: {
+                    display: false,
+                },
                 ticks: {
                     autoSkip: false,
-                    maxRotation: 55,
-                    minRotation: 25,
+                    fontSize: 11,
+                    fontColor: '#334155',
+                    padding: 6,
                 },
             }],
         },
@@ -996,16 +1185,54 @@
         },
     }));
 
-    function renderPie(canvasId, slices) {
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function piePalette(size) {
+        const colors = [];
+        if (size <= 0) {
+            return colors;
+        }
+
+        for (let i = 0; i < size; i += 1) {
+            const hue = Math.round((360 / size) * i);
+            colors.push('hsl(' + hue + ', 70%, 48%)');
+        }
+
+        return colors;
+    }
+
+    function renderPie(canvasId, legendId, slices) {
         const labels = (slices || []).map(function (item) {
             return item.label;
         });
         const data = (slices || []).map(function (item) {
             return Number(item.count || 0);
         });
-        const colors = labels.map(function (_, index) {
-            return fallbackColors[index % fallbackColors.length];
-        });
+        const colors = piePalette(labels.length);
+
+        const legendNode = document.getElementById(legendId);
+        if (legendNode) {
+            if (labels.length === 0) {
+                legendNode.innerHTML = '<div class="text-muted small">No pie data.</div>';
+            } else {
+                legendNode.innerHTML = labels.map(function (label, index) {
+                    return [
+                        '<div class="audit-pie-legend-item">',
+                        '<span class="audit-pie-legend-swatch" style="background:' + colors[index] + ';"></span>',
+                        '<span class="audit-pie-legend-label">' + escapeHtml(label) + '</span>',
+                        '<span class="audit-pie-legend-count">' + Number(data[index] || 0) + '</span>',
+                        '</div>'
+                    ].join('');
+                }).join('');
+            }
+        }
 
         renderChart(canvasId, {
             type: 'pie',
@@ -1020,21 +1247,28 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutoutPercentage: 0,
                 legend: {
-                    position: 'right',
-                    labels: {
-                        boxWidth: 10,
-                        fontSize: 10,
-                    },
+                    display: false,
                 },
+                tooltips: {
+                    callbacks: {
+                        label: function (tooltipItem, chartData) {
+                            const label = (chartData.labels || [])[tooltipItem.index] || '-';
+                            const value = Number(((chartData.datasets || [])[0] || {}).data[tooltipItem.index] || 0);
+
+                            return label + ': ' + value;
+                        }
+                    }
+                }
             },
         });
     }
 
     const due = payload.duedate_maturity || {};
-    renderPie('auditDuePieBank', due.pie_by_bank || []);
-    renderPie('auditDuePieDivision', due.pie_by_division || []);
-    renderPie('auditDuePieProduct', due.pie_by_product || []);
+    renderPie('auditDuePieBank', 'auditDuePieBankLegend', due.pie_by_bank || []);
+    renderPie('auditDuePieDivision', 'auditDuePieDivisionLegend', due.pie_by_division || []);
+    renderPie('auditDuePieProduct', 'auditDuePieProductLegend', due.pie_by_product || []);
 
     let auditMap = null;
     function initializeAuditMap() {
@@ -1082,6 +1316,7 @@
     if (mapTabButton) {
         mapTabButton.addEventListener('shown.bs.tab', function () {
             initializeAuditMap();
+            refreshCharts();
             if (auditMap) {
                 window.setTimeout(function () {
                     auditMap.invalidateSize();
@@ -1090,10 +1325,22 @@
         });
     }
 
+    document.querySelectorAll('#auditTabs [data-bs-toggle="tab"]').forEach(function (tabButton) {
+        tabButton.addEventListener('shown.bs.tab', function () {
+            window.setTimeout(function () {
+                refreshCharts();
+            }, 120);
+        });
+    });
+
     const mapPane = document.getElementById('audit-pane-maps-temuan');
     if (mapPane && mapPane.classList.contains('show') && mapPane.classList.contains('active')) {
         initializeAuditMap();
     }
+
+    window.setTimeout(function () {
+        refreshCharts();
+    }, 120);
 })();
 </script>
 @endsection

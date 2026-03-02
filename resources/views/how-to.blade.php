@@ -959,6 +959,10 @@
                                 <td>Mengembalikan filter ke kondisi default.</td>
                             </tr>
                             <tr>
+                                <td><strong>Import XLS</strong></td>
+                                <td>(Khusus Compliance) Upload file audit untuk preview analitik semua tab dashboard.</td>
+                            </tr>
+                            <tr>
                                 <td><strong>Executive Summary</strong></td>
                                 <td>Ringkasan tindakan dan status global temuan audit.</td>
                             </tr>

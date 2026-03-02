@@ -91,6 +91,9 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::get('/trend-analysis', [TrendAnalysisController::class, 'index'])->name('trends.analysis');
     Route::get('/api/trend-analysis/data', [TrendAnalysisController::class, 'data'])->name('trends.data');
     Route::get('/audit', [AuditDashboardController::class, 'index'])->name('audit.placeholder');
+    Route::post('/audit/import', [AuditDashboardController::class, 'importSpreadsheet'])
+        ->middleware('compliance.division')
+        ->name('audit.import.store');
     
     Route::get('/reports/scheduled', [ScheduledReportController::class, 'index'])->name('reports.scheduled.index');
     Route::post('/reports/scheduled', [ScheduledReportController::class, 'store'])->name('reports.scheduled.store');

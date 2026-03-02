@@ -42,6 +42,18 @@ return [
                 'region' => 'Region 2',
             ],
             [
+                'name' => 'BANK KALTENG',
+                'keywords' => ['BANK KALTENG', 'KALTENG'],
+                'coordinates' => ['lat' => -2.2096, 'lng' => 113.9213],
+                'region' => 'Region 2',
+            ],
+            [
+                'name' => 'BANK SULUTGO',
+                'keywords' => ['BANK SULUTGO', 'SULUTGO', 'SULUT', 'GORONTALO'],
+                'coordinates' => ['lat' => 1.4748, 'lng' => 124.8421],
+                'region' => 'Region 2',
+            ],
+            [
                 'name' => 'COLLEGA',
                 'keywords' => ['COLLEGA', 'INTERNAL'],
                 'coordinates' => ['lat' => -6.2596, 'lng' => 106.7972],
