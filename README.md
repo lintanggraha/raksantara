@@ -17,6 +17,7 @@ Web app untuk manajemen risiko organisasi: registrasi risiko, analisis inherent/
 - [Konfigurasi Redis](#konfigurasi-redis)
 - [Scheduler dan Automation](#scheduler-dan-automation)
 - [Endpoint Penting](#endpoint-penting)
+- [Import Audit Monitoring Dashboard](#import-audit-monitoring-dashboard)
 - [Perintah Artisan Kustom](#perintah-artisan-kustom)
 - [Struktur Direktori](#struktur-direktori)
 - [Deployment](#deployment)
@@ -35,6 +36,8 @@ RMS dirancang untuk membantu tim risk/compliance menjalankan siklus manajemen ri
 - Risk Register CRUD lengkap dengan kategori, penyebab, owner/divisi, dan status.
 - Perhitungan Inherent vs Residual Analysis (probability, impact, risk score, risk level).
 - Risk Monitoring Dashboard dengan ringkasan KPI, heatmap trends, dan portfolio overview.
+- Audit Monitoring Dashboard (`/audit`) dengan tab eksekutif, rekap, maps, progress, trend, outstanding, dan duedate maturity.
+- Import XLS untuk Audit Monitoring Dashboard via UI (`Import XLS`) langsung dari halaman `/audit`.
 - Risk Trend Analysis (monthly, quarterly, yearly) via halaman dan endpoint JSON.
 - Treatment Management, deadline monitoring, dan alert scanner otomatis.
 - Evidence Attachment dan komentar risiko (termasuk mention).
@@ -164,8 +167,23 @@ Aktifkan cron di server Linux:
 - Liveness: `GET /health`
 - Readiness: `GET /health/ready`
 - Monitoring dashboard: `GET /risk-monitoring`
+- Audit monitoring dashboard: `GET /audit`
+- Import audit monitoring file: `POST /audit/import`
 - Trend analysis: `GET /trend-analysis`
 - User guide: `GET /user-guide`
+
+## Import Audit Monitoring Dashboard
+Fitur ini dipakai untuk mengisi data dashboard audit dari file Excel (`.xls/.xlsx`) tanpa CLI:
+
+1. Buka halaman `GET /audit`.
+2. Klik tombol **Import XLS** di area filter.
+3. Upload file monitoring audit.
+4. Setelah sukses, data dashboard audit langsung diperbarui dan notifikasi sukses muncul.
+
+Catatan:
+- Sistem memprioritaskan sheet `SUMMARY UPDATE` saat parsing file audit.
+- Jika belum ada import, dashboard audit tampil kosong agar perubahan pasca-import terlihat jelas.
+- Akses import audit dibatasi untuk user divisi Compliance (non-superadmin).
 
 ## Perintah Artisan Kustom
 - Scan alert risiko:
