@@ -271,6 +271,9 @@ class AuditDashboardDataService
             ['group' => 'Grand Total', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 23, 'grand_total' => 29, 'is_total' => true],
         ];
 
+        $trendCreated = $this->buildSnapshotTrendData($detailRows, false);
+        $trendClosed = $this->buildSnapshotTrendData($detailRows, true);
+
         return [
             'generated_at' => now()->format('Y-m-d H:i:s'),
             'source' => 'snapshot',
@@ -318,40 +321,8 @@ class AuditDashboardDataService
                 'region_percentage_chart' => $this->buildStatusPercentageChart($progressByRegionRows),
             ],
             'trend' => [
-                'created' => [
-                    'labels' => ['BANK ACEH', 'BANK BENGKULU', 'BANK SULTENG', 'BANK SUMUT', 'COLLEGA'],
-                    'datasets' => [
-                        [
-                            'label' => 'Closed',
-                            'borderColor' => $statusColors['Closed'] ?? '#f59e0b',
-                            'backgroundColor' => $statusColors['Closed'] ?? '#f59e0b',
-                            'data' => [7, 11, 6, 6, 0],
-                        ],
-                        [
-                            'label' => 'Domain Bank',
-                            'borderColor' => $statusColors['Domain Bank'] ?? '#ef4444',
-                            'backgroundColor' => $statusColors['Domain Bank'] ?? '#ef4444',
-                            'data' => [0, 0, 3, 2, 0],
-                        ],
-                        [
-                            'label' => 'On Progress',
-                            'borderColor' => $statusColors['On Progress'] ?? '#f9a8d4',
-                            'backgroundColor' => $statusColors['On Progress'] ?? '#f9a8d4',
-                            'data' => [0, 2, 0, 0, 39],
-                        ],
-                    ],
-                ],
-                'closed' => [
-                    'labels' => [],
-                    'datasets' => [
-                        [
-                            'label' => 'Closed',
-                            'borderColor' => $statusColors['Closed'] ?? '#f59e0b',
-                            'backgroundColor' => $statusColors['Closed'] ?? '#f59e0b',
-                            'data' => [],
-                        ],
-                    ],
-                ],
+                'created' => $trendCreated,
+                'closed' => $trendClosed,
             ],
             'detail_outstanding' => [
                 'rows' => $detailRows,
@@ -926,6 +897,102 @@ class AuditDashboardDataService
                     'data' => array_map(fn ($row) => (float) ($row['percentages'][$status] ?? 0), $rows),
                 ];
             }, $statusOrder),
+        ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $detailRows
+     */
+    private function buildSnapshotTrendData(array $detailRows, bool $closedDate): array
+    {
+        $statuses = $closedDate ? ['Closed'] : $this->statusOrder();
+        $colors = $this->statusColors();
+
+        $timelineRows = collect($detailRows)->map(function ($row) {
+            $status = (string) ($row['status_summary'] ?? '-');
+            $day = is_numeric($row['date'] ?? null) ? (int) $row['date'] : 0;
+            $month = trim((string) ($row['month'] ?? ''));
+            $year = is_numeric($row['year'] ?? null) ? (int) $row['year'] : 0;
+
+            if ($day <= 0 || $year < 2000 || $month === '' || $month === '-' || strtoupper($month) === 'NULL') {
+                return null;
+            }
+
+            try {
+                $date = Carbon::createFromFormat('!j F Y', $day . ' ' . $month . ' ' . $year);
+            } catch (\Throwable $exception) {
+                return null;
+            }
+
+            if (!$date instanceof Carbon) {
+                return null;
+            }
+
+            return [
+                'status' => $status,
+                'period' => $date->format('Y-m'),
+                'date' => $date,
+            ];
+        })->filter()->values();
+
+        if ($timelineRows->isEmpty()) {
+            return [
+                'labels' => [],
+                'datasets' => array_map(function ($status) use ($colors) {
+                    return [
+                        'label' => $status,
+                        'borderColor' => $colors[$status] ?? '#2563eb',
+                        'backgroundColor' => $colors[$status] ?? '#2563eb',
+                        'data' => [],
+                    ];
+                }, $statuses),
+            ];
+        }
+
+        $maxTimestamp = (int) $timelineRows->max(function ($row) {
+            $date = $row['date'] ?? null;
+
+            return $date instanceof Carbon ? $date->timestamp : 0;
+        });
+
+        $endMonth = Carbon::createFromTimestamp($maxTimestamp)->startOfMonth();
+        $periods = [];
+        $cursor = (clone $endMonth)->subMonths(11);
+        for ($i = 0; $i < 12; $i++) {
+            $period = (clone $cursor)->addMonths($i);
+            $periods[$period->format('Y-m')] = $period;
+        }
+
+        $labels = array_map(
+            fn (Carbon $period) => $period->isoFormat('MMM YYYY'),
+            array_values($periods)
+        );
+
+        $datasets = [];
+        foreach ($statuses as $status) {
+            $datasets[] = [
+                'label' => $status,
+                'borderColor' => $colors[$status] ?? '#2563eb',
+                'backgroundColor' => $colors[$status] ?? '#2563eb',
+                'data' => array_map(function (string $periodKey) use ($timelineRows, $status, $closedDate) {
+                    return (int) $timelineRows->filter(function ($row) use ($periodKey, $status, $closedDate) {
+                        if (($row['period'] ?? null) !== $periodKey) {
+                            return false;
+                        }
+
+                        if ($closedDate) {
+                            return ($row['status'] ?? null) === 'Closed';
+                        }
+
+                        return ($row['status'] ?? null) === $status;
+                    })->count();
+                }, array_keys($periods)),
+            ];
+        }
+
+        return [
+            'labels' => $labels,
+            'datasets' => $datasets,
         ];
     }
 

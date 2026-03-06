@@ -6,6 +6,9 @@ use App\Exports\MultiSheetReportExport;
 use App\Mail\ScheduledReportDelivered;
 use App\ScheduledReport;
 use App\ScheduledReportRun;
+use App\User;
+use App\Support\PdfReportLayout;
+use App\Support\PdfSectionPaginator;
 use Carbon\Carbon;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -109,7 +112,12 @@ class ScheduledReportDispatchService
         $format = strtolower((string) $schedule->format);
 
         try {
-            $payload = $reportDataService->buildPayload($scope, $year, $reportFilters);
+            $payload = $reportDataService->buildPayload(
+                $scope,
+                $year,
+                $reportFilters,
+                $schedule->user instanceof User ? $schedule->user : null
+            );
             $export = $this->buildExportBinary($payload, $format);
             $recipients = $this->resolveScheduleRecipients($schedule);
 
@@ -243,22 +251,29 @@ class ScheduledReportDispatchService
 
     private function buildPdf(array $payload): array
     {
+        $sections = PdfSectionPaginator::paginate((array) ($payload['sections'] ?? []));
+        $pdfLayout = PdfReportLayout::resolve($sections);
+
         $html = view('reports.pdf', [
             'title' => $payload['title'] ?? 'Report',
-            'sections' => $payload['sections'] ?? [],
+            'sections' => $sections,
             'generatedAt' => now()->format('Y-m-d H:i:s'),
+            'pdfLayout' => $pdfLayout,
         ])->render();
 
         $options = new Options();
-        $options->set('isRemoteEnabled', true);
+        $options->set('isRemoteEnabled', false);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'Helvetica');
-        $options->set('dpi', 110);
+        $options->set('dpi', ($pdfLayout['density'] ?? 'normal') === 'ultra' ? 125 : 115);
         $options->set('isFontSubsettingEnabled', true);
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper(
+            (string) ($pdfLayout['paper'] ?? 'A4'),
+            (string) ($pdfLayout['orientation'] ?? 'landscape')
+        );
         $dompdf->render();
 
         return [

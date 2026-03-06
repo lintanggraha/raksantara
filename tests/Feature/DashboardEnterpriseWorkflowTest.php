@@ -57,15 +57,6 @@ class DashboardEnterpriseWorkflowTest extends TestCase
                     'closed_risk_rate',
                     'overdue_treatment_rate',
                 ],
-                'heatmap_trends' => [
-                    'rows',
-                    'latest_period',
-                    'previous_period',
-                    'latest_residual_high_count',
-                    'previous_residual_high_count',
-                    'change_residual_high_count',
-                    'direction',
-                ],
                 'department_performance' => [
                     'rows',
                     'average_score',

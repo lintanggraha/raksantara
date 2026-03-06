@@ -3,12 +3,21 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $title }}</title>
+    @php
+        $pdfLayout = is_array($pdfLayout ?? null) ? $pdfLayout : [];
+        $pdfMargins = is_array($pdfLayout['page_margin'] ?? null) ? $pdfLayout['page_margin'] : [];
+        $pageMarginTop = (string) ($pdfMargins['top'] ?? '112px');
+        $pageMarginRight = (string) ($pdfMargins['right'] ?? '18px');
+        $pageMarginBottom = (string) ($pdfMargins['bottom'] ?? '74px');
+        $pageMarginLeft = (string) ($pdfMargins['left'] ?? '18px');
+        $pdfDensity = (string) ($pdfLayout['density'] ?? 'normal');
+    @endphp
     <style>
         body {
             font-family: "Segoe UI", Arial, "DejaVu Sans", sans-serif;
-            font-size: 10px;
+            font-size: {{ $pdfDensity === 'ultra' ? '8.9px' : ($pdfDensity === 'compact' ? '9.4px' : '10px') }};
             color: #0f172a;
-            margin: 0 16px 40px 16px;
+            margin: 0;
             background: #f5f8fc;
             line-height: 1.35;
         }
@@ -24,10 +33,11 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 72px;
-            padding: 8px 16px;
+            height: 70px;
+            padding: 8px 14px;
             border-bottom: 1px solid #d7e1ee;
             background: #ffffff;
+            box-sizing: border-box;
         }
 
         .doc-header .left {
@@ -48,15 +58,16 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 30px;
-            padding: 7px 16px;
+            height: 28px;
+            padding: 6px 14px;
             border-top: 1px solid #d7e1ee;
             font-size: 10px;
             color: #475569;
             background: #f8fbff;
+            box-sizing: border-box;
         }
 
-        @page { margin: 108px 18px 70px 18px; }
+        @page { margin: {{ $pageMarginTop }} {{ $pageMarginRight }} {{ $pageMarginBottom }} {{ $pageMarginLeft }}; }
 
         .page-number:before { content: counter(page); }
 
@@ -122,7 +133,7 @@
         }
 
         .section-keep-together {
-            page-break-inside: avoid;
+            page-break-inside: auto;
         }
 
         .section h3 {
@@ -145,6 +156,8 @@
             word-wrap: break-word;
             word-break: break-word;
             overflow-wrap: anywhere;
+            white-space: normal;
+            hyphens: auto;
         }
 
         .data-table th {
@@ -175,6 +188,48 @@
 
         .data-table tbody tr:nth-child(even) td {
             background: #f8fbff;
+        }
+
+        .table-density-medium th,
+        .table-density-medium td {
+            padding: 3px 4px;
+        }
+
+        .table-density-medium th {
+            font-size: 8.4px;
+        }
+
+        .table-density-medium td {
+            font-size: 8px;
+            line-height: 1.25;
+        }
+
+        .table-density-compact th,
+        .table-density-compact td {
+            padding: 2.5px 3.5px;
+        }
+
+        .table-density-compact th {
+            font-size: 7.7px;
+        }
+
+        .table-density-compact td {
+            font-size: 7.4px;
+            line-height: 1.2;
+        }
+
+        .table-density-ultra th,
+        .table-density-ultra td {
+            padding: 2px 3px;
+        }
+
+        .table-density-ultra th {
+            font-size: 7.1px;
+        }
+
+        .table-density-ultra td {
+            font-size: 6.9px;
+            line-height: 1.15;
         }
 
         .kpi-table {
@@ -261,6 +316,10 @@
             display: table-header-group;
         }
 
+        .board-bar-table tr {
+            page-break-inside: avoid;
+        }
+
         .board-bar-label {
             width: 130px;
             font-weight: 700;
@@ -308,6 +367,10 @@
             display: table-header-group;
         }
 
+        .board-trend-table tr {
+            page-break-inside: avoid;
+        }
+
         .board-priority-table th,
         .board-priority-table td {
             font-size: 7.9px;
@@ -315,25 +378,25 @@
         }
 
         .board-priority-table th:nth-child(1),
-        .board-priority-table td:nth-child(1) { width: 70px; }
+        .board-priority-table td:nth-child(1) { width: 8%; }
         .board-priority-table th:nth-child(2),
-        .board-priority-table td:nth-child(2) { width: 200px; }
+        .board-priority-table td:nth-child(2) { width: 23%; }
         .board-priority-table th:nth-child(3),
-        .board-priority-table td:nth-child(3) { width: 110px; }
+        .board-priority-table td:nth-child(3) { width: 11%; }
         .board-priority-table th:nth-child(4),
-        .board-priority-table td:nth-child(4) { width: 70px; }
+        .board-priority-table td:nth-child(4) { width: 8%; }
         .board-priority-table th:nth-child(5),
-        .board-priority-table td:nth-child(5) { width: 54px; text-align: right; }
+        .board-priority-table td:nth-child(5) { width: 6%; text-align: right; }
         .board-priority-table th:nth-child(6),
-        .board-priority-table td:nth-child(6) { width: 54px; text-align: right; }
+        .board-priority-table td:nth-child(6) { width: 6%; text-align: right; }
         .board-priority-table th:nth-child(7),
-        .board-priority-table td:nth-child(7) { width: 96px; }
+        .board-priority-table td:nth-child(7) { width: 10%; }
         .board-priority-table th:nth-child(8),
-        .board-priority-table td:nth-child(8) { width: 52px; text-align: right; }
+        .board-priority-table td:nth-child(8) { width: 6%; text-align: right; }
         .board-priority-table th:nth-child(9),
-        .board-priority-table td:nth-child(9) { width: 62px; text-align: right; }
+        .board-priority-table td:nth-child(9) { width: 7%; text-align: right; }
         .board-priority-table th:nth-child(10),
-        .board-priority-table td:nth-child(10) { width: 95px; }
+        .board-priority-table td:nth-child(10) { width: 15%; }
 
         .table-footnote {
             margin-top: 4px;
@@ -462,6 +525,20 @@
             return $fallback;
         };
 
+        $resolveTableClass = function ($section, array $headings = []) {
+            $sectionData = is_array($section) ? $section : [];
+            $resolvedHeadings = !empty($headings) ? $headings : (is_array($sectionData['headings'] ?? null) ? array_values($sectionData['headings']) : []);
+            $columnCount = count($resolvedHeadings);
+
+            if ($columnCount === 0) {
+                $columnCount = \App\Support\PdfReportLayout::columnCountForSection($sectionData);
+            }
+
+            $densityClass = \App\Support\PdfReportLayout::tableDensityClass(max(1, $columnCount));
+
+            return trim('data-table ' . $densityClass);
+        };
+
         $hasRenderableContent = function ($section) {
             $type = (string) ($section['type'] ?? '');
             $rows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
@@ -543,6 +620,7 @@
                     $kpiCards = is_array($section['kpi_cards'] ?? null) ? $section['kpi_cards'] : [];
                     $overviewRows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
                     $overviewHeadings = $resolveHeadings($section, ['Metric', 'Value']);
+                    $overviewTableClass = $resolveTableClass($section, $overviewHeadings);
                 @endphp
 
                 @if(!empty($kpiCards))
@@ -570,7 +648,7 @@
                 @endif
 
                 @if(!empty($overviewRows))
-                    <table class="data-table">
+                    <table class="{{ $overviewTableClass }}">
                         <thead>
                             <tr>
                                 @foreach($overviewHeadings as $heading)
@@ -696,9 +774,10 @@
                         'Treatments',
                         'Nearest Deadline',
                     ]);
+                    $priorityTableClass = trim($resolveTableClass($section, $priorityHeadings) . ' board-priority-table');
                 @endphp
                 @if(!empty($priorityRows))
-                    <table class="data-table board-priority-table">
+                    <table class="{{ $priorityTableClass }}">
                         <thead>
                             <tr>
                                 @foreach($priorityHeadings as $heading)
@@ -727,10 +806,11 @@
                 @php
                     $narrativeRows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
                     $narrativeHeadings = $resolveHeadings($section, ['Theme', 'Management Recommendation']);
+                    $narrativeTableClass = trim($resolveTableClass($section, $narrativeHeadings) . ' board-narrative-table');
                 @endphp
                 <h3>Management Recommendation Matrix</h3>
                 @if(!empty($narrativeRows))
-                    <table class="data-table board-narrative-table">
+                    <table class="{{ $narrativeTableClass }}">
                         <thead>
                             <tr>
                                 <th style="width: 190px;">{{ $narrativeHeadings[0] ?? 'Theme' }}</th>
@@ -754,6 +834,7 @@
                 @php
                     $matrix = $section['matrix'] ?? [];
                     $eventRows = $section['event_rows'] ?? [];
+                    $heatmapEventTableClass = trim($resolveTableClass($section, ['Code', 'Category', 'Risk Event', 'Risk Owner']));
                 @endphp
 
                 @if(!empty($matrix))
@@ -793,7 +874,7 @@
 
                 <h3>Heatmap Risk Event Mapping</h3>
                 @if(!empty($eventRows))
-                    <table class="data-table">
+                    <table class="{{ $heatmapEventTableClass }}">
                         <thead>
                             <tr>
                                 <th style="width: 90px;">Code</th>
@@ -819,8 +900,9 @@
             @elseif(!empty($section['rows']))
                 @php
                     $defaultHeadings = $resolveHeadings($section);
+                    $defaultTableClass = $resolveTableClass($section, $defaultHeadings);
                 @endphp
-                <table class="data-table">
+                <table class="{{ $defaultTableClass }}">
                     <thead>
                         <tr>
                             @foreach($defaultHeadings as $heading)

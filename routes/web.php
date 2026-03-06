@@ -19,6 +19,9 @@ use App\Http\Controllers\RiskImportController;
 use App\Http\Controllers\ScheduledReportController;
 use App\Http\Controllers\TrendAnalysisController;
 use App\Http\Controllers\AuditDashboardController;
+use App\Http\Controllers\OjkMitigationController;
+use App\Http\Controllers\IncidentManagementController;
+use App\Http\Controllers\ThreatIntelligenceController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -90,10 +93,25 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     // Trend Analysis
     Route::get('/trend-analysis', [TrendAnalysisController::class, 'index'])->name('trends.analysis');
     Route::get('/api/trend-analysis/data', [TrendAnalysisController::class, 'data'])->name('trends.data');
-    Route::get('/audit', [AuditDashboardController::class, 'index'])->name('audit.placeholder');
+    Route::get('/threat-intelligence', [ThreatIntelligenceController::class, 'index'])->name('threat-intelligence.index');
+    Route::get('/incident-management', [IncidentManagementController::class, 'index'])->name('incidents.index');
+    Route::post('/incident-management', [IncidentManagementController::class, 'store'])->name('incidents.store');
+    Route::put('/incident-management/{incident}', [IncidentManagementController::class, 'update'])
+        ->whereNumber('incident')
+        ->name('incidents.update');
+    Route::delete('/incident-management/{incident}', [IncidentManagementController::class, 'destroy'])
+        ->whereNumber('incident')
+        ->name('incidents.destroy');
+    Route::get('/audit', [AuditDashboardController::class, 'index'])
+        ->middleware('compliance.division')
+        ->name('audit.placeholder');
     Route::post('/audit/import', [AuditDashboardController::class, 'importSpreadsheet'])
         ->middleware('compliance.division')
         ->name('audit.import.store');
+    Route::get('/audit/export/{format}', [AuditDashboardController::class, 'export'])
+        ->where('format', 'pdf|xlsx|xls|pptx')
+        ->middleware('compliance.division')
+        ->name('audit.export');
     
     Route::get('/reports/scheduled', [ScheduledReportController::class, 'index'])->name('reports.scheduled.index');
     Route::post('/reports/scheduled', [ScheduledReportController::class, 'store'])->name('reports.scheduled.store');
@@ -111,6 +129,21 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
         ->name('reports.scheduled.destroy');
     Route::view('/user-guide', 'how-to')->name('howto');
     Route::redirect('/how-to', '/user-guide');
+
+    Route::middleware('compliance.division')->group(function () {
+        Route::get('/ojk-mitigation', [OjkMitigationController::class, 'index'])->name('ojk-mitigation.index');
+        Route::post('/ojk-mitigation/import', [OjkMitigationController::class, 'importSpreadsheet'])->name('ojk-mitigation.import');
+        Route::get('/ojk-mitigation/{item}/edit', [OjkMitigationController::class, 'edit'])
+            ->whereNumber('item')
+            ->name('ojk-mitigation.edit');
+        Route::put('/ojk-mitigation/{item}', [OjkMitigationController::class, 'update'])
+            ->whereNumber('item')
+            ->name('ojk-mitigation.update');
+        Route::delete('/ojk-mitigation/{item}', [OjkMitigationController::class, 'destroy'])
+            ->whereNumber('item')
+            ->name('ojk-mitigation.destroy');
+    });
+
     Route::middleware('compliance.division')->group(function () {
         Route::get('/compliance/internal-audit', [ComplianceProgramController::class, 'indexInternalAudit'])->name('compliance.internal-audit');
         Route::get('/compliance/internal-audit/create', [ComplianceProgramController::class, 'createInternalAudit'])->name('compliance.internal-audit.create');

@@ -27,6 +27,12 @@
                     right: 0;
                     left: auto;
                     z-index: 2100;
+                    background-color: #ffffff !important;
+                    border: 1px solid #d8e3ef;
+                    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+                    opacity: 1 !important;
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
                 }
 
                 .report-export-menu.show {
@@ -35,6 +41,17 @@
 
                 .report-export-menu .dropdown-item i {
                     width: 1rem;
+                }
+
+                .report-export-menu .dropdown-item {
+                    color: #0f172a;
+                    background-color: transparent;
+                }
+
+                .report-export-menu .dropdown-item:hover,
+                .report-export-menu .dropdown-item:focus {
+                    background-color: #eaf1f8;
+                    color: #0b57d0;
                 }
             </style>
         @endpush

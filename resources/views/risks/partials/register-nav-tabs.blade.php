@@ -81,7 +81,7 @@
             role="tab"
             aria-selected="{{ $activeRiskTab === 'register' ? 'true' : 'false' }}"
         >
-            <span class="risk-page-tab-title">Risk</span>
+            <span class="risk-page-tab-title">Dashboard 1</span>
             <span class="risk-page-tab-subtitle">Risk Register</span>
         </button>
         <button
@@ -91,7 +91,7 @@
             role="tab"
             aria-selected="{{ $activeRiskTab === 'heatmap' ? 'true' : 'false' }}"
         >
-            <span class="risk-page-tab-title">Risk</span>
+            <span class="risk-page-tab-title">Dashboard 2</span>
             <span class="risk-page-tab-subtitle">Risk Heat Map</span>
         </button>
         <button
@@ -101,7 +101,7 @@
             role="tab"
             aria-selected="{{ $activeRiskTab === 'recap' ? 'true' : 'false' }}"
         >
-            <span class="risk-page-tab-title">Risk</span>
+            <span class="risk-page-tab-title">Dashboard 3</span>
             <span class="risk-page-tab-subtitle">Risk Recapitulation</span>
         </button>
     @else
@@ -111,7 +111,7 @@
             role="tab"
             aria-selected="{{ $activeRiskTab === 'register' ? 'true' : 'false' }}"
         >
-            <span class="risk-page-tab-title">Risk</span>
+            <span class="risk-page-tab-title">Dashboard 1</span>
             <span class="risk-page-tab-subtitle">Risk Register</span>
         </a>
         <a
@@ -120,7 +120,7 @@
             role="tab"
             aria-selected="{{ $activeRiskTab === 'heatmap' ? 'true' : 'false' }}"
         >
-            <span class="risk-page-tab-title">Risk</span>
+            <span class="risk-page-tab-title">Dashboard 2</span>
             <span class="risk-page-tab-subtitle">Risk Heat Map</span>
         </a>
         <a
@@ -129,7 +129,7 @@
             role="tab"
             aria-selected="{{ $activeRiskTab === 'recap' ? 'true' : 'false' }}"
         >
-            <span class="risk-page-tab-title">Risk</span>
+            <span class="risk-page-tab-title">Dashboard 3</span>
             <span class="risk-page-tab-subtitle">Risk Recapitulation</span>
         </a>
     @endif

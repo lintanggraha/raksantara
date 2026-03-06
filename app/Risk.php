@@ -153,6 +153,11 @@ class Risk extends Model
         return $this->hasMany(RiskComment::class);
     }
 
+    public function incidents()
+    {
+        return $this->hasMany(RiskIncident::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

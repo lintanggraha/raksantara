@@ -26,6 +26,38 @@
     gap: 0.75rem;
     align-items: center;
     flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.trend-controls-form {
+    display: inline-flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.trend-controls .trend-controls-form > select.form-select {
+    width: auto !important;
+    flex: 0 0 auto;
+    min-width: 10rem;
+    padding-right: 3.4rem !important;
+    background-position: right 0.9rem center !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trend-controls .trend-controls-form > select.form-select.trend-select.granularity {
+    width: 11.5rem !important;
+    min-width: 11.5rem !important;
+    max-width: 11.5rem;
+    flex-basis: 11.5rem;
+}
+
+.trend-controls .trend-controls-form > select.form-select.trend-select.period {
+    width: 12.5rem !important;
+    min-width: 12.5rem !important;
+    max-width: 12.5rem;
+    flex-basis: 12.5rem;
 }
 
 .stat-grid {
@@ -120,6 +152,25 @@
     .trend-header {
         flex-direction: column;
     }
+
+    .trend-controls,
+    .trend-controls-form {
+        width: 100%;
+    }
+
+    .trend-controls-form {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .trend-controls .trend-controls-form > select.form-select,
+    .trend-controls .trend-controls-form > select.form-select.trend-select.granularity,
+    .trend-controls .trend-controls-form > select.form-select.trend-select.period {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none;
+        flex-basis: auto;
+    }
     
     .stat-grid {
         grid-template-columns: 1fr;
@@ -149,14 +200,14 @@
             <h5 class="mb-0">Period & Granularity</h5>
         </div>
         <div class="trend-controls">
-            <form action="{{ route('trends.analysis') }}" method="GET" class="d-flex gap-2 align-items-center">
-                <select name="granularity" class="form-select" style="width: auto;" onchange="this.form.submit()">
+            <form action="{{ route('trends.analysis') }}" method="GET" class="trend-controls-form">
+                <select name="granularity" class="form-select trend-select granularity no-search-select" style="width:11.5rem;min-width:11.5rem;padding-right:3.4rem;" onchange="this.form.submit()">
                     <option value="monthly" @if($granularity === 'monthly') selected @endif>Monthly</option>
                     <option value="quarterly" @if($granularity === 'quarterly') selected @endif>Quarterly</option>
                     <option value="yearly" @if($granularity === 'yearly') selected @endif>Yearly</option>
                 </select>
 
-                <select name="days" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                <select name="days" class="form-select trend-select period no-search-select" style="width:12.5rem;min-width:12.5rem;padding-right:3.4rem;" onchange="this.form.submit()">
                     <option value="90" @if($daysBack == 90) selected @endif>Last 3 Months</option>
                     <option value="180" @if($daysBack == 180) selected @endif>Last 6 Months</option>
                     <option value="365" @if($daysBack == 365) selected @endif>Last 1 Year</option>

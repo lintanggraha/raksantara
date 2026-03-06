@@ -76,11 +76,6 @@
                     'scopeLabel' => 'Monitoring',
                 ])
                 @if(!auth()->user()->isSuperadmin())
-                    <a href="{{ route('reports.scheduled.index') }}" class="btn btn-dark btn-sm with-icon">
-                        <i class="fas fa-clock"></i> Scheduled Reports
-                    </a>
-                @endif
-                @if(!auth()->user()->isSuperadmin())
                     <a href="{{ route('risks.create') }}" class="btn btn-success btn-sm with-icon">
                         <i class="fas fa-plus"></i> Add Risk
                     </a>
@@ -132,7 +127,7 @@
                 aria-selected="true"
             >
                 <span class="tab-title">Dashboard 1</span>
-                <span class="tab-subtitle">Operational Command</span>
+                <span class="tab-subtitle">Risk Overview</span>
             </button>
             <button
                 type="button"
@@ -141,7 +136,7 @@
                 aria-selected="false"
             >
                 <span class="tab-title">Dashboard 2</span>
-                <span class="tab-subtitle">Portfolio Briefing</span>
+                <span class="tab-subtitle">Risk Status &amp; Core Matrix</span>
             </button>
             <button
                 type="button"
@@ -150,7 +145,7 @@
                 aria-selected="false"
             >
                 <span class="tab-title">Dashboard 3</span>
-                <span class="tab-subtitle">Risk Intelligence</span>
+                <span class="tab-subtitle">Risk Root Cause Analysis</span>
             </button>
         </div>
 

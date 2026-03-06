@@ -1,4 +1,4 @@
-@extends('layouts.tabler')
+﻿@extends('layouts.tabler')
 
 @section('title', 'User Guide - Risk Management System')
 
@@ -90,7 +90,7 @@
         color: #075985;
     }
 
-    .guide-chip.page {
+    .guide-chip.section {
         background: #e2e8f0;
         color: #1e293b;
     }
@@ -158,11 +158,6 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="guide-scheduled-tab" data-bs-toggle="tab" data-bs-target="#guide-scheduled-pane" type="button" role="tab" aria-controls="guide-scheduled-pane" aria-selected="false">
-                    <i class="fas fa-clock"></i> Scheduled Reports
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="guide-compliance-tab" data-bs-toggle="tab" data-bs-target="#guide-compliance-pane" type="button" role="tab" aria-controls="guide-compliance-pane" aria-selected="false">
                     <i class="fas fa-briefcase"></i> Compliance
                 </button>
@@ -195,7 +190,7 @@
                     <li>Gunakan <strong>Add Risk</strong> jika perlu membuat risiko baru.</li>
                     <li>Gunakan ikon <strong>View</strong> pada baris risiko untuk membuka detail risiko, evidence, dan diskusi.</li>
                     <li>Jika perlu kirim laporan, gunakan tombol <strong>Export Report</strong>.</li>
-                    <li>Jika laporan perlu otomatis, buat jadwal di <strong>Scheduled Reports</strong>.</li>
+                    <li>Untuk user Compliance, cek menu <strong>Mitigasi OJK</strong> jika butuh monitoring rencana mitigasi regulasi.</li>
                 </ol>
 
                 <div class="guide-section-title">Prinsip Kerja Harian</div>
@@ -224,13 +219,13 @@
                         <tbody>
                             <tr>
                                 <td><span class="guide-chip role">User terverifikasi</span></td>
-                                <td>Risk, Audit, Scheduled Reports, User Guide</td>
+                                <td>Risk, Audit, User Guide</td>
                                 <td>Operasional risk harian, update risk, monitoring, export report.</td>
                             </tr>
                             <tr>
                                 <td><span class="guide-chip role">Compliance Division</span></td>
-                                <td>Menu user terverifikasi + Compliance</td>
-                                <td>Kelola program kerja compliance dan import XLS risk register.</td>
+                                <td>Menu user terverifikasi + Mitigasi OJK + Compliance</td>
+                                <td>Kelola mitigasi OJK, program kerja compliance, dan import audit monitoring.</td>
                             </tr>
                             <tr>
                                 <td><span class="guide-chip role">Superadmin</span></td>
@@ -340,9 +335,9 @@
                                 <td>Monitoring temuan audit per tab analitik.</td>
                             </tr>
                             <tr>
-                                <td><strong>Scheduled Reports</strong></td>
-                                <td>Daftar jadwal laporan otomatis</td>
-                                <td>Automasi distribusi laporan berkala.</td>
+                                <td><strong>Mitigasi OJK</strong> (khusus compliance division)</td>
+                                <td>Dashboard mitigasi OJK: import, edit status, timeline.</td>
+                                <td>Memantau pelaksanaan mitigasi regulasi OJK.</td>
                             </tr>
                             <tr>
                                 <td><strong>User Guide</strong></td>
@@ -395,9 +390,9 @@
                 <div class="guide-section-title">Cara Membaca untuk Pemula</div>
                 <ol class="mb-2">
                     <li>Lihat <strong>Last refresh</strong> untuk memastikan data terbaru.</li>
-                    <li>Mulai dari <strong>Dashboard 2 - Portfolio Briefing</strong> untuk gambaran portfolio cepat.</li>
-                    <li>Lanjut ke <strong>Dashboard 1 - Operational Command</strong> untuk efektivitas mitigasi, SLA, dan KPI.</li>
-                    <li>Terakhir buka <strong>Dashboard 3 - Risk Intelligence</strong> untuk root cause dan variance.</li>
+                    <li>Mulai dari <strong>Dashboard 2 - Risk Status &amp; Core Matrix</strong> untuk gambaran status inti risiko.</li>
+                    <li>Lanjut ke <strong>Dashboard 1 - Risk Overview</strong> untuk efektivitas mitigasi, SLA, dan KPI.</li>
+                    <li>Terakhir buka <strong>Dashboard 3 - Risk Root Cause Analysis</strong> untuk root cause dan variance.</li>
                 </ol>
 
                 <div class="guide-section-title">Tombol Header Monitoring</div>
@@ -415,11 +410,6 @@
                                 <td><strong>Export Report</strong></td>
                                 <td>Membuka dropdown format export laporan.</td>
                                 <td>File XLSX, PDF, PPT sesuai scope.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Scheduled Reports</strong></td>
-                                <td>Masuk ke halaman pengaturan laporan otomatis.</td>
-                                <td>Halaman schedule report.</td>
                             </tr>
                             <tr>
                                 <td><strong>Add Risk</strong></td>
@@ -447,17 +437,17 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td><strong>Dashboard 1 - Operational Command</strong></td>
+                                <td><strong>Dashboard 1 - Risk Overview</strong></td>
                                 <td>Mitigation, SLA, KPI, organizational overview.</td>
                                 <td>Kontrol eksekusi harian tim.</td>
                             </tr>
                             <tr>
-                                <td><strong>Dashboard 2 - Portfolio Briefing</strong></td>
+                                <td><strong>Dashboard 2 - Risk Status &amp; Core Matrix</strong></td>
                                 <td>Status core metrics, portfolio command center, top risk list.</td>
                                 <td>Briefing cepat ke manajemen.</td>
                             </tr>
                             <tr>
-                                <td><strong>Dashboard 3 - Risk Intelligence</strong></td>
+                                <td><strong>Dashboard 3 - Risk Root Cause Analysis</strong></td>
                                 <td>Root cause analysis dan variance.</td>
                                 <td>Analisa pola risiko dan penyebab dominan.</td>
                             </tr>
@@ -805,128 +795,66 @@
                     <li><strong>Heatmap High-Risk Trend</strong>: cek arah perubahan high-risk (improving, stable, deteriorating).</li>
                 </ul>
             </div>
-            <div class="tab-pane fade" id="guide-scheduled-pane" role="tabpanel" aria-labelledby="guide-scheduled-tab">
-                <div class="guide-pane-title">Scheduled Reports (Laporan Otomatis)</div>
-
-                <div class="guide-section-title">Langkah Membuat Schedule Baru</div>
-                <ol class="mb-2">
-                    <li>Buka <strong>Scheduled Reports</strong>.</li>
-                    <li>Isi <strong>Schedule Name</strong>.</li>
-                    <li>Pilih <strong>Scope</strong> dan <strong>Format</strong> output.</li>
-                    <li>Pilih <strong>Frequency</strong>, <strong>Send Time</strong>, dan <strong>Timezone</strong>.</li>
-                    <li>Jika weekly, isi <strong>Day of Week</strong>. Jika monthly, isi <strong>Day of Month</strong>.</li>
-                    <li>Isi filter opsional (Year, Category, Cause Category, Risk Owner) jika dibutuhkan.</li>
-                    <li>Isi daftar email di <strong>Recipients</strong> (pisahkan dengan koma).</li>
-                    <li>Klik <strong>Save Schedule</strong>.</li>
-                </ol>
-
-                <div class="guide-section-title">Tombol di Halaman Scheduled Reports</div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered guide-table mb-2">
-                        <thead>
-                            <tr>
-                                <th>Tombol</th>
-                                <th>Fungsi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Back to Monitoring</strong></td>
-                                <td>Kembali ke halaman monitoring.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Save Schedule</strong></td>
-                                <td>Menyimpan schedule baru.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Update Schedule</strong></td>
-                                <td>Menyimpan perubahan schedule existing.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Cancel Edit</strong> / <strong>Cancel</strong></td>
-                                <td>Keluar dari mode edit tanpa menyimpan perubahan.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Edit</strong></td>
-                                <td>Membuka schedule terpilih ke mode edit.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Run Now</strong></td>
-                                <td>Menjalankan schedule saat itu juga (manual trigger).</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Pause</strong> / <strong>Activate</strong></td>
-                                <td>Menonaktifkan atau mengaktifkan schedule.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Delete</strong></td>
-                                <td>Menghapus schedule permanen.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
             <div class="tab-pane fade" id="guide-compliance-pane" role="tabpanel" aria-labelledby="guide-compliance-tab">
-                <div class="guide-pane-title">Compliance Programs</div>
+                <div class="guide-pane-title">Compliance (Panduan Sederhana)</div>
 
-                <div class="guide-section-title">Halaman yang Tersedia</div>
-                <ul class="mb-2">
-                    <li><span class="guide-chip page">Internal Audit</span> Program kerja section Internal Audit.</li>
-                    <li><span class="guide-chip page">Risk Management</span> Program kerja section Risk Management.</li>
-                    <li><span class="guide-chip page">Governance and Compliance</span> Program kerja section Governance and Compliance.</li>
-                </ul>
+                <div class="guide-note mb-3">
+                    <strong>Akses Khusus:</strong> Bagian ini hanya muncul untuk user divisi <strong>Compliance</strong>.
+                    Jika menu ini belum terlihat, minta aktivasi akses ke superadmin.
+                </div>
 
-                <div class="guide-section-title">Tombol di Halaman Index Program</div>
+                <div class="guide-section-title">Menu Compliance yang Tersedia</div>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered guide-table mb-2">
                         <thead>
                             <tr>
-                                <th>Tombol</th>
-                                <th>Fungsi</th>
+                                <th>Menu</th>
+                                <th>Fungsi Utama</th>
+                                <th>Kapan Dipakai</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td><strong>Add Program Kerja</strong></td>
-                                <td>Membuka form pembuatan program kerja baru.</td>
+                                <td><span class="guide-chip section">Mitigasi OJK</span></td>
+                                <td>Import timeline mitigasi, update status, dan pantau chart target.</td>
+                                <td>Saat ada update progres tindak lanjut OJK.</td>
                             </tr>
                             <tr>
-                                <td>Ikon <strong>Edit</strong></td>
-                                <td>Mengubah program kerja yang sudah ada.</td>
-                            </tr>
-                            <tr>
-                                <td>Ikon <strong>Delete</strong></td>
-                                <td>Menghapus program kerja setelah konfirmasi.</td>
+                                <td><span class="guide-chip section">Compliance</span></td>
+                                <td>Kelola program kerja tim Compliance per section.</td>
+                                <td>Saat membuat, mengubah, atau menghapus program kerja.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="guide-section-title">Tombol di Form Program</div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered guide-table mb-2">
-                        <thead>
-                            <tr>
-                                <th>Tombol</th>
-                                <th>Fungsi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Kembali</strong></td>
-                                <td>Kembali ke daftar program section aktif.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Simpan Program Kerja</strong></td>
-                                <td>Menyimpan data program baru.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Update Program Kerja</strong></td>
-                                <td>Menyimpan perubahan data program existing.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="guide-section-title">Cara Pakai Mitigasi OJK</div>
+                <ol class="mb-2">
+                    <li>Buka menu <strong>Mitigasi OJK</strong> di navbar atas.</li>
+                    <li>Klik <strong>Import XLS</strong> (kanan judul tabel), lalu pilih file Excel terbaru.</li>
+                    <li>Periksa hasil import pada tabel dan status di setiap baris.</li>
+                    <li>Jika perlu revisi manual, klik tombol <strong>Edit</strong> di kolom aksi.</li>
+                    <li>Lihat <strong>Timeline Chart</strong> untuk memantau target date dan remaining time.</li>
+                </ol>
+
+                <div class="guide-section-title">Cara Pakai Compliance Programs</div>
+                <ol class="mb-2">
+                    <li>Buka menu <strong>Compliance</strong> di navbar.</li>
+                    <li>Pilih section: <strong>Internal Audit</strong>, <strong>Risk Management</strong>, atau <strong>Governance and Compliance</strong>.</li>
+                    <li>Klik tombol <strong>Add Program Kerja</strong>.</li>
+                    <li>Isi data wajib: <strong>Program Key Initiative</strong>, <strong>Target</strong>, dan <strong>How to Measure</strong>.</li>
+                    <li>Klik <strong>Simpan Program Kerja</strong>.</li>
+                </ol>
+
+                <div class="guide-section-title">Edit dan Hapus Program</div>
+                <ul class="mb-2">
+                    <li><strong>Edit:</strong> klik ikon pensil, ubah data, lalu klik <strong>Update Program Kerja</strong>.</li>
+                    <li><strong>Hapus:</strong> klik ikon trash, lalu konfirmasi penghapusan.</li>
+                </ul>
+
+                <div class="guide-note">
+                    Gunakan nama program yang jelas, misalnya <em>Audit IT Cabang Q2 2026</em>, supaya mudah dicari saat rapat evaluasi.
                 </div>
             </div>
 
@@ -1186,3 +1114,4 @@
     </div>
 </div>
 @endsection
+

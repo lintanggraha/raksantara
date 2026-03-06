@@ -33,7 +33,11 @@ class ScheduledReportDelivered extends Mailable
 
     public function build()
     {
+        $fromAddress = config('mail.from.address') ?: config('app.url') . '@noreply';
+        $fromName = config('mail.from.name') ?: config('app.name');
+
         return $this
+            ->from($fromAddress, $fromName)
             ->subject('[RMS] Scheduled Report - ' . $this->scheduledReport->name)
             ->view('emails.scheduled-report-delivered')
             ->attachData($this->binary, $this->filename, [

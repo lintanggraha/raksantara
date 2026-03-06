@@ -30,4 +30,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'nvd' => [
+        'api_key' => env('NVD_API_KEY'),
+        'base_url' => env('NVD_API_BASE_URL', 'https://services.nvd.nist.gov/rest/json/cves/2.0'),
+    ],
+
+    'cisa' => [
+        'kev_url' => env('CISA_KEV_FEED_URL', 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json'),
+        'kev_mirror_url' => env('CISA_KEV_MIRROR_URL', 'https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json'),
+    ],
+
 ];

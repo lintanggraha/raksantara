@@ -12,6 +12,7 @@ use App\Support\RiskOwnerAccess;
 use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ScheduledReportController extends Controller
@@ -51,15 +52,7 @@ class ScheduledReportController extends Controller
             'UTC',
         ], $timezones)));
 
-        $selectedOwnerFromEdit = null;
-        if ($editingSchedule instanceof ScheduledReport && is_array($editingSchedule->filters)) {
-            $selectedOwnerFromEdit = $editingSchedule->filters['risk_owner'] ?? null;
-        }
-
-        $riskOwners = optional(auth()->user())->allowedRiskOwners($selectedOwnerFromEdit) ?: [];
-        if (!empty($selectedOwnerFromEdit) && !in_array($selectedOwnerFromEdit, $riskOwners, true)) {
-            $riskOwners[] = (string) $selectedOwnerFromEdit;
-        }
+        $riskOwners = optional(auth()->user())->allowedRiskOwners() ?: [];
         usort($riskOwners, function ($left, $right) {
             return strnatcasecmp(
                 RiskOwnerAccess::displayLabel((string) $left, (string) $left),
@@ -82,10 +75,25 @@ class ScheduledReportController extends Controller
     {
         $this->ensureSchedulerAllowed();
 
-        $validated = $this->validateScheduleInput($request);
-        $this->persistSchedule($validated, $dispatchService);
+        try {
+            $validated = $this->validateScheduleInput($request);
+            $this->persistSchedule($validated, $dispatchService);
 
-        return redirect()->route('reports.scheduled.index')->with('success', 'Scheduled report berhasil dibuat.');
+            return redirect()->route('reports.scheduled.index')->with('success', 'Scheduled report berhasil dibuat.');
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            \Log::error('Failed to store scheduled report', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->all(),
+            ]);
+
+            return redirect()
+                ->back()
+                ->withErrors(['store' => 'Gagal menyimpan scheduled report: ' . $e->getMessage()])
+                ->withInput();
+        }
     }
 
     public function update(
@@ -96,10 +104,26 @@ class ScheduledReportController extends Controller
         $this->ensureSchedulerAllowed();
         $this->authorizeSchedule($scheduledReport);
 
-        $validated = $this->validateScheduleInput($request);
-        $this->persistSchedule($validated, $dispatchService, $scheduledReport);
+        try {
+            $validated = $this->validateScheduleInput($request);
+            $this->persistSchedule($validated, $dispatchService, $scheduledReport);
 
-        return redirect()->route('reports.scheduled.index')->with('success', 'Scheduled report berhasil diperbarui.');
+            return redirect()->route('reports.scheduled.index')->with('success', 'Scheduled report berhasil diperbarui.');
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            \Log::error('Failed to update scheduled report', [
+                'id' => $scheduledReport->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->all(),
+            ]);
+
+            return redirect()
+                ->back()
+                ->withErrors(['update' => 'Gagal mengupdate scheduled report: ' . $e->getMessage()])
+                ->withInput();
+        }
     }
 
     public function toggle(ScheduledReport $scheduledReport, ScheduledReportDispatchService $dispatchService): RedirectResponse
@@ -170,6 +194,14 @@ class ScheduledReportController extends Controller
 
     private function validateScheduleInput(Request $request): array
     {
+        $allowedRiskOwners = optional(auth()->user())->allowedRiskOwners() ?: [];
+        $rawRiskOwner = trim((string) $request->input('risk_owner', ''));
+        if ($rawRiskOwner !== '') {
+            $request->merge([
+                'risk_owner' => RiskOwnerAccess::canonicalOption($rawRiskOwner) ?: $rawRiskOwner,
+            ]);
+        }
+
         return $request->validate([
             'name' => 'required|string|max:120',
             'scope' => 'required|in:monitoring,board,risks,heatmap,recap,overall',
@@ -183,7 +215,9 @@ class ScheduledReportController extends Controller
             'year' => 'nullable|integer|min:2000|max:2100',
             'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
             'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
-            'risk_owner' => 'nullable|string|max:120',
+            'risk_owner' => ['nullable', 'string', 'max:120', Rule::in($allowedRiskOwners)],
+        ], [
+            'risk_owner.in' => 'Risk owner filter is not allowed for your account.',
         ]);
     }
 

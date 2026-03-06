@@ -26,6 +26,7 @@ use App\RiskInherentAnalysis;
 use App\RiskResidualAnalysis;
 use App\RiskStatusChangeRequest;
 use App\RadarGroup;
+use App\User;
 use App\Support\AuditLogger;
 use App\Support\InputValidation;
 use App\Support\RiskAnalyticsCacheVersion;
@@ -1462,8 +1463,15 @@ class RiskController extends Controller
         ])->findOrFail($id);
 
         $activityLogs = $this->loadRiskActivityLogs($risk);
+        $mentionUsers = User::query()
+            ->select('id', 'name', 'username')
+            ->whereNotNull('username')
+            ->whereRaw("TRIM(username) <> ''")
+            ->orderBy('name')
+            ->orderBy('username')
+            ->get();
 
-        return view('risks.show', compact('risk', 'activityLogs'));
+        return view('risks.show', compact('risk', 'activityLogs', 'mentionUsers'));
     }
 
 
@@ -2259,7 +2267,6 @@ class RiskController extends Controller
             $overdueCount,
             $responseTimeByRiskId
         );
-        $heatmapTrends = $this->buildHeatmapTrends($risks);
         $departmentPerformance = $this->buildDepartmentPerformance($risks, $responseTimeByRiskId);
         $rootCauseAnalysis = $this->buildRootCauseAnalysis($risks, $overallAverage);
         $portfolioOverview = [
@@ -2299,7 +2306,6 @@ class RiskController extends Controller
                 'effectiveness_percent' => $mitigationEffectivenessPercent,
             ],
             'kpi_dashboard' => $kpiDashboard,
-            'heatmap_trends' => $heatmapTrends,
             'department_performance' => $departmentPerformance,
             'root_cause_analysis' => $rootCauseAnalysis,
             'portfolio_overview' => $portfolioOverview,
@@ -2399,123 +2405,6 @@ class RiskController extends Controller
             'risk_treatment_coverage_rate' => round($riskCoveragePercent, 2),
             'closed_risk_rate' => $closedRiskRate,
             'overdue_treatment_rate' => $overdueTreatmentRate,
-        ];
-    }
-
-    private function buildHeatmapTrends($risks, int $periodCount = 6): array
-    {
-        $periodCount = max(2, $periodCount);
-        $highRiskThreshold = 16;
-        $periodMap = [];
-        $cursor = Carbon::now()->firstOfQuarter();
-
-        for ($i = $periodCount - 1; $i >= 0; $i--) {
-            $period = (clone $cursor)->subQuarters($i);
-            $key = $period->format('Y') . '-Q' . $period->quarter;
-            $periodMap[$key] = [
-                'period' => $key,
-                'label' => 'Q' . $period->quarter . ' ' . $period->format('Y'),
-                'risk_count' => 0,
-                'inherent_high_count' => 0,
-                'residual_high_count' => 0,
-                'inherent_score_sum' => 0.0,
-                'residual_score_sum' => 0.0,
-                'inherent_score_count' => 0,
-                'residual_score_count' => 0,
-                'residual_cells' => [],
-            ];
-        }
-
-        foreach ($risks as $risk) {
-            $createdAt = $risk->created_at;
-            if (is_null($createdAt)) {
-                continue;
-            }
-
-            $period = Carbon::parse($createdAt)->firstOfQuarter();
-            $key = $period->format('Y') . '-Q' . $period->quarter;
-            if (!isset($periodMap[$key])) {
-                continue;
-            }
-
-            $periodMap[$key]['risk_count']++;
-
-            $inherentScore = optional($risk->inherentAnalysis)->inherent_risk_score;
-            if (is_numeric($inherentScore)) {
-                $inherentScore = (float) $inherentScore;
-                $periodMap[$key]['inherent_score_sum'] += $inherentScore;
-                $periodMap[$key]['inherent_score_count']++;
-                if ($inherentScore >= $highRiskThreshold) {
-                    $periodMap[$key]['inherent_high_count']++;
-                }
-            }
-
-            $residualScore = optional($risk->residualAnalysis)->residual_risk_score;
-            if (is_numeric($residualScore)) {
-                $residualScore = (float) $residualScore;
-                $periodMap[$key]['residual_score_sum'] += $residualScore;
-                $periodMap[$key]['residual_score_count']++;
-                if ($residualScore >= $highRiskThreshold) {
-                    $periodMap[$key]['residual_high_count']++;
-                }
-            }
-
-            $residualProbability = (int) (optional($risk->residualAnalysis)->probability_score ?? 0);
-            $residualImpact = (int) (optional($risk->residualAnalysis)->impact_score ?? 0);
-            if ($residualProbability >= 1 && $residualProbability <= 5 && $residualImpact >= 1 && $residualImpact <= 5) {
-                $cellKey = 'P' . $residualProbability . 'xI' . $residualImpact;
-                $periodMap[$key]['residual_cells'][$cellKey] = (int) (($periodMap[$key]['residual_cells'][$cellKey] ?? 0) + 1);
-            }
-        }
-
-        $rows = collect($periodMap)->map(function ($row) {
-            $dominantCell = '-';
-            if (!empty($row['residual_cells'])) {
-                arsort($row['residual_cells']);
-                $dominantCellKey = (string) array_key_first($row['residual_cells']);
-                if ($dominantCellKey !== '') {
-                    $dominantCell = preg_replace('/xI/', ' x I', $dominantCellKey);
-                }
-            }
-
-            $inherentAvg = (int) $row['inherent_score_count'] > 0
-                ? round((float) $row['inherent_score_sum'] / (int) $row['inherent_score_count'], 2)
-                : 0.0;
-            $residualAvg = (int) $row['residual_score_count'] > 0
-                ? round((float) $row['residual_score_sum'] / (int) $row['residual_score_count'], 2)
-                : 0.0;
-            $highRiskReduction = (int) $row['inherent_high_count'] - (int) $row['residual_high_count'];
-
-            return [
-                'period' => (string) $row['period'],
-                'label' => (string) $row['label'],
-                'risk_count' => (int) $row['risk_count'],
-                'inherent_high_count' => (int) $row['inherent_high_count'],
-                'residual_high_count' => (int) $row['residual_high_count'],
-                'high_risk_reduction' => $highRiskReduction,
-                'avg_inherent_score' => $inherentAvg,
-                'avg_residual_score' => $residualAvg,
-                'dominant_residual_cell' => (string) ($dominantCell ?: '-'),
-            ];
-        })->values()->all();
-
-        $latest = !empty($rows) ? $rows[count($rows) - 1] : null;
-        $previous = count($rows) > 1 ? $rows[count($rows) - 2] : null;
-        $latestResidualHigh = (int) ($latest['residual_high_count'] ?? 0);
-        $previousResidualHigh = (int) ($previous['residual_high_count'] ?? 0);
-        $changeResidualHigh = $latestResidualHigh - $previousResidualHigh;
-        $direction = $changeResidualHigh < 0
-            ? 'improving'
-            : ($changeResidualHigh > 0 ? 'deteriorating' : 'stable');
-
-        return [
-            'rows' => $rows,
-            'latest_period' => (string) ($latest['label'] ?? '-'),
-            'previous_period' => (string) ($previous['label'] ?? '-'),
-            'latest_residual_high_count' => $latestResidualHigh,
-            'previous_residual_high_count' => $previousResidualHigh,
-            'change_residual_high_count' => $changeResidualHigh,
-            'direction' => $direction,
         ];
     }
 
@@ -3330,8 +3219,11 @@ class RiskController extends Controller
     private function ensureCanManageRisk(Risk $risk): void
     {
         $user = auth()->user();
+        $isCreator = !is_null($user) && (int) $risk->created_by > 0 && (int) $risk->created_by === (int) $user->id;
+        $allowOwnerManage = !is_null($user) && $user->canManageRiskOwner($risk->risk_owner);
+
         abort_unless(
-            !is_null($user) && $user->canManageRiskOwner($risk->risk_owner),
+            !is_null($user) && !$user->isSuperadmin() && ($isCreator || $allowOwnerManage),
             403,
             'You are not allowed to modify this risk.'
         );

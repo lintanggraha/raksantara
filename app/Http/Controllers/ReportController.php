@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use App\Exports\MultiSheetReportExport;
 use App\Services\ReportDataService;
 use App\Support\AuditLogger;
+use App\Support\PdfReportLayout;
+use App\Support\PdfSectionPaginator;
+use App\Support\RiskOwnerAccess;
 use App\User;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Excel as ExcelWriter;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpPresentation\IOFactory;
@@ -62,14 +66,28 @@ class ReportController extends Controller
         }
 
         $year = array_key_exists('year', $validated) ? (int) $validated['year'] : null;
+        $actor = auth()->user();
+        $riskOwner = $this->normalizeRiskOwnerFilter($validated['risk_owner'] ?? null);
+        $allowedRiskOwners = $this->allowedReportRiskOwners($riskOwner);
+
+        if (!is_null($riskOwner) && !in_array($riskOwner, $allowedRiskOwners, true)) {
+            throw ValidationException::withMessages([
+                'risk_owner' => 'Selected risk owner is not allowed for your account.',
+            ]);
+        }
+
         $filters = [
             'risk_category_id' => $validated['risk_category_id'] ?? null,
             'risk_cause_category_id' => $validated['risk_cause_category_id'] ?? null,
-            'risk_owner' => $validated['risk_owner'] ?? null,
+            'risk_owner' => $riskOwner,
         ];
-        $payload = $this->reportDataService->buildPayload($scope, $year, $filters);
+        $payload = $this->reportDataService->buildPayload(
+            $scope,
+            $year,
+            $filters,
+            $actor instanceof User ? $actor : null
+        );
 
-        $actor = auth()->user();
         if ($actor instanceof User && $this->shouldAuditExport($request, $actor, $scope, $format, $year, $filters)) {
             AuditLogger::logModelEvent('report.export.generated', $actor, null, [
                 'scope' => $scope,
@@ -106,6 +124,26 @@ class ReportController extends Controller
 
             throw $e;
         }
+    }
+
+    private function normalizeRiskOwnerFilter(?string $riskOwner): ?string
+    {
+        $riskOwner = trim((string) $riskOwner);
+        if ($riskOwner === '') {
+            return null;
+        }
+
+        return RiskOwnerAccess::canonicalOption($riskOwner) ?: $riskOwner;
+    }
+
+    private function allowedReportRiskOwners(?string $includeCurrent = null): array
+    {
+        $actor = auth()->user();
+        if (!$actor instanceof User) {
+            return [];
+        }
+
+        return $actor->allowedRiskOwners($includeCurrent);
     }
 
     private function shouldAuditExport(
@@ -170,22 +208,29 @@ class ReportController extends Controller
 
     private function downloadPdf(array $payload)
     {
+        $sections = PdfSectionPaginator::paginate((array) ($payload['sections'] ?? []));
+        $pdfLayout = PdfReportLayout::resolve($sections);
+
         $html = view('reports.pdf', [
             'title' => $payload['title'] ?? 'Report',
-            'sections' => $payload['sections'] ?? [],
+            'sections' => $sections,
             'generatedAt' => now()->format('Y-m-d H:i:s'),
+            'pdfLayout' => $pdfLayout,
         ])->render();
 
         $options = new Options();
-        $options->set('isRemoteEnabled', true);
+        $options->set('isRemoteEnabled', false);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'Helvetica');
-        $options->set('dpi', 110);
+        $options->set('dpi', ($pdfLayout['density'] ?? 'normal') === 'ultra' ? 125 : 115);
         $options->set('isFontSubsettingEnabled', true);
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper(
+            (string) ($pdfLayout['paper'] ?? 'A4'),
+            (string) ($pdfLayout['orientation'] ?? 'landscape')
+        );
         $dompdf->render();
 
         $filename = $this->makeFilename($payload['file'] ?? 'report', 'pdf');

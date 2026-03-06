@@ -33,6 +33,58 @@
     min-width: 140px;
 }
 
+/* Fix dropdown visibility - ensure it's not clipped by parent overflow */
+.audit-header-actions {
+    overflow: visible !important;
+}
+
+/* Audit Export Dropdown - same style as working report export */
+.audit-export-dropdown {
+    position: relative;
+}
+
+.audit-export-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+}
+
+.audit-export-menu {
+    display: none;
+    min-width: 12rem;
+    position: absolute;
+    top: calc(100% + 0.3rem);
+    right: 0;
+    left: auto;
+    z-index: 2100;
+    background-color: #ffffff !important;
+    opacity: 1;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: 1px solid #d8e3ef;
+}
+
+.audit-export-menu.show {
+    display: block;
+}
+
+.audit-export-menu .dropdown-item i {
+    width: 1rem;
+}
+
+.audit-export-menu .dropdown-item {
+    padding: 0.5rem 1rem;
+    color: #0f172a;
+    background-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.audit-export-menu .dropdown-item:hover {
+    background-color: #eaf1f8;
+    transform: translateX(2px);
+}
+
 .audit-subtitle {
     font-size: 0.83rem;
     color: #64748b;
@@ -178,9 +230,60 @@
 }
 
 .audit-overdue-badge {
+    display: inline-flex;
+    align-items: center;
     font-size: 0.67rem;
-    padding: 0.12rem 0.35rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    padding: 0.14rem 0.48rem;
     border-radius: 999px;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.audit-status-cell {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.32rem;
+}
+
+.audit-status-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.14rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    border: 1px solid transparent;
+}
+
+.audit-status-chip.is-closed {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+.audit-status-chip.is-on-progress {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+.audit-status-chip.is-domain-bank {
+    background: #ffedd5;
+    color: #9a3412;
+    border-color: #fed7aa;
+}
+
+.audit-status-chip.is-default {
+    background: #e2e8f0;
+    color: #334155;
+    border-color: #cbd5e1;
 }
 
 .audit-pie-shell {
@@ -283,6 +386,20 @@
         </div>
     </div>
     <div class="audit-header-actions d-flex flex-wrap gap-2 align-items-center justify-content-end">
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
         <form method="GET" action="{{ route('audit.placeholder') }}" class="d-flex align-items-center flex-wrap gap-2">
             <select name="year" class="form-select form-select-sm">
                 <option value="">All Years</option>
@@ -311,10 +428,124 @@
                     <i class="fas fa-file-import"></i> Import XLS
                 </button>
             @endif
+            @if(auth()->check() && !auth()->user()->isSuperadmin())
+                <div class="audit-export-dropdown" data-audit-export>
+                    <button
+                        class="btn btn-success btn-sm audit-export-toggle"
+                        type="button"
+                        data-audit-export-toggle
+                        aria-expanded="false"
+                    >
+                        <i class="fas fa-file-export"></i>
+                        <span>Export</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="audit-export-menu" data-audit-export-menu>
+                        <a class="dropdown-item" data-audit-export-link href="{{ route('audit.export', 'pdf') }}?year={{ request('year') }}&bank={{ request('bank') }}">
+                            <i class="fas fa-file-pdf me-2 text-danger"></i>PDF
+                        </a>
+                        <a class="dropdown-item" data-audit-export-link href="{{ route('audit.export', 'xlsx') }}?year={{ request('year') }}&bank={{ request('bank') }}">
+                            <i class="fas fa-file-excel me-2 text-success"></i>XLSX
+                        </a>
+                        <a class="dropdown-item" data-audit-export-link href="{{ route('audit.export', 'pptx') }}?year={{ request('year') }}&bank={{ request('bank') }}">
+                            <i class="fas fa-file-powerpoint me-2 text-warning"></i>PPTX
+                        </a>
+                    </div>
+                </div>
+            @endif
         </form>
     </div>
 </div>
 @endsection
+
+@push('scripts_body')
+<script>
+    (function () {
+        function closeAllAuditExportDropdowns(exceptEl) {
+            document.querySelectorAll('[data-audit-export]').forEach(function (wrapper) {
+                if (exceptEl && wrapper === exceptEl) {
+                    return;
+                }
+                const menu = wrapper.querySelector('[data-audit-export-menu]');
+                const toggle = wrapper.querySelector('[data-audit-export-toggle]');
+                if (menu) {
+                    menu.classList.remove('show');
+                }
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        document.addEventListener('click', function (event) {
+            const toggle = event.target.closest('[data-audit-export-toggle]');
+            if (toggle) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const wrapper = toggle.closest('[data-audit-export]');
+                const menu = wrapper ? wrapper.querySelector('[data-audit-export-menu]') : null;
+                if (!wrapper || !menu) {
+                    return;
+                }
+
+                const willOpen = !menu.classList.contains('show');
+                closeAllAuditExportDropdowns(wrapper);
+                menu.classList.toggle('show', willOpen);
+                toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                return;
+            }
+
+            if (!event.target.closest('[data-audit-export]')) {
+                closeAllAuditExportDropdowns();
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            const exportLink = event.target.closest('[data-audit-export-link]');
+            if (!exportLink) {
+                return;
+            }
+
+            const wrapper = exportLink.closest('[data-audit-export]');
+            if (!wrapper) {
+                return;
+            }
+
+            if (wrapper.dataset.exportBusy === '1') {
+                event.preventDefault();
+                return;
+            }
+
+            wrapper.dataset.exportBusy = '1';
+            const links = wrapper.querySelectorAll('[data-audit-export-link]');
+            links.forEach(function (linkEl) {
+                linkEl.classList.add('disabled');
+                linkEl.setAttribute('aria-disabled', 'true');
+                linkEl.style.pointerEvents = 'none';
+            });
+
+            closeAllAuditExportDropdowns();
+
+            // Reset after 3 seconds (faster recovery from errors)
+            window.setTimeout(function () {
+                wrapper.dataset.exportBusy = '';
+                links.forEach(function (linkEl) {
+                    linkEl.classList.remove('disabled');
+                    linkEl.removeAttribute('aria-disabled');
+                    linkEl.style.pointerEvents = '';
+                });
+            }, 3000);
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeAllAuditExportDropdowns();
+            }
+        });
+    })();
+</script>
+@endpush
 
 @section('content')
 <div class="card">
@@ -597,18 +828,18 @@
             <div class="tab-pane fade" id="audit-pane-trend-temuan" role="tabpanel" aria-labelledby="audit-tab-trend-temuan" tabindex="0">
                 <div class="audit-pane-grid">
                     <div class="audit-progress-col" style="grid-column: span 12;">
-                        <div class="audit-panel">
-                            <div class="audit-panel-head">Trend Temuan Bulanan by Created Date</div>
-                            <div class="audit-panel-body">
-                                <canvas id="auditTrendCreatedChart" height="140"></canvas>
+                            <div class="audit-panel">
+                                <div class="audit-panel-head">Trend Temuan Bulanan by Created Date</div>
+                                <div class="audit-panel-body">
+                                    <canvas id="auditTrendCreatedChart" height="220"></canvas>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     <div class="audit-progress-col" style="grid-column: span 12;">
                         <div class="audit-panel">
                             <div class="audit-panel-head">Trend Temuan Bulanan by Closed Date</div>
                             <div class="audit-panel-body">
-                                <canvas id="auditTrendClosedChart" height="140"></canvas>
+                                <canvas id="auditTrendClosedChart" height="220"></canvas>
                             </div>
                         </div>
                     </div>
@@ -676,6 +907,18 @@
                                     </thead>
                                     <tbody>
                                         @forelse($detailRows as $row)
+                                            @php
+                                                $statusSummaryLabel = (string) ($row['status_summary'] ?? '-');
+                                                $statusSummaryKey = strtolower(trim($statusSummaryLabel));
+                                                $statusSummaryClass = 'is-default';
+                                                if ($statusSummaryKey === 'closed') {
+                                                    $statusSummaryClass = 'is-closed';
+                                                } elseif ($statusSummaryKey === 'on progress') {
+                                                    $statusSummaryClass = 'is-on-progress';
+                                                } elseif ($statusSummaryKey === 'domain bank') {
+                                                    $statusSummaryClass = 'is-domain-bank';
+                                                }
+                                            @endphp
                                             <tr>
                                                 <td>{{ $row['bank'] ?? '-' }}</td>
                                                 <td>{{ $row['date'] ?? '-' }}</td>
@@ -687,10 +930,12 @@
                                                 <td>{{ $row['pic'] ?? '-' }}</td>
                                                 <td>{{ $row['log_css'] ?? '-' }}</td>
                                                 <td>
-                                                    {{ $row['status_summary'] ?? '-' }}
+                                                    <span class="audit-status-cell">
+                                                        <span class="audit-status-chip {{ $statusSummaryClass }}">{{ $statusSummaryLabel }}</span>
                                                     @if(!empty($row['is_overdue']))
-                                                        <span class="badge bg-danger audit-overdue-badge ms-1">Overdue</span>
+                                                        <span class="audit-overdue-badge">Overdue</span>
                                                     @endif
+                                                    </span>
                                                 </td>
                                                 <td>{{ \Illuminate\Support\Str::limit((string) ($row['task'] ?? '-'), 180) }}</td>
                                                 <td>{{ $row['assigned_to'] ?? '-' }}</td>
@@ -946,6 +1191,16 @@
                     position: 'top',
                     labels: {
                         boxWidth: 10,
+                        fontSize: 11,
+                        fontColor: '#334155',
+                    },
+                },
+                layout: {
+                    padding: {
+                        top: 2,
+                        right: 8,
+                        bottom: 8,
+                        left: 6,
                     },
                 },
                 tooltips: {
@@ -956,13 +1211,29 @@
                     yAxes: [{
                         ticks: {
                             beginAtZero: true,
+                            fontColor: '#334155',
+                            fontSize: 11,
+                            precision: 0,
+                            padding: 6,
+                        },
+                        gridLines: {
+                            color: '#e2e8f0',
+                            drawBorder: false,
                         },
                     }],
                     xAxes: [{
                         ticks: {
-                            autoSkip: false,
+                            autoSkip: true,
+                            maxTicksLimit: 12,
                             maxRotation: 40,
                             minRotation: 0,
+                            fontColor: '#334155',
+                            fontSize: 11,
+                            padding: 6,
+                        },
+                        gridLines: {
+                            color: '#edf2f7',
+                            drawBorder: false,
                         },
                     }],
                 },
@@ -1144,19 +1415,55 @@
         elements: {
             line: {
                 tension: 0.25,
+                borderWidth: 2,
+            },
+            point: {
+                radius: 3.5,
+                hoverRadius: 5,
+            },
+        },
+        legend: {
+            position: 'top',
+            labels: {
+                boxWidth: 11,
+                fontSize: 12,
+                fontColor: '#334155',
             },
         },
         scales: {
             yAxes: [{
                 ticks: {
                     beginAtZero: true,
+                    precision: 0,
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: 'Jumlah Temuan',
+                    fontColor: '#475569',
+                    fontSize: 11,
+                    padding: 8,
                 },
             }],
             xAxes: [{
+                gridLines: {
+                    display: false,
+                },
                 ticks: {
-                    autoSkip: false,
-                    maxRotation: 45,
-                    minRotation: 25,
+                    autoSkip: true,
+                    maxTicksLimit: 12,
+                    maxRotation: 0,
+                    minRotation: 0,
+                    callback: function (value) {
+                        const text = String(value || '');
+                        return text.length > 14 ? text.slice(0, 14) + '...' : text;
+                    },
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: 'Periode',
+                    fontColor: '#475569',
+                    fontSize: 11,
+                    padding: 8,
                 },
             }],
         },
@@ -1167,19 +1474,55 @@
         elements: {
             line: {
                 tension: 0.25,
+                borderWidth: 2,
+            },
+            point: {
+                radius: 3.5,
+                hoverRadius: 5,
+            },
+        },
+        legend: {
+            position: 'top',
+            labels: {
+                boxWidth: 11,
+                fontSize: 12,
+                fontColor: '#334155',
             },
         },
         scales: {
             yAxes: [{
                 ticks: {
                     beginAtZero: true,
+                    precision: 0,
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: 'Jumlah Temuan',
+                    fontColor: '#475569',
+                    fontSize: 11,
+                    padding: 8,
                 },
             }],
             xAxes: [{
+                gridLines: {
+                    display: false,
+                },
                 ticks: {
-                    autoSkip: false,
-                    maxRotation: 45,
-                    minRotation: 25,
+                    autoSkip: true,
+                    maxTicksLimit: 12,
+                    maxRotation: 0,
+                    minRotation: 0,
+                    callback: function (value) {
+                        const text = String(value || '');
+                        return text.length > 14 ? text.slice(0, 14) + '...' : text;
+                    },
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: 'Periode',
+                    fontColor: '#475569',
+                    fontSize: 11,
+                    padding: 8,
                 },
             }],
         },

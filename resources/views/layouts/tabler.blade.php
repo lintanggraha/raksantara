@@ -380,12 +380,16 @@
                             <li class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
                                 <a class="nav-link nav-link-main" href="{{ route('audit-logs.index') }}">Audit Trail</a>
                             </li>
+                            <li class="nav-item {{ request()->routeIs('threat-intelligence.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('threat-intelligence.index') }}">Threat Intel</a>
+                            </li>
                         @elseif(auth()->user()->isDivisionVerified())
                             <li
                                 class="nav-item dropdown {{
                                     (request()->routeIs('risks.monitoring')
                                     || (request()->routeIs('risks.*') && !request()->routeIs('risks.dashboard-summary'))
-                                    || request()->routeIs('trends.analysis')) ? 'active' : ''
+                                    || request()->routeIs('trends.analysis')
+                                    || request()->routeIs('incidents.*')) ? 'active' : ''
                                 }}"
                                 data-risk-nav
                             >
@@ -410,14 +414,24 @@
                                     <a class="dropdown-item {{ request()->routeIs('trends.analysis') ? 'active' : '' }}" href="{{ route('trends.analysis') }}">
                                         Risk Trend Analysis
                                     </a>
+                                    <a class="dropdown-item {{ request()->routeIs('incidents.*') ? 'active' : '' }}" href="{{ route('incidents.index') }}">
+                                        Incident Management
+                                    </a>
                                 </div>
                             </li>
-                            <li class="nav-item {{ request()->routeIs('audit.placeholder') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('audit.placeholder') }}">Audit</a>
+                            @if(auth()->user()->isComplianceDivision())
+                                <li class="nav-item {{ request()->routeIs('audit.placeholder') ? 'active' : '' }}">
+                                    <a class="nav-link nav-link-main" href="{{ route('audit.placeholder') }}">Audit</a>
+                                </li>
+                            @endif
+                            <li class="nav-item {{ request()->routeIs('threat-intelligence.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('threat-intelligence.index') }}">Threat Intel</a>
                             </li>
-                            <li class="nav-item {{ request()->routeIs('reports.scheduled.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('reports.scheduled.index') }}">Scheduled Reports</a>
-                            </li>
+                            @if(auth()->user()->isComplianceDivision())
+                                <li class="nav-item {{ request()->routeIs('ojk-mitigation.*') ? 'active' : '' }}">
+                                    <a class="nav-link nav-link-main" href="{{ route('ojk-mitigation.index') }}">Mitigasi OJK</a>
+                                </li>
+                            @endif
                             <li class="nav-item {{ request()->routeIs('howto') ? 'active' : '' }}">
                                 <a class="nav-link nav-link-main" href="{{ route('howto') }}">User Guide</a>
                             </li>

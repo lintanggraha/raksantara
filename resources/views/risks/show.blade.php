@@ -4,10 +4,14 @@
 
 @section('content_header')
 @php
-    $canManage = !auth()->user()->isSuperadmin()
-        && auth()->user()->canManageRiskOwner($risk->risk_owner);
-    $canComment = $canManage;
-    $isSuperadmin = auth()->user()->isSuperadmin();
+    $currentUser = auth()->user();
+    $isSuperadmin = $currentUser->isSuperadmin();
+    $isRiskCreator = (int) ($risk->created_by ?? 0) > 0
+        && (int) $risk->created_by === (int) $currentUser->id;
+    $canManageLegacyRisk = (int) ($risk->created_by ?? 0) <= 0
+        && $currentUser->canManageRiskOwner($risk->risk_owner);
+    $canManage = !$isSuperadmin && ($isRiskCreator || $canManageLegacyRisk);
+    $canComment = !$isSuperadmin;
 @endphp
 <div class="d-flex justify-content-between align-items-center">
     <h1>Risk Details - {{ $risk->risk_id }}</h1>
@@ -22,6 +26,479 @@
         </a>
     </div>
 </div>
+@stop
+
+@section('css')
+<style>
+    .mention-field-wrap {
+        position: relative;
+    }
+
+    .mention-highlight-layer {
+        display: none;
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: auto;
+        pointer-events: none;
+        color: #1f2937;
+        background: #ffffff;
+        border: 1px solid #c6d0dd;
+        border-radius: .25rem;
+        box-sizing: border-box;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .mention-highlight-token {
+        display: inline;
+        color: #1d4ed8;
+        background: #dbeafe;
+        border-radius: 4px;
+        padding: 0 1px;
+    }
+
+    .mention-field-wrap.is-highlight-ready .mention-input {
+        position: relative;
+        z-index: 2;
+        background: transparent !important;
+        color: transparent !important;
+        caret-color: #0f172a;
+        border-color: transparent !important;
+        resize: vertical;
+    }
+
+    .mention-field-wrap.is-highlight-ready .mention-input::placeholder {
+        color: #6b7280 !important;
+    }
+
+    .mention-field-wrap.is-highlight-ready .mention-input:focus {
+        box-shadow: none;
+    }
+
+    .mention-field-wrap.is-highlight-ready .mention-input:focus + .mention-highlight-layer {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .25);
+    }
+
+    .mention-field-wrap.is-highlight-ready .mention-highlight-layer {
+        display: block;
+    }
+
+    .mention-suggestion-list {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        z-index: 1080;
+        display: none;
+        max-height: 220px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 1px solid #d6deea;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
+    }
+
+    .mention-suggestion-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid #edf2f7;
+        padding: 8px 10px;
+        text-align: left;
+        background: #ffffff;
+        color: #1f2937;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+
+    .mention-suggestion-item:last-child {
+        border-bottom: 0;
+    }
+
+    .mention-suggestion-item:hover,
+    .mention-suggestion-item.is-active {
+        background: #eef3ff;
+    }
+
+    .mention-suggestion-name {
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .mention-suggestion-username {
+        color: #4b5563;
+        white-space: nowrap;
+    }
+</style>
+@stop
+
+@php
+    $mentionOptions = ($mentionUsers ?? collect())
+        ->map(function ($user) {
+            return [
+                'username' => (string) ($user->username ?? ''),
+                'name' => (string) ($user->name ?? ''),
+            ];
+        })
+        ->filter(function ($user) {
+            return trim($user['username']) !== '';
+        })
+        ->values();
+@endphp
+
+@section('js')
+<script>
+    (() => {
+        const mentionUsers = @json($mentionOptions);
+        const mentionInputs = document.querySelectorAll('.mention-input');
+        if (!Array.isArray(mentionUsers) || mentionUsers.length === 0 || mentionInputs.length === 0) {
+            return;
+        }
+
+        const mentionRegex = /(^|[\s([{])@([A-Za-z0-9_.-]{1,255})$/;
+        const mentionTokenRegex = /(^|[\s([{])(@[A-Za-z0-9_.-]+)/g;
+        let activeInstance = null;
+
+        const normalize = (value) => String(value || '').trim().toLowerCase();
+        const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => {
+            switch (char) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case "'": return '&#39;';
+                default: return char;
+            }
+        });
+
+        const userRows = mentionUsers
+            .map((user) => ({
+                username: String(user.username || '').trim(),
+                name: String(user.name || '').trim()
+            }))
+            .filter((user) => user.username !== '');
+
+        function buildHighlightContent(value) {
+            const text = String(value || '');
+            if (text === '') {
+                return '&nbsp;';
+            }
+
+            const regex = new RegExp(mentionTokenRegex.source, 'g');
+            let html = '';
+            let lastIndex = 0;
+            let match = regex.exec(text);
+
+            while (match !== null) {
+                const prefix = String(match[1] || '');
+                const token = String(match[2] || '');
+                const matchStart = match.index;
+                const tokenStart = matchStart + prefix.length;
+
+                html += escapeHtml(text.slice(lastIndex, matchStart));
+                html += escapeHtml(prefix);
+                html += `<span class="mention-highlight-token">${escapeHtml(token)}</span>`;
+                lastIndex = tokenStart + token.length;
+                match = regex.exec(text);
+            }
+
+            html += escapeHtml(text.slice(lastIndex));
+            return html === '' ? '&nbsp;' : html;
+        }
+
+        function syncHighlightStyle(instance) {
+            if (!instance.highlight) {
+                return;
+            }
+
+            const textareaStyles = window.getComputedStyle(instance.input);
+            instance.highlight.style.fontFamily = textareaStyles.fontFamily;
+            instance.highlight.style.fontSize = textareaStyles.fontSize;
+            instance.highlight.style.fontWeight = textareaStyles.fontWeight;
+            instance.highlight.style.lineHeight = textareaStyles.lineHeight;
+            instance.highlight.style.letterSpacing = textareaStyles.letterSpacing;
+            instance.highlight.style.paddingTop = textareaStyles.paddingTop;
+            instance.highlight.style.paddingRight = textareaStyles.paddingRight;
+            instance.highlight.style.paddingBottom = textareaStyles.paddingBottom;
+            instance.highlight.style.paddingLeft = textareaStyles.paddingLeft;
+            instance.highlight.style.borderRadius = textareaStyles.borderRadius;
+            instance.highlight.style.borderWidth = textareaStyles.borderWidth;
+        }
+
+        function syncHighlightScroll(instance) {
+            if (!instance.highlight) {
+                return;
+            }
+
+            instance.highlight.scrollTop = instance.input.scrollTop;
+            instance.highlight.scrollLeft = instance.input.scrollLeft;
+        }
+
+        function refreshHighlight(instance) {
+            if (!instance.highlight) {
+                return;
+            }
+
+            instance.highlight.innerHTML = buildHighlightContent(instance.input.value);
+            syncHighlightScroll(instance);
+        }
+
+        function closeInstance(instance) {
+            if (!instance) {
+                return;
+            }
+            instance.results = [];
+            instance.activeIndex = 0;
+            instance.mentionState = null;
+            instance.list.style.display = 'none';
+            instance.list.setAttribute('aria-hidden', 'true');
+            instance.list.innerHTML = '';
+            if (activeInstance === instance) {
+                activeInstance = null;
+            }
+        }
+
+        function closeAllInstances() {
+            instances.forEach((instance) => closeInstance(instance));
+        }
+
+        function scoreUser(user, query) {
+            const username = normalize(user.username);
+            const name = normalize(user.name);
+            if (username.startsWith(query)) {
+                return 0;
+            }
+            if (name.startsWith(query)) {
+                return 1;
+            }
+            const words = name.split(/\s+/).filter(Boolean);
+            if (words.some((word) => word.startsWith(query))) {
+                return 2;
+            }
+            return -1;
+        }
+
+        function getMentionState(textarea) {
+            const cursorPos = textarea.selectionStart ?? 0;
+            const beforeCursor = textarea.value.slice(0, cursorPos);
+            const lineStart = beforeCursor.lastIndexOf('\n') + 1;
+            const segment = beforeCursor.slice(lineStart);
+            const match = segment.match(mentionRegex);
+
+            if (!match) {
+                return null;
+            }
+
+            const query = normalize(match[2]);
+            if (query.length < 1) {
+                return null;
+            }
+
+            return {
+                query,
+                start: beforeCursor.length - (match[2].length + 1),
+                end: beforeCursor.length
+            };
+        }
+
+        function findUsers(query) {
+            return userRows
+                .map((user) => ({ user, score: scoreUser(user, query) }))
+                .filter((row) => row.score >= 0)
+                .sort((a, b) => {
+                    if (a.score !== b.score) {
+                        return a.score - b.score;
+                    }
+                    return a.user.username.localeCompare(b.user.username);
+                })
+                .map((row) => row.user);
+        }
+
+        function setActiveItem(instance, index) {
+            instance.activeIndex = index;
+            const items = instance.list.querySelectorAll('.mention-suggestion-item');
+            items.forEach((item, itemIndex) => {
+                item.classList.toggle('is-active', itemIndex === index);
+            });
+        }
+
+        function renderSuggestions(instance) {
+            if (!instance.results.length) {
+                closeInstance(instance);
+                return;
+            }
+
+            instance.list.innerHTML = instance.results
+                .map((user, index) => `
+                    <button type="button" class="mention-suggestion-item${index === 0 ? ' is-active' : ''}" data-index="${index}">
+                        <span class="mention-suggestion-name">${escapeHtml(user.name || user.username)}</span>
+                        <span class="mention-suggestion-username">@${escapeHtml(user.username)}</span>
+                    </button>
+                `)
+                .join('');
+
+            instance.activeIndex = 0;
+            instance.list.style.display = 'block';
+            instance.list.setAttribute('aria-hidden', 'false');
+            activeInstance = instance;
+        }
+
+        function replaceMention(instance, user) {
+            if (!instance.mentionState) {
+                return;
+            }
+
+            const textarea = instance.input;
+            const value = textarea.value;
+            const mentionText = `@${user.username} `;
+
+            const newValue =
+                value.slice(0, instance.mentionState.start) +
+                mentionText +
+                value.slice(instance.mentionState.end);
+
+            const cursorPos = instance.mentionState.start + mentionText.length;
+
+            textarea.value = newValue;
+            textarea.focus();
+            textarea.setSelectionRange(cursorPos, cursorPos);
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            closeInstance(instance);
+        }
+
+        function refreshSuggestions(instance) {
+            const mentionState = getMentionState(instance.input);
+            if (!mentionState) {
+                closeInstance(instance);
+                return;
+            }
+
+            const results = findUsers(mentionState.query);
+            if (!results.length) {
+                closeInstance(instance);
+                return;
+            }
+
+            instance.mentionState = mentionState;
+            instance.results = results;
+            renderSuggestions(instance);
+        }
+
+        const instances = Array.from(mentionInputs)
+            .map((input) => {
+                const container = input.closest('.mention-field-wrap');
+                const highlight = container ? container.querySelector('.mention-highlight-layer') : null;
+                const list = container ? container.querySelector('.mention-suggestion-list') : null;
+                if (!container || !list) {
+                    return null;
+                }
+
+                const instance = {
+                    input,
+                    highlight,
+                    list,
+                    mentionState: null,
+                    results: [],
+                    activeIndex: 0
+                };
+
+                if (highlight) {
+                    container.classList.add('is-highlight-ready');
+                    syncHighlightStyle(instance);
+                    refreshHighlight(instance);
+                }
+
+                input.addEventListener('input', () => {
+                    refreshHighlight(instance);
+                    refreshSuggestions(instance);
+                });
+                input.addEventListener('click', () => refreshSuggestions(instance));
+                input.addEventListener('focus', () => refreshSuggestions(instance));
+                input.addEventListener('scroll', () => syncHighlightScroll(instance));
+                input.addEventListener('keydown', (event) => {
+                    if (activeInstance !== instance || instance.results.length === 0) {
+                        return;
+                    }
+
+                    if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        const nextIndex = (instance.activeIndex + 1) % instance.results.length;
+                        setActiveItem(instance, nextIndex);
+                        return;
+                    }
+
+                    if (event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        const nextIndex = (instance.activeIndex - 1 + instance.results.length) % instance.results.length;
+                        setActiveItem(instance, nextIndex);
+                        return;
+                    }
+
+                    if (event.key === 'Enter' || event.key === 'Tab') {
+                        event.preventDefault();
+                        const selected = instance.results[instance.activeIndex];
+                        if (selected) {
+                            replaceMention(instance, selected);
+                        }
+                        return;
+                    }
+
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        closeInstance(instance);
+                    }
+                });
+
+                list.addEventListener('mousedown', (event) => {
+                    const item = event.target.closest('.mention-suggestion-item');
+                    if (!item) {
+                        return;
+                    }
+                    event.preventDefault();
+                    const index = Number(item.dataset.index);
+                    if (!Number.isNaN(index) && instance.results[index]) {
+                        replaceMention(instance, instance.results[index]);
+                    }
+                });
+
+                list.addEventListener('mousemove', (event) => {
+                    const item = event.target.closest('.mention-suggestion-item');
+                    if (!item) {
+                        return;
+                    }
+                    const index = Number(item.dataset.index);
+                    if (!Number.isNaN(index)) {
+                        setActiveItem(instance, index);
+                    }
+                });
+
+                return instance;
+            })
+            .filter(Boolean);
+
+        if (!instances.length) {
+            return;
+        }
+
+        window.addEventListener('resize', () => {
+            instances.forEach((instance) => {
+                syncHighlightStyle(instance);
+                syncHighlightScroll(instance);
+            });
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.mention-field-wrap')) {
+                closeAllInstances();
+            }
+        });
+    })();
+</script>
 @stop
 
 @section('content')
@@ -223,7 +700,11 @@
                         @csrf
                         <div class="mb-2">
                             <label class="form-label">Comment</label>
-                            <textarea name="content" class="form-control form-control-sm" rows="3" maxlength="5000" placeholder="Type your comment. Use @username to mention." required>{{ old('content') }}</textarea>
+                            <div class="mention-field-wrap">
+                                <textarea name="content" class="form-control form-control-sm mention-input" rows="3" maxlength="5000" placeholder="Type your comment. Use @username to mention." required>{{ old('content') }}</textarea>
+                                <div class="mention-highlight-layer" aria-hidden="true"></div>
+                                <div class="mention-suggestion-list" aria-hidden="true"></div>
+                            </div>
                         </div>
                         <div class="mb-2">
                             <label class="form-label">Attachments (optional)</label>
@@ -247,6 +728,8 @@
                                 '<span class="badge bg-blue-lt">@$1</span>',
                                 $escapedContent
                             );
+                            $canManageComment = $canComment
+                                && (int) ($comment->user_id ?? 0) === (int) $currentUser->id;
                         @endphp
                         <div class="border rounded p-2 mb-2">
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -260,14 +743,18 @@
                                         @endif
                                     </div>
                                 </div>
-                                @if($canComment)
+                                @if($canManageComment)
                                     <div class="d-flex gap-1">
                                         <details>
                                             <summary class="btn btn-sm btn-outline-warning">Edit</summary>
                                             <form class="mt-2" action="{{ route('risks.comments.update', [$risk->id, $comment->id]) }}" method="POST">
                                                 @csrf
                                                 @method('PUT')
-                                                <textarea name="content" class="form-control form-control-sm mb-2" rows="3" maxlength="5000" required>{{ $comment->content }}</textarea>
+                                                <div class="mention-field-wrap mb-2">
+                                                    <textarea name="content" class="form-control form-control-sm mention-input" rows="3" maxlength="5000" required>{{ $comment->content }}</textarea>
+                                                    <div class="mention-highlight-layer" aria-hidden="true"></div>
+                                                    <div class="mention-suggestion-list" aria-hidden="true"></div>
+                                                </div>
                                                 <button type="submit" class="btn btn-sm btn-warning">Save</button>
                                             </form>
                                         </details>
@@ -301,7 +788,7 @@
                                         </div>
                                         <div class="d-flex gap-1">
                                             <a href="{{ route('attachments.download', $attachment->id) }}" class="btn btn-sm btn-outline-primary">Download</a>
-                                            @if($canComment)
+                                            @if($canManageComment)
                                                 <form action="{{ route('attachments.destroy', $attachment->id) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')
@@ -315,7 +802,7 @@
                                 @endforelse
                             </div>
 
-                            @if($canComment)
+                            @if($canManageComment)
                                 <form class="d-flex gap-2 mt-2" action="{{ route('risks.comments.attachments.store', [$risk->id, $comment->id]) }}" method="POST" enctype="multipart/form-data">
                                     @csrf
                                     <input type="file" name="file" class="form-control form-control-sm" required>

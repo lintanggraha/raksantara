@@ -37,6 +37,21 @@
         @endif
     </div>
     <div class="card-body">
+        @if($errors->has('store'))
+            <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ $errors->first('store') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+        @if($errors->has('update'))
+            <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ $errors->first('update') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
         <form action="{{ $formAction }}" method="POST" class="row g-2">
             @csrf
             @if($isEditing)

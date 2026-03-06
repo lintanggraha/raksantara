@@ -15,7 +15,7 @@ class RiskCommentController extends Controller
 {
     public function store(Request $request, Risk $risk)
     {
-        $this->ensureCanComment($risk);
+        $this->ensureCanComment();
         $validated = $this->validateCommentRequest($request, true);
 
         DB::transaction(function () use ($validated, $risk, $request): void {
@@ -42,7 +42,7 @@ class RiskCommentController extends Controller
     public function update(Request $request, Risk $risk, RiskComment $comment)
     {
         $this->ensureRiskCommentMatch($risk, $comment);
-        $this->ensureCanComment($risk);
+        $this->ensureCanModifyComment($comment);
 
         $validated = $this->validateCommentRequest($request, false);
         $before = $this->commentAuditPayload($comment);
@@ -67,7 +67,7 @@ class RiskCommentController extends Controller
     public function destroy(Risk $risk, RiskComment $comment)
     {
         $this->ensureRiskCommentMatch($risk, $comment);
-        $this->ensureCanComment($risk);
+        $this->ensureCanModifyComment($comment);
 
         $before = $this->commentAuditPayload($comment);
         $this->deleteAttachmentCollection($comment);
@@ -86,7 +86,7 @@ class RiskCommentController extends Controller
     public function storeAttachment(Request $request, Risk $risk, RiskComment $comment)
     {
         $this->ensureRiskCommentMatch($risk, $comment);
-        $this->ensureCanComment($risk);
+        $this->ensureCanModifyComment($comment);
 
         $validated = $request->validate([
             'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx,txt,csv',
@@ -203,13 +203,23 @@ class RiskCommentController extends Controller
         abort_unless((int) $comment->risk_id === (int) $risk->id, 404);
     }
 
-    private function ensureCanComment(Risk $risk): void
+    private function ensureCanComment(): void
     {
         $user = auth()->user();
         abort_unless(
-            !is_null($user) && !$user->isSuperadmin() && $user->canManageRiskOwner($risk->risk_owner),
+            !is_null($user) && !$user->isSuperadmin(),
             403,
-            'You are not allowed to manage comments for this risk.'
+            'You are not allowed to comment on this risk.'
+        );
+    }
+
+    private function ensureCanModifyComment(RiskComment $comment): void
+    {
+        $user = auth()->user();
+        abort_unless(
+            !is_null($user) && !$user->isSuperadmin() && (int) $comment->user_id === (int) $user->id,
+            403,
+            'You are not allowed to modify this comment.'
         );
     }
 }

@@ -709,8 +709,12 @@ thead th {
 
 <td style="white-space: nowrap; text-align: center;">
 @php
-    $canManage = !auth()->user()->isSuperadmin()
-        && auth()->user()->canManageRiskOwner($risk->risk_owner);
+    $viewer = auth()->user();
+    $isRiskCreator = (int) ($risk->created_by ?? 0) > 0
+        && (int) $risk->created_by === (int) $viewer->id;
+    $canManageLegacyRisk = (int) ($risk->created_by ?? 0) <= 0
+        && $viewer->canManageRiskOwner($risk->risk_owner);
+    $canManage = !$viewer->isSuperadmin() && ($isRiskCreator || $canManageLegacyRisk);
 @endphp
 <div class="risk-action-stack">
     <a href="{{ route('risks.show', $risk->id) }}" class="btn btn-info btn-xs" title="View" data-toggle="tooltip">

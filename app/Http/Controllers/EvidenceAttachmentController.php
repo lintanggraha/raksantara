@@ -73,7 +73,13 @@ class EvidenceAttachmentController extends Controller
     {
         $risk = $this->resolveRiskFromAttachment($attachment);
         abort_unless(!is_null($risk), 404);
-        $this->ensureCanManage($risk);
+        $attachable = $attachment->attachable;
+
+        if ($attachable instanceof RiskComment) {
+            $this->ensureCanManageCommentAttachment($attachable);
+        } else {
+            $this->ensureCanManage($risk);
+        }
 
         $before = $attachment->toArray();
 
@@ -120,10 +126,23 @@ class EvidenceAttachmentController extends Controller
     private function ensureCanManage(Risk $risk): void
     {
         $user = auth()->user();
+        $isCreator = !is_null($user) && (int) $risk->created_by > 0 && (int) $risk->created_by === (int) $user->id;
+        $allowLegacyOwnerManage = !is_null($user) && ((int) $risk->created_by <= 0) && $user->canManageRiskOwner($risk->risk_owner);
+
         abort_unless(
-            !is_null($user) && !$user->isSuperadmin() && $user->canManageRiskOwner($risk->risk_owner),
+            !is_null($user) && !$user->isSuperadmin() && ($isCreator || $allowLegacyOwnerManage),
             403,
             'You are not allowed to modify this risk evidence.'
+        );
+    }
+
+    private function ensureCanManageCommentAttachment(RiskComment $comment): void
+    {
+        $user = auth()->user();
+        abort_unless(
+            !is_null($user) && !$user->isSuperadmin() && (int) $comment->user_id === (int) $user->id,
+            403,
+            'You are not allowed to modify this comment evidence.'
         );
     }
 

@@ -167,6 +167,23 @@ class MonitoringReportWorkflowTest extends TestCase
         $response->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
     }
 
+    public function test_compliance_user_can_export_monitoring_xlsx_report(): void
+    {
+        $user = $this->createUser('CO - COMPLIANCE', false);
+        $this->actingAs($user);
+
+        $response = $this->get(route('reports.export', [
+            'scope' => 'monitoring',
+            'format' => 'xlsx',
+        ]));
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            (string) $response->headers->get('Content-Type')
+        );
+    }
+
     private function createUser(string $division, bool $isSuperadmin): User
     {
         $suffix = Str::lower(Str::random(8));

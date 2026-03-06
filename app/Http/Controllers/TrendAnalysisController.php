@@ -319,14 +319,16 @@ class TrendAnalysisController extends Controller
             ];
         }
 
-        $inherentValues = array_filter(array_column($trendData, 'inherent_avg'));
-        $residualValues = array_filter(array_column($trendData, 'residual_avg'));
+        $inherentValues = $this->extractNumericTrendValues($trendData, 'inherent_avg');
+        $residualValues = $this->extractNumericTrendValues($trendData, 'residual_avg');
+        $inherentMaxValues = $this->extractNumericTrendValues($trendData, 'inherent_max');
+        $residualMaxValues = $this->extractNumericTrendValues($trendData, 'residual_max');
         $riskCounts = array_column($trendData, 'risk_count');
 
         $avgInherent = !empty($inherentValues) ? round(array_sum($inherentValues) / count($inherentValues), 2) : 0;
         $avgResidual = !empty($residualValues) ? round(array_sum($residualValues) / count($residualValues), 2) : 0;
-        $maxInherent = max(array_filter(array_column($trendData, 'inherent_max'))) ?: 0;
-        $maxResidual = max(array_filter(array_column($trendData, 'residual_max'))) ?: 0;
+        $maxInherent = !empty($inherentMaxValues) ? max($inherentMaxValues) : 0;
+        $maxResidual = !empty($residualMaxValues) ? max($residualMaxValues) : 0;
         $totalRisks = array_sum($riskCounts);
 
         // Hitung improvement (penurunan dari inherent ke residual)
@@ -343,6 +345,29 @@ class TrendAnalysisController extends Controller
             'total_risks' => $totalRisks,
             'improvement_percentage' => $improvement,
         ];
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    private function extractNumericTrendValues(array $trendData, string $column): array
+    {
+        $values = [];
+
+        foreach ($trendData as $row) {
+            if (!is_array($row) || !array_key_exists($column, $row)) {
+                continue;
+            }
+
+            $value = $row[$column];
+            if (!is_numeric($value)) {
+                continue;
+            }
+
+            $values[] = (float) $value;
+        }
+
+        return $values;
     }
 
     /**
