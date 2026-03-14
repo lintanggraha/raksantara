@@ -271,6 +271,49 @@ thead th {
     color: #0369a1;
 }
 
+.chip-kri {
+    text-decoration: none;
+    border: 1px solid transparent;
+    font-size: 10px;
+    padding: 0.2rem 0.45rem;
+}
+
+.chip-kri:hover {
+    text-decoration: none;
+    color: inherit;
+    opacity: 0.92;
+}
+
+.chip-kri-ok {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #86efac;
+}
+
+.chip-kri-watch {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+}
+
+.chip-kri-alert {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+}
+
+.chip-kri-none {
+    background: #e5e7eb;
+    color: #374151;
+    border-color: #cbd5e1;
+}
+
+.kri-breakdown {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
 .risk-level-pill,
 .status-pill {
     display: inline-flex;
@@ -447,12 +490,39 @@ thead th {
         'High' => 0,
     ];
 
+    $kriSummary = [
+        'total' => 0,
+        'green' => 0,
+        'amber' => 0,
+        'red' => 0,
+        'risks_without_kri' => 0,
+    ];
+
     foreach ($risks as $risk) {
         $level = optional($risk->residualAnalysis)->risk_level ?? $risk->risk_level;
         if (isset($levelCounts[$level])) {
             $levelCounts[$level]++;
         }
+
+        $kriTotal = (int) ($risk->kris_count ?? 0);
+        $kriGreen = (int) ($risk->kris_green_count ?? 0);
+        $kriAmber = (int) ($risk->kris_amber_count ?? 0);
+        $kriRed = (int) ($risk->kris_red_count ?? 0);
+
+        $kriSummary['total'] += $kriTotal;
+        $kriSummary['green'] += $kriGreen;
+        $kriSummary['amber'] += $kriAmber;
+        $kriSummary['red'] += $kriRed;
+
+        if ($kriTotal === 0) {
+            $kriSummary['risks_without_kri']++;
+        }
     }
+
+    $risksWithKri = max(0, $risks->count() - $kriSummary['risks_without_kri']);
+    $kriCoveragePct = $risks->count() > 0
+        ? round(($risksWithKri / $risks->count()) * 100, 1)
+        : 0;
 @endphp
 
 <div class="risk-summary-shell">
@@ -536,28 +606,29 @@ thead th {
             </div>
             <div class="table-control-body">
                 @php
-                    $selectedOwnerFilter = trim((string) request('risk_owner', ''));
-                    $ownerFilterOptions = $risks
-                        ->map(function ($risk) {
-                            return \App\Support\RiskOwnerAccess::displayLabel($risk->risk_owner);
-                        })
-                        ->filter(function ($owner) {
-                            return $owner !== '-';
-                        })
-                        ->unique()
-                        ->sort(function ($left, $right) {
-                            return strnatcasecmp((string) $left, (string) $right);
-                        })
-                        ->values();
+                    $ownerFilterOptions = $ownerFilterOptions ?? collect();
+                    $selectedOwnerFilter = $selectedOwnerFilter ?? trim((string) request('risk_owner', ''));
                 @endphp
-                <select id="ownerFilter" class="form-control">
-                    <option value="">All Owner</option>
+                <form method="GET" action="{{ route('risks.index') }}" class="w-100 m-0">
+                    <input type="hidden" name="risk_tab" value="register">
+                    @if(request()->filled('risk_category_id'))
+                        <input type="hidden" name="risk_category_id" value="{{ request('risk_category_id') }}">
+                    @endif
+                    @if(request()->filled('risk_cause_category_id'))
+                        <input type="hidden" name="risk_cause_category_id" value="{{ request('risk_cause_category_id') }}">
+                    @endif
+                    @if(request()->filled('year'))
+                        <input type="hidden" name="year" value="{{ request('year') }}">
+                    @endif
+                    <select id="ownerFilter" name="risk_owner" class="form-control" onchange="this.form.submit()">
+                        <option value="">All Owner</option>
 
-                    @foreach($ownerFilterOptions as $owner)
-                    <option value="{{ $owner }}" {{ $selectedOwnerFilter === (string) $owner ? 'selected' : '' }}>{{ $owner }}</option>
-                    @endforeach
+                        @foreach($ownerFilterOptions as $owner)
+                        <option value="{{ $owner }}" {{ $selectedOwnerFilter === (string) $owner ? 'selected' : '' }}>{{ $owner }}</option>
+                        @endforeach
 
-                </select>
+                    </select>
+                </form>
             </div>
         </div>
 
@@ -628,14 +699,14 @@ thead th {
 
 <tr>
 <th colspan="2" class="text-center column-group-head" data-start="0" data-end="1" style="background:#f8f9fa">STATUS & ACTIONS</th>
-<th colspan="4" class="text-center column-group-head" data-start="2" data-end="5" style="background:#e3e6f0">BASIC INFO</th>
-<th colspan="5" class="risk-header column-group-head" data-start="6" data-end="10">RISK</th>
-<th colspan="6" class="analysis-header column-group-head" data-start="11" data-end="16">INHERENT ANALYSIS</th>
-<th colspan="6" class="text-center column-group-head" data-start="17" data-end="22" style="background:#fff3cd">TREATMENT</th>
-<th colspan="6" class="text-center column-group-head" data-start="23" data-end="28" style="background:#d1e7dd">RESIDUAL ANALYSIS</th>
-<th colspan="2" class="text-center column-group-head" data-start="29" data-end="30" style="background:#cfe2ff">RISK CONCLUSION</th>
-<th colspan="2" class="text-center column-group-head" data-start="31" data-end="32" style="background:#e8f5e9">GROUP RADAR</th>
-<th colspan="6" class="text-center column-group-head" data-start="33" data-end="38" style="background:#e7d9c5">QUANTITATIVE RESULT</th>
+<th colspan="5" class="text-center column-group-head" data-start="2" data-end="6" style="background:#e3e6f0">BASIC INFO</th>
+<th colspan="5" class="risk-header column-group-head" data-start="7" data-end="11">RISK</th>
+<th colspan="6" class="analysis-header column-group-head" data-start="12" data-end="17">INHERENT ANALYSIS</th>
+<th colspan="6" class="text-center column-group-head" data-start="18" data-end="23" style="background:#fff3cd">TREATMENT</th>
+<th colspan="6" class="text-center column-group-head" data-start="24" data-end="29" style="background:#d1e7dd">RESIDUAL ANALYSIS</th>
+<th colspan="2" class="text-center column-group-head" data-start="30" data-end="31" style="background:#cfe2ff">RISK CONCLUSION</th>
+<th colspan="2" class="text-center column-group-head" data-start="32" data-end="33" style="background:#e8f5e9">GROUP RADAR</th>
+<th colspan="6" class="text-center column-group-head" data-start="34" data-end="39" style="background:#e7d9c5">QUANTITATIVE RESULT</th>
 </tr>
 
 <tr>
@@ -644,6 +715,7 @@ thead th {
 <th>Risk ID</th>
 <th>Year</th>
 <th>Process</th>
+<th>Sasaran Target</th>
 <th>Risk Identification</th>
 
 <th>Category</th>
@@ -690,7 +762,11 @@ thead th {
 
 <tbody>
 @foreach($risks as $risk)
-<tr>
+@php
+    $ownerLabel = \App\Support\RiskOwnerAccess::displayLabel($risk->risk_owner);
+    $ownerFilterKey = strtolower(trim(preg_replace('/\s+/u', ' ', (string) $ownerLabel)));
+@endphp
+<tr data-owner-filter="{{ $ownerFilterKey }}" data-owner="{{ $ownerLabel }}">
 
 {{-- STATUS & ACTIONS --}}
 <td>
@@ -716,6 +792,15 @@ thead th {
         && $viewer->canManageRiskOwner($risk->risk_owner);
     $canManage = !$viewer->isSuperadmin() && ($isRiskCreator || $canManageLegacyRisk);
 @endphp
+@php
+    $kriTotal = (int) ($risk->kris_count ?? 0);
+    $kriGreenCount = (int) ($risk->kris_green_count ?? 0);
+    $kriAmberCount = (int) ($risk->kris_amber_count ?? 0);
+    $kriRedCount = (int) ($risk->kris_red_count ?? 0);
+    $kriChipClass = $kriTotal === 0
+        ? 'chip-kri-none'
+        : ($kriRedCount > 0 ? 'chip-kri-alert' : ($kriAmberCount > 0 ? 'chip-kri-watch' : 'chip-kri-ok'));
+@endphp
 <div class="risk-action-stack">
     <a href="{{ route('risks.show', $risk->id) }}" class="btn btn-info btn-xs" title="View" data-toggle="tooltip">
     <i class="fas fa-eye"></i>
@@ -727,6 +812,12 @@ thead th {
         <button type="button" class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')) { document.getElementById('form-delete-{{ $risk->id }}').submit(); }" title="Delete" data-toggle="tooltip">
         <i class="fas fa-trash"></i>
         </button>
+    @endif
+    <a href="{{ route('risks.show', $risk->id) }}#kris" class="chip chip-kri {{ $kriChipClass }}" title="Open KRI">
+        KRI {{ $kriTotal }}
+    </a>
+    @if($kriTotal > 0)
+        <span class="kri-breakdown">G:{{ $kriGreenCount }} A:{{ $kriAmberCount }} R:{{ $kriRedCount }}</span>
     @endif
 </div>
 @if($canManage)
@@ -745,6 +836,7 @@ thead th {
 </td>
 <td>{{ $risk->year }}</td>
 <td>{{ $risk->risk_title }}</td>
+<td>{{ $risk->sasaran_target }}</td>
 <td>{{ $risk->risk_description }}</td>
 
 {{-- RISK --}}
@@ -752,7 +844,7 @@ thead th {
 <td>{{ optional($risk->causeCategory)->name }}</td>
 <td>{{ $risk->cause }}</td>
 <td>{{ $risk->existing_control }}</td>
-<td>{{ \App\Support\RiskOwnerAccess::displayLabel($risk->risk_owner) }}</td>
+<td>{{ $ownerLabel }}</td>
 
 {{-- INHERENT ANALYSIS --}}
 <td>
@@ -1027,36 +1119,36 @@ const allColumnIndexes = table.columns().indexes().toArray();
 const columnPresetMap = {
     overview: [
         0, 1,
-        2, 3, 4, 5,
-        6, 7, 8, 9, 10,
-        15, 16,
-        27, 29, 30,
-        31, 32,
+        2, 3, 4, 5, 6,
+        7, 8, 9, 10, 11,
+        16, 17,
+        28, 30, 31,
+        32, 33,
     ],
     full: allColumnIndexes,
     analysis: [
         0, 1,
-        2, 3, 4, 5,
-        6, 10,
-        11, 12, 13, 14, 15, 16,
-        23, 24, 25, 26, 27, 28,
-        29, 30,
-        31, 32,
+        2, 3, 4, 5, 6,
+        7, 11,
+        12, 13, 14, 15, 16, 17,
+        24, 25, 26, 27, 28, 29,
+        30, 31,
+        32, 33,
     ],
     treatment: [
         0, 1,
-        2, 3, 4, 5,
-        6, 10,
-        17, 18, 19, 20, 21, 22,
-        29, 30,
+        2, 3, 4, 5, 6,
+        7, 11,
+        18, 19, 20, 21, 22, 23,
+        30, 31,
     ],
     quantitative: [
         0, 1,
-        2, 3, 4, 5,
-        6, 10,
-        29, 30,
-        31, 32,
-        33, 34, 35, 36, 37, 38,
+        2, 3, 4, 5, 6,
+        7, 11,
+        30, 31,
+        32, 33,
+        34, 35, 36, 37, 38, 39,
     ],
 };
 
@@ -1155,35 +1247,6 @@ try {
 
 applyColumnPreset(initialPreset);
 
-const ownerFilterElement = document.getElementById('ownerFilter');
-
-function syncOwnerFilterToUrl(ownerValue) {
-    if (!window.history || typeof window.history.replaceState !== 'function') {
-        return;
-    }
-
-    const url = new URL(window.location.href);
-    if (ownerValue) {
-        url.searchParams.set('risk_owner', ownerValue);
-    } else {
-        url.searchParams.delete('risk_owner');
-    }
-    window.history.replaceState({}, '', url.toString());
-}
-
-if (ownerFilterElement) {
-    const initialOwnerValue = String(ownerFilterElement.value || '').trim();
-    if (initialOwnerValue !== '') {
-        table.column(10).search(initialOwnerValue).draw();
-    }
-
-    ownerFilterElement.addEventListener('change', function () {
-        const ownerValue = String(ownerFilterElement.value || '').trim();
-        table.column(10).search(ownerValue).draw();
-        syncOwnerFilterToUrl(ownerValue);
-    });
-}
-
 const riskWorkspaceButtons = document.querySelectorAll('[data-risk-workspace-tab]');
 const riskWorkspacePanels = document.querySelectorAll('[data-risk-tab-panel]');
 const riskWorkspaceTabs = ['register', 'heatmap', 'recap'];
@@ -1255,6 +1318,7 @@ applyRiskWorkspaceTab(serverActiveRiskTab, false);
                         <label class="form-label">Excel File (.xls/.xlsx)</label>
                         <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
                         <small class="text-muted">Gunakan template RM-02 yang sama seperti file lama kamu.</small>
+                        <small class="text-muted d-block">Default sheet import: BT, DI, CR, OM, CS, BS, HC, SUM (sheet hidden otomatis di-skip).</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Year (Optional)</label>

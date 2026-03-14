@@ -298,7 +298,7 @@ class ReportController extends Controller
     private function appendCoverSlide(PhpPresentation $presentation, string $title, int $sectionCount, string $generatedAt): void
     {
         $slide = $presentation->createSlide();
-        $this->applySlideTheme($slide, 'FF123B66');
+        $this->applySlideTheme($slide, 'FF0F172A');
 
         $heroShape = $slide->createRichTextShape()
             ->setHeight(290)
@@ -309,14 +309,14 @@ class ReportController extends Controller
         if ($heroFill) {
             $heroFill->setFillType(Fill::FILL_SOLID)
                 ->getStartColor()
-                ->setARGB('FFEAF2FB');
+                ->setARGB('FFF1F5F9');
         }
 
         $heroKicker = $heroShape->createTextRun('RISK MANAGEMENT REPORT');
         $heroKicker->getFont()
             ->setSize(15)
             ->setBold(true)
-            ->setColor(new Color('FF1E3A8A'));
+            ->setColor(new Color('FF3B82F6'));
 
         $heroShape->createBreak();
         $titleRun = $heroShape->createTextRun($title);
@@ -427,14 +427,14 @@ class ReportController extends Controller
             $headerFontSize = $columnCount >= 9 ? 8 : 9;
             $bodyFontSize = $columnCount >= 9 ? 7 : 8;
 
-            $headerRow = $table->createRow()->setHeight(28);
+            $headerRow = $table->createRow()->setHeight(32);
             for ($col = 0; $col < $columnCount; $col++) {
                 $headerCell = $headerRow->nextCell();
                 $headerCell->setWidth($columnWidth);
                 $headerFill = $headerCell->getFill();
                 $headerFill->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()
-                    ->setARGB('FF0F4C81');
+                    ->setARGB('FF0F172A');
                 $headerAlignment = $headerCell->getActiveParagraph()->getAlignment();
                 $headerAlignment->setHorizontal(Alignment::HORIZONTAL_LEFT);
                 $headerRun = $headerCell->createTextRun((string) ($headings[$col] ?? ('Column ' . ($col + 1))));
@@ -446,14 +446,14 @@ class ReportController extends Controller
 
             foreach ($chunk as $rowIndex => $row) {
                 $rowData = is_array($row) ? array_values($row) : [$row];
-                $bodyRow = $table->createRow()->setHeight(26);
+                $bodyRow = $table->createRow()->setHeight(30);
                 for ($col = 0; $col < $columnCount; $col++) {
                     $cell = $bodyRow->nextCell();
                     $cell->setWidth($columnWidth);
                     $cellFill = $cell->getFill();
                     $cellFill->setFillType(Fill::FILL_SOLID)
                         ->getStartColor()
-                        ->setARGB($rowIndex % 2 === 0 ? 'FFFFFFFF' : 'FFF8FBFF');
+                        ->setARGB($rowIndex % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC');
                     $alignment = $cell->getActiveParagraph()->getAlignment();
                     $alignment->setHorizontal(Alignment::HORIZONTAL_LEFT);
                     $rawValue = isset($rowData[$col]) ? $rowData[$col] : '';
@@ -810,7 +810,7 @@ class ReportController extends Controller
             ->setColor(new Color(Color::COLOR_WHITE));
     }
 
-    private function applySlideTheme($slide, string $accentColor = 'FF0F4C81'): void
+    private function applySlideTheme($slide, string $accentColor = 'FF0F172A'): void
     {
         $backgroundShape = $slide->createRichTextShape()
             ->setHeight(720)
@@ -821,11 +821,11 @@ class ReportController extends Controller
         if ($backgroundFill) {
             $backgroundFill->setFillType(Fill::FILL_SOLID)
                 ->getStartColor()
-                ->setARGB('FFF5F8FC');
+                ->setARGB('FFF8FAFC');
         }
 
         $accentBar = $slide->createRichTextShape()
-            ->setHeight(12)
+            ->setHeight(8)
             ->setWidth(960)
             ->setOffsetX(0)
             ->setOffsetY(0);

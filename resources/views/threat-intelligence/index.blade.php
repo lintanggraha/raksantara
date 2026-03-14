@@ -9,6 +9,8 @@
     $severityBreakdown = $analytics['severity_breakdown'] ?? ['labels' => [], 'values' => []];
     $publicationTrend = $analytics['publication_trend'] ?? ['labels' => [], 'values' => []];
     $vendorExposure = $analytics['vendor_exposure'] ?? ['labels' => [], 'values' => []];
+    $owaspBreakdown = $analytics['owasp_breakdown'] ?? ['labels' => [], 'values' => []];
+    $owaspTaxonomy = data_get($dashboard, 'owasp.taxonomy', []);
     $sources = $dashboard['sources'] ?? [];
     $cves = $dashboard['cves'] ?? [];
     $kevItems = data_get($dashboard, 'kev.items', []);
@@ -259,7 +261,7 @@
         </div>
         <form method="GET" action="{{ route('threat-intelligence.index') }}">
             <div class="row g-3 align-items-end">
-                <div class="col-lg-5">
+                <div class="col-lg-4">
                     <label for="keyword" class="form-label">Keyword</label>
                     <input type="text" class="form-control" id="keyword" name="keyword" value="{{ $dashboard['filters']['keyword'] }}" placeholder="Examples: Laravel, Fortinet, banking, OpenSSH">
                 </div>
@@ -273,6 +275,17 @@
                     </select>
                 </div>
                 <div class="col-md-3 col-lg-2">
+                    <label for="owasp" class="form-label">OWASP</label>
+                    <select class="form-select no-search-select" id="owasp" name="owasp">
+                        <option value="">All</option>
+                        @foreach ($owaspTaxonomy as $owaspItem)
+                            <option value="{{ $owaspItem['code'] }}" @selected(($dashboard['filters']['owasp'] ?? '') === $owaspItem['code'])>
+                                {{ $owaspItem['code'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 col-lg-2">
                     <label for="days" class="form-label">Window</label>
                     <select class="form-select no-search-select" id="days" name="days">
                         @foreach ([7 => '7 days', 30 => '30 days', 90 => '90 days'] as $value => $label)
@@ -280,7 +293,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3 col-lg-2">
+                <div class="col-md-3 col-lg-1">
                     <label for="limit" class="form-label">Limit</label>
                     <select class="form-select no-search-select" id="limit" name="limit">
                         @foreach ([10, 12, 20, 50] as $value)
@@ -313,9 +326,9 @@
     </div>
     <div class="col-md-6 col-xl-3">
         <div class="thintel-stat amber">
-            <div class="thintel-stat-label">KEV Entries</div>
-            <div class="thintel-stat-value">{{ number_format((int) ($summary['kev_items'] ?? 0)) }}</div>
-            <div class="thintel-stat-copy">Current KEV queue after filters.</div>
+            <div class="thintel-stat-label">OWASP Mapped</div>
+            <div class="thintel-stat-value">{{ number_format((int) ($summary['owasp_mapped'] ?? 0)) }}</div>
+            <div class="thintel-stat-copy">Visible CVEs that can be mapped to OWASP Top 10 categories.</div>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
@@ -396,6 +409,11 @@
                                             @if (($item['is_known_exploited'] ?? false) === true)
                                                 <span class="thintel-pill alert">KEV overlap</span>
                                             @endif
+                                            @if (!empty($item['owasp_codes']))
+                                                <span class="thintel-pill warn" title="{{ implode(', ', (array) ($item['owasp_top10'] ?? [])) }}">
+                                                    OWASP {{ implode(', ', (array) $item['owasp_codes']) }}
+                                                </span>
+                                            @endif
                                         </div>
                                         <div class="small text-muted">Published {{ $item['published_at'] }} | Updated {{ $item['modified_at'] }} | Status {{ $item['vuln_status'] }}</div>
                                     </div>
@@ -407,6 +425,9 @@
                                 <div class="d-flex flex-wrap gap-2">
                                     @foreach (($item['cwes'] ?? []) as $cwe)
                                         <span class="thintel-pill">{{ $cwe }}</span>
+                                    @endforeach
+                                    @foreach (($item['owasp_top10'] ?? []) as $owaspLabel)
+                                        <span class="thintel-pill warn">{{ $owaspLabel }}</span>
                                     @endforeach
                                     @if (!is_null($item['reference_url']))
                                         <a class="thintel-pill text-decoration-none" href="{{ $item['reference_url'] }}" target="_blank" rel="noopener">Reference</a>
@@ -456,6 +477,11 @@
                     <div class="small text-muted mb-2">Operational fallback when the primary CISA JSON feed is unavailable.</div>
                     <a href="https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json" target="_blank" rel="noopener" class="small">github.com/cisagov/kev-data</a>
                 </div>
+                <div class="thintel-source-item">
+                    <div class="fw-semibold mb-1">OWASP Top 10 (2021)</div>
+                    <div class="small text-muted mb-2">Reference taxonomy used to enrich CVE entries from CWE tags into OWASP categories.</div>
+                    <a href="{{ config('services.owasp.top10_url', 'https://owasp.org/Top10/') }}" target="_blank" rel="noopener" class="small">{{ config('services.owasp.top10_url', 'https://owasp.org/Top10/') }}</a>
+                </div>
             </div>
 
             <div class="tab-pane fade" id="thintel-priority-pane" role="tabpanel" aria-labelledby="thintel-priority-tab">
@@ -500,7 +526,7 @@
             <div class="tab-pane fade" id="thintel-analyst-pane" role="tabpanel" aria-labelledby="thintel-analyst-tab">
                 <div class="thintel-source-item">
                     <div class="fw-semibold mb-3">Source Health</div>
-                    @foreach (['nvd', 'kev'] as $sourceKey)
+                    @foreach (['nvd', 'kev', 'owasp'] as $sourceKey)
                         <div class="{{ $loop->first ? '' : 'mt-3' }}">
                             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                                 <div class="fw-semibold">{{ $sources[$sourceKey]['label'] ?? strtoupper($sourceKey) }}</div>

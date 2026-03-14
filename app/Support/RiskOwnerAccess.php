@@ -30,6 +30,15 @@ class RiskOwnerAccess
         'BUSINESS STRATEGY' => 'Business Strategy',
     ];
 
+    private const LEGACY_OWNER_ALIASES = [
+        'SECURITY OPERATION CENTER' => 'CS - CYBER SECURITY',
+        'DEVELOPMENT OPERATION DIVISION' => 'DI - DIGITAL SOLUTION',
+        'CUSTOMER RELATION REGION' => 'CR - CUSTOMER RELATIONS',
+        'PROCUREMENT OFFICE MANAGEMENT' => 'BS - BUSINESS SUPPORT',
+        'IT OPERATION MANAGEMENT INFRASTRUCTURE DC DRC' => 'OM - IT OPERATION MANAGEMENT',
+        'QUALITY ASSURANCE APPLICATION CONTROL LIBRARY' => 'QA - QA & INNOVATION',
+    ];
+
     public static function options(): array
     {
         $options = config('risk_owners.options', []);
@@ -123,6 +132,17 @@ class RiskOwnerAccess
             }
         }
 
+        if ($normalizedLabel !== '' && isset(self::LEGACY_OWNER_ALIASES[$normalizedLabel])) {
+            $mapped = self::LEGACY_OWNER_ALIASES[$normalizedLabel];
+            $mappedNormalized = self::normalize($mapped);
+
+            foreach (self::options() as $option) {
+                if (self::normalize($option) === $mappedNormalized) {
+                    return $option;
+                }
+            }
+        }
+
         return null;
     }
 
@@ -163,6 +183,9 @@ class RiskOwnerAccess
         }
 
         $value = (string) preg_replace('/^[A-Z]{2}\s*-\s*/i', '', $value);
+        $value = (string) preg_replace('/^(DIV|DIV\.|DIVISI|DIVISION)\b[\s:.,-]*/i', '', $value);
+        $value = (string) preg_replace('/^(DEPT|DEPT\.|DEPARTMENT)\b[\s:.,-]*/i', '', $value);
+        $value = (string) preg_replace('/^ALL\s+(DIVISION\s+)?/i', '', $value);
         $value = (string) preg_replace('/^SPV\b[\s:,-]*/i', '', $value);
         $value = (string) preg_replace('/^[^A-Z0-9]+/i', '', $value);
         $value = (string) preg_replace('/\s+/', ' ', $value);
@@ -177,7 +200,9 @@ class RiskOwnerAccess
         }
 
         $value = strtoupper(trim((string) $value));
-        $value = preg_replace('/\s+/', ' ', $value);
+        $value = str_replace(['&', '/', '\\', '|'], ' ', $value);
+        $value = (string) preg_replace('/[\.,:;()\[\]{}]+/', ' ', $value);
+        $value = (string) preg_replace('/\s+/', ' ', $value);
 
         return trim((string) $value);
     }

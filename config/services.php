@@ -40,4 +40,15 @@ return [
         'kev_mirror_url' => env('CISA_KEV_MIRROR_URL', 'https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json'),
     ],
 
+    'owasp' => [
+        'top10_url' => env('OWASP_TOP10_URL', 'https://owasp.org/Top10/'),
+    ],
+
+    'threat_intel' => [
+        // Auto refresh on authenticated page access (useful for local Laragon without external scheduler)
+        'auto_refresh_enabled' => env('THREAT_INTEL_AUTO_REFRESH_ENABLED', true),
+        'auto_refresh_interval_minutes' => env('THREAT_INTEL_AUTO_REFRESH_INTERVAL_MINUTES', 30),
+        'auto_refresh_force' => env('THREAT_INTEL_AUTO_REFRESH_FORCE', true),
+    ],
+
 ];

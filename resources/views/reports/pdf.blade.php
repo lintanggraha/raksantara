@@ -14,12 +14,12 @@
     @endphp
     <style>
         body {
-            font-family: "Segoe UI", Arial, "DejaVu Sans", sans-serif;
+            font-family: "Inter", "Segoe UI", Arial, "DejaVu Sans", sans-serif;
             font-size: {{ $pdfDensity === 'ultra' ? '8.9px' : ($pdfDensity === 'compact' ? '9.4px' : '10px') }};
-            color: #0f172a;
+            color: #1e293b;
             margin: 0;
-            background: #f5f8fc;
-            line-height: 1.35;
+            background: #f8fafc;
+            line-height: 1.45;
         }
 
         h1 {
@@ -35,7 +35,7 @@
             right: 0;
             height: 70px;
             padding: 8px 14px;
-            border-bottom: 1px solid #d7e1ee;
+            border-bottom: 2px solid #e2e8f0;
             background: #ffffff;
             box-sizing: border-box;
         }
@@ -49,7 +49,7 @@
             float: right;
             width: 38%;
             text-align: right;
-            color: #475569;
+            color: #64748b;
             font-size: 11px;
         }
 
@@ -60,10 +60,10 @@
             right: 0;
             height: 28px;
             padding: 6px 14px;
-            border-top: 1px solid #d7e1ee;
+            border-top: 1px solid #e2e8f0;
             font-size: 10px;
-            color: #475569;
-            background: #f8fbff;
+            color: #64748b;
+            background: #f8fafc;
             box-sizing: border-box;
         }
 
@@ -72,17 +72,18 @@
         .page-number:before { content: counter(page); }
 
         .report-cover {
-            margin-bottom: 14px;
-            border: 1px solid #d8e3f1;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
             background: #ffffff;
-            padding: 10px 12px;
+            border-radius: 6px;
+            padding: 12px 14px;
         }
 
         .cover-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #123b66;
-            margin: 0 0 8px;
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 10px;
         }
 
         .meta-table {
@@ -105,31 +106,30 @@
         }
 
         .section {
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             page-break-inside: auto;
-            border: 1px solid #d8e3f1;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             background: #ffffff;
-            padding: 8px;
+            padding: 12px;
         }
 
         .section + .section {
-            margin-top: 12px;
+            margin-top: 16px;
         }
 
         .section h2 {
-            margin: 0 0 4px;
-            font-size: 13px;
-            color: #0f2f4f;
-            border-left: 4px solid #0f4c81;
-            padding-left: 8px;
-            page-break-after: avoid;
+            margin: 0 0 6px;
+            font-size: 14px;
+            color: #0f172a;
+            border-left: 4px solid #3b82f6;
+            padding-left: 10px;
         }
 
         .section-subtitle {
-            margin: 0 0 8px;
-            font-size: 9px;
-            color: #475569;
-            page-break-after: avoid;
+            margin: 0 0 10px;
+            font-size: 9.5px;
+            color: #64748b;
         }
 
         .section-keep-together {
@@ -138,8 +138,8 @@
 
         .section h3 {
             margin: 10px 0 6px;
-            font-size: 11px;
-            color: #1e3a5f;
+            font-size: 11.5px;
+            color: #1e293b;
         }
 
         .data-table {
@@ -150,8 +150,8 @@
 
         .data-table th,
         .data-table td {
-            border: 1px solid #d4deea;
-            padding: 4px 5px;
+            border: 1px solid #e2e8f0;
+            padding: 5px 6px;
             vertical-align: top;
             word-wrap: break-word;
             word-break: break-word;
@@ -161,20 +161,20 @@
         }
 
         .data-table th {
-            background: #0f4c81;
-            color: #ffffff;
-            font-size: 9px;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 9.5px;
             text-align: left;
             font-weight: 700;
         }
 
         .data-table td {
-            font-size: 8.8px;
-            color: #1f2937;
+            font-size: 9px;
+            color: #334155;
         }
 
         .data-table thead {
-            display: table-header-group;
+            display: table-row-group;
         }
 
         .data-table tfoot {
@@ -182,7 +182,8 @@
         }
 
         .data-table tr {
-            page-break-inside: avoid;
+            page-break-inside: auto;
+            break-inside: auto;
             page-break-after: auto;
         }
 
@@ -235,30 +236,32 @@
         .kpi-table {
             width: 100%;
             border-collapse: separate;
-            border-spacing: 6px;
-            margin-bottom: 8px;
+            border-spacing: 8px;
+            margin-bottom: 10px;
         }
 
         .kpi-cell {
             width: 25%;
-            padding: 7px 8px;
-            border: 1px solid #d7e1ee;
-            background: #f8fbff;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #ffffff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
         }
 
         .kpi-label {
-            font-size: 8.2px;
+            font-size: 8.5px;
             font-weight: 700;
             text-transform: uppercase;
-            color: #334155;
-            margin-bottom: 3px;
+            color: #64748b;
+            margin-bottom: 4px;
         }
 
         .kpi-value {
-            font-size: 15px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 800;
             color: #0f172a;
-            line-height: 1.1;
+            line-height: 1.2;
         }
 
         .kpi-tone-blue { background: #dbeafe; }
@@ -313,11 +316,12 @@
         }
 
         .board-bar-table thead {
-            display: table-header-group;
+            display: table-row-group;
         }
 
         .board-bar-table tr {
-            page-break-inside: avoid;
+            page-break-inside: auto;
+            break-inside: auto;
         }
 
         .board-bar-label {
@@ -364,11 +368,12 @@
         }
 
         .board-trend-table thead {
-            display: table-header-group;
+            display: table-row-group;
         }
 
         .board-trend-table tr {
-            page-break-inside: avoid;
+            page-break-inside: auto;
+            break-inside: auto;
         }
 
         .board-priority-table th,

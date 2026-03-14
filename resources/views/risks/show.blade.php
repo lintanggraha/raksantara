@@ -518,6 +518,9 @@
     <li class="nav-item">
         <a class="nav-link" href="#governance" role="tab" data-toggle="tab">Governance</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link" href="#kris" role="tab" data-toggle="tab">Key Risk Indicators</a>
+    </li>
 </ul>
 
 <div class="tab-content mt-3">
@@ -531,7 +534,7 @@
                     <div class="col-md-12"><strong>Risk Identification</strong><div>{{ $risk->risk_description ?? '-' }}</div></div>
                     <div class="col-md-4"><strong>Category</strong><div>{{ optional($risk->category)->name ?? '-' }}</div></div>
                     <div class="col-md-4"><strong>Cause Category</strong><div>{{ optional($risk->causeCategory)->name ?? '-' }}</div></div>
-                    <div class="col-md-4"><strong>Owner</strong><div>{{ $risk->risk_owner }}</div></div>
+                    <div class="col-md-4"><strong>Owner</strong><div>{{ \App\Support\RiskOwnerAccess::displayLabel($risk->risk_owner) }}</div></div>
                     <div class="col-md-6"><strong>Cause</strong><div>{{ $risk->cause ?? '-' }}</div></div>
                     <div class="col-md-6"><strong>Existing Control</strong><div>{{ $risk->existing_control ?? '-' }}</div></div>
                     <div class="col-md-4"><strong>Status</strong><div>{{ $risk->status }}</div></div>
@@ -559,6 +562,9 @@
                         <div class="col-md-6"><strong>Impact Score</strong><div>{{ $risk->inherentAnalysis->impact_score ?? '-' }}</div></div>
                         <div class="col-md-6"><strong>Inherent Risk Score</strong><div>{{ $risk->inherentAnalysis->inherent_risk_score ?? '-' }}</div></div>
                         <div class="col-md-6"><strong>Risk Level</strong><div>{{ $risk->inherentAnalysis->risk_level ?? '-' }}</div></div>
+                        <div class="col-md-6"><strong>Inherent Impact (Rp)</strong><div>{{ is_null($risk->inherentAnalysis->impact_amount) ? '-' : number_format((float) $risk->inherentAnalysis->impact_amount, 0, ',', '.') }}</div></div>
+                        <div class="col-md-6"><strong>Inherent Probability (%)</strong><div>{{ is_null($risk->inherentAnalysis->probability_percent) ? '-' : number_format(((float) $risk->inherentAnalysis->probability_percent) * 100, 2, '.', '') . '%' }}</div></div>
+                        <div class="col-md-6"><strong>Inherent Potential Loss (Rp)</strong><div>{{ is_null($risk->inherentAnalysis->potential_loss) ? '-' : number_format((float) $risk->inherentAnalysis->potential_loss, 0, ',', '.') }}</div></div>
                     </div>
                 @else
                     <div class="text-muted">No inherent analysis data.</div>
@@ -581,6 +587,8 @@
                                 <div class="col-md-2"><strong>PIC</strong><div>{{ $treatment->pic }}</div></div>
                                 <div class="col-md-2"><strong>Deadline</strong><div>{{ $treatment->deadline ? \Carbon\Carbon::parse($treatment->deadline)->format('d-m-Y') : '-' }}</div></div>
                                 <div class="col-md-2"><strong>Effectiveness</strong><div>{{ $treatment->effectiveness }}</div></div>
+                                <div class="col-md-2"><strong>Effectiveness Score</strong><div>{{ $treatment->effectiveness_score ?? '-' }}</div></div>
+                                <div class="col-md-2"><strong>Status</strong><div>{{ $treatment->status ?? '-' }}</div></div>
                             </div>
                             <hr>
                             <div class="d-flex justify-content-between align-items-center">
@@ -639,8 +647,12 @@
                         <div class="col-md-6"><strong>Risk Level</strong><div>{{ $risk->residualAnalysis->risk_level ?? '-' }}</div></div>
                         <div class="col-md-6"><strong>Risk Adjustment</strong><div>{{ $risk->residualAnalysis->risk_adjustment ?? '-' }}</div></div>
                         <div class="col-md-6"><strong>Overall Adjustment</strong><div>{{ $risk->residualAnalysis->adjustment ?? '-' }}</div></div>
+                        <div class="col-md-6"><strong>Level Adjustment</strong><div>{{ $risk->residualAnalysis->risk_level_adjustment ?? '-' }}</div></div>
                         <div class="col-md-6"><strong>Radar Description</strong><div>{{ optional($risk->residualAnalysis->radarGroup)->description ?? $risk->residualAnalysis->radar_description ?? '-' }}</div></div>
                         <div class="col-md-6"><strong>Radar Code</strong><div>{{ optional($risk->residualAnalysis->radarGroup)->code ?? $risk->residualAnalysis->radar_code ?? '-' }}</div></div>
+                        <div class="col-md-6"><strong>Residual Impact (Rp)</strong><div>{{ is_null($risk->residualAnalysis->impact_amount) ? '-' : number_format((float) $risk->residualAnalysis->impact_amount, 0, ',', '.') }}</div></div>
+                        <div class="col-md-6"><strong>Residual Probability (%)</strong><div>{{ is_null($risk->residualAnalysis->probability_percent) ? '-' : number_format(((float) $risk->residualAnalysis->probability_percent) * 100, 2, '.', '') . '%' }}</div></div>
+                        <div class="col-md-6"><strong>Residual Potential Loss (Rp)</strong><div>{{ is_null($risk->residualAnalysis->potential_loss) ? '-' : number_format((float) $risk->residualAnalysis->potential_loss, 0, ',', '.') }}</div></div>
                     </div>
                 @else
                     <div class="text-muted">No residual analysis data.</div>
@@ -938,6 +950,10 @@
                 </table>
             </div>
         </div>
+    </div>
+
+    <div role="tabpanel" class="tab-pane" id="kris">
+        @include('kris._list')
     </div>
 </div>
 @stop

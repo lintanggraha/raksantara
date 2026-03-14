@@ -96,12 +96,12 @@ class ArraySheetExport implements FromArray, WithHeadings, WithColumnWidths, Wit
                     ],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['argb' => 'FF1F4E78'],
+                        'startColor' => ['argb' => 'FF0F172A'],
                     ],
                     'borders' => [
                         'bottom' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['argb' => 'FF000000'],
+                            'borderStyle' => Border::BORDER_MEDIUM,
+                            'color' => ['argb' => 'FFCBD5E1'],
                         ],
                     ],
                 ];
@@ -109,7 +109,9 @@ class ArraySheetExport implements FromArray, WithHeadings, WithColumnWidths, Wit
                 $sheet->freezePane('A2');
                 $sheet->getStyle($headerRange)->applyFromArray($headerStyle);
                 $sheet->setAutoFilter($headerRange);
-                $sheet->getDefaultRowDimension()->setRowHeight(-1);
+                
+                $sheet->getDefaultRowDimension()->setRowHeight(20);
+                $sheet->getRowDimension(1)->setRowHeight(24);
 
                 $sheet->getStyle($dataRange)
                     ->getAlignment()

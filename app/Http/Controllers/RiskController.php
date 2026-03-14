@@ -1061,9 +1061,30 @@ class RiskController extends Controller
             'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
             'risk_tab' => ['nullable', Rule::in(['register', 'heatmap', 'recap'])],
             'year' => 'nullable|integer|min:2000|max:2100',
+            'risk_owner' => 'nullable|string|max:255',
         ]);
 
         $risks = $this->buildIndexQuery($request)->get();
+        $ownerFilterOptions = $risks
+            ->map(function ($risk) {
+                return RiskOwnerAccess::displayLabel($risk->risk_owner);
+            })
+            ->filter(function ($owner) {
+                return $owner !== '-';
+            })
+            ->unique()
+            ->sort(function ($left, $right) {
+                return strnatcasecmp((string) $left, (string) $right);
+            })
+            ->values();
+
+        $selectedOwnerFilter = trim((string) $request->input('risk_owner', ''));
+        if ($selectedOwnerFilter !== '') {
+            $risks = $risks->filter(function ($risk) use ($selectedOwnerFilter) {
+                return RiskOwnerAccess::displayLabel($risk->risk_owner) === $selectedOwnerFilter;
+            })->values();
+        }
+
         $activeRiskTab = (string) ($request->input('risk_tab') ?: 'register');
         $selectedYear = $request->input('year');
         $heatmapData = $this->buildHeatmapViewDataFromRisks($risks);
@@ -1077,7 +1098,9 @@ class RiskController extends Controller
                 'risks',
                 'categories',
                 'causeCategories',
-                'activeRiskTab'
+                'activeRiskTab',
+                'ownerFilterOptions',
+                'selectedOwnerFilter'
             ),
             $heatmapData,
             $recapData
@@ -1150,6 +1173,7 @@ class RiskController extends Controller
                 'id',
                 'risk_id',
                 'risk_title',
+                'sasaran_target',
                 'risk_description',
                 'cause',
                 'existing_control',
@@ -1248,6 +1272,7 @@ class RiskController extends Controller
                     'existing_control' => $validated['existing_control'] ?? null,
                     'risk_owner' => $validated['risk_owner'],
                     'created_by' => auth()->id(),
+                    'sasaran_target' => $validated['sasaran_target'] ?? null,
                     'risk_description' => $validated['risk_description'] ?? null,
                     'status' => 'Open',
                 ]);
@@ -1598,6 +1623,7 @@ class RiskController extends Controller
 
                 $risk->update([
                     'risk_title' => $validated['risk_title'],
+                    'sasaran_target' => $validated['sasaran_target'] ?? null,
                     'risk_description' => $validated['risk_description'] ?? null,
                     'risk_category_id' => $validated['risk_category_id'],
                     'risk_cause_category_id' => $validated['risk_cause_category_id'] ?? null,
@@ -1895,6 +1921,7 @@ class RiskController extends Controller
 
         $rules = [
             'risk_title' => ['required', 'string', 'max:255', $textRule255],
+            'sasaran_target' => ['nullable', 'string', 'max:5000', $textRule5000],
             'risk_description' => ['nullable', 'string', 'max:5000', $textRule5000],
             'risk_category_id' => 'required|integer|exists:risk_categories,id',
             'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
@@ -1946,6 +1973,7 @@ class RiskController extends Controller
     {
         return [
             'risk_title.regex' => InputValidation::safeTextMessage(),
+            'sasaran_target.regex' => InputValidation::safeTextMessage(),
             'risk_description.regex' => InputValidation::safeTextMessage(),
             'cause.regex' => InputValidation::safeTextMessage(),
             'existing_control.regex' => InputValidation::safeTextMessage(),
@@ -1970,6 +1998,7 @@ class RiskController extends Controller
     {
         return [
             'risk_title' => 'Process',
+            'sasaran_target' => 'Sasaran Target',
             'risk_description' => 'Risk Identification',
             'cause' => 'Cause',
             'existing_control' => 'Existing Control',
@@ -2147,6 +2176,17 @@ class RiskController extends Controller
             'residualAnalysis.radarGroup',
             'treatments',
             'creator',
+        ])->withCount([
+            'kris',
+            'kris as kris_green_count' => function ($kriQuery) {
+                $kriQuery->where('status', 'Green');
+            },
+            'kris as kris_amber_count' => function ($kriQuery) {
+                $kriQuery->where('status', 'Amber');
+            },
+            'kris as kris_red_count' => function ($kriQuery) {
+                $kriQuery->where('status', 'Red');
+            },
         ]);
 
         if ($request->risk_category_id) {
@@ -3249,3 +3289,4 @@ class RiskController extends Controller
         return $user->allowedRiskOwners($includeCurrent);
     }
 }
+

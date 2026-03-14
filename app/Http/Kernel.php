@@ -68,5 +68,6 @@ class Kernel extends HttpKernel
         'approved.user' => \App\Http\Middleware\EnsureApprovedUser::class,
         'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
         'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
+        'threat-intel.autorefresh' => \App\Http\Middleware\AutoRefreshThreatIntel::class,
     ];
 }

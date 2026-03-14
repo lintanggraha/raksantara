@@ -200,6 +200,15 @@
 
                         <div class="col-md-6">
                             <div class="form-group">
+                                <label>Sasaran Target</label>
+                                <textarea name="sasaran_target" class="form-control" rows="2">{{ old('sasaran_target', $risk->sasaran_target) }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
                                 <label>Risk Identification</label>
                                 <textarea name="risk_description" class="form-control" rows="2">{{ old('risk_description', $risk->risk_description) }}</textarea>
                             </div>

@@ -20,6 +20,7 @@ class Risk extends Model
     'existing_control',
     'risk_owner',
     'created_by',
+    'sasaran_target',
     'risk_description',
     'probability_notes',
     'probability_score',
@@ -161,6 +162,11 @@ class Risk extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function kris()
+    {
+        return $this->hasMany(Kri::class);
     }
 
 }

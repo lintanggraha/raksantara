@@ -77,7 +77,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function () {
+Route::middleware(['auth', 'password.changed', 'approved.user', 'threat-intel.autorefresh'])->group(function () {
     Route::get('/dashboard-preferences', [DashboardPreferenceController::class, 'show'])
         ->name('dashboard-preferences.show');
     Route::put('/dashboard-preferences', [DashboardPreferenceController::class, 'update'])
@@ -204,6 +204,17 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::post('/risks/import', [RiskImportController::class, 'store'])
         ->middleware('compliance.division')
         ->name('risks.import.store');
+
+    // KRI Routes
+    Route::get('/kris', [\App\Http\Controllers\KriController::class, 'index'])->name('kris.index');
+    Route::post('/risks/{risk}/kris', [\App\Http\Controllers\KriController::class, 'store'])->whereNumber('risk')->name('kris.store');
+    Route::put('/kris/{kri}', [\App\Http\Controllers\KriController::class, 'update'])->whereNumber('kri')->name('kris.update');
+    Route::delete('/kris/{kri}', [\App\Http\Controllers\KriController::class, 'destroy'])->whereNumber('kri')->name('kris.destroy');
+    Route::post('/kris/{kri}/log', [\App\Http\Controllers\KriController::class, 'logValue'])->whereNumber('kri')->name('kris.logValue');
+
+    // Action Plan Kanban Routes
+    Route::get('/mitigation-kanban', [\App\Http\Controllers\RiskTreatmentKanbanController::class, 'index'])->name('treatments.kanban');
+    Route::patch('/mitigation-kanban/{treatment}/status', [\App\Http\Controllers\RiskTreatmentKanbanController::class, 'updateStatus'])->name('treatments.update-status');
 
     Route::resource('risks', RiskController::class);
 });

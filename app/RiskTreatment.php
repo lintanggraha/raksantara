@@ -14,6 +14,7 @@ class RiskTreatment extends Model
     'option',
     'description',
     'pic',
+    'status',
     'deadline',
     'effectiveness',
     'effectiveness_score'

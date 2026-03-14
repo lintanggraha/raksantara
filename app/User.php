@@ -188,7 +188,9 @@ class User extends Authenticatable
         }
 
         $value = strtoupper(trim((string) $value));
-        $value = preg_replace('/\s+/', ' ', $value);
+        $value = str_replace(['&', '/', '\\', '|'], ' ', $value);
+        $value = (string) preg_replace('/[\.,:;()\[\]{}]+/', ' ', $value);
+        $value = (string) preg_replace('/\s+/', ' ', $value);
 
         return trim((string) $value);
     }

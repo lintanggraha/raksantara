@@ -384,11 +384,13 @@
                                 <a class="nav-link nav-link-main" href="{{ route('threat-intelligence.index') }}">Threat Intel</a>
                             </li>
                         @elseif(auth()->user()->isDivisionVerified())
-                            <li
+                                <li
                                 class="nav-item dropdown {{
                                     (request()->routeIs('risks.monitoring')
                                     || (request()->routeIs('risks.*') && !request()->routeIs('risks.dashboard-summary'))
                                     || request()->routeIs('trends.analysis')
+                                    || request()->routeIs('kris.*')
+                                    || request()->routeIs('treatments.kanban')
                                     || request()->routeIs('incidents.*')) ? 'active' : ''
                                 }}"
                                 data-risk-nav
@@ -413,6 +415,12 @@
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('trends.analysis') ? 'active' : '' }}" href="{{ route('trends.analysis') }}">
                                         Risk Trend Analysis
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('kris.*') ? 'active' : '' }}" href="{{ route('kris.index') }}">
+                                        Key Risk Indicators 
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('treatments.kanban') ? 'active' : '' }}" href="{{ route('treatments.kanban') }}">
+                                        Mitigation Kanban
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('incidents.*') ? 'active' : '' }}" href="{{ route('incidents.index') }}">
                                         Incident Management
@@ -520,6 +528,16 @@
     document.querySelectorAll('[data-bs-target]').forEach(function (el) {
         if (!el.hasAttribute('data-target')) {
             el.setAttribute('data-target', el.getAttribute('data-bs-target'));
+        }
+    });
+    document.querySelectorAll('[data-dismiss]').forEach(function (el) {
+        if (!el.hasAttribute('data-bs-dismiss')) {
+            el.setAttribute('data-bs-dismiss', el.getAttribute('data-dismiss'));
+        }
+    });
+    document.querySelectorAll('[data-bs-dismiss]').forEach(function (el) {
+        if (!el.hasAttribute('data-dismiss')) {
+            el.setAttribute('data-dismiss', el.getAttribute('data-bs-dismiss'));
         }
     });
 

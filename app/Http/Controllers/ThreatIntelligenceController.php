@@ -19,6 +19,7 @@ class ThreatIntelligenceController extends Controller
         $filters = $request->validate([
             'keyword' => 'nullable|string|max:100',
             'severity' => 'nullable|string|in:critical,high,medium,low,CRITICAL,HIGH,MEDIUM,LOW',
+            'owasp' => 'nullable|string|in:A01,A02,A03,A04,A05,A06,A07,A08,A09,A10',
             'days' => 'nullable|integer|in:7,30,90',
             'limit' => 'nullable|integer|in:10,12,20,50',
         ]);

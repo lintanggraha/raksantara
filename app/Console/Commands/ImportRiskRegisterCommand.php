@@ -10,6 +10,8 @@ use App\RiskInherentAnalysis;
 use App\RiskResidualAnalysis;
 use App\RiskScoreMatrix;
 use App\RiskTreatment;
+use App\Services\KriAutoSyncService;
+use App\User;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -27,11 +29,12 @@ class ImportRiskRegisterCommand extends Command
         {--year= : Override year import}
         {--sheet=* : Import hanya sheet tertentu (boleh diulang)}
         {--truncate : Hapus data risk sebelum import}
-        {--dry-run : Simulasi tanpa insert ke database}';
+        {--dry-run : Simulasi tanpa insert ke database}
+        {--actor-id= : User ID untuk pencatatan auto KRI}';
 
     protected $description = 'Import risk register dari file Excel RM-02';
 
-    private const DEFAULT_SHEETS = ['M', 'BT', 'DI', 'QA', 'CR', 'PM', 'OM', 'IF', 'CS', 'RI', 'BS', 'HC', 'CO'];
+    private const DEFAULT_SHEETS = ['BT', 'DI', 'CR', 'OM', 'CS', 'BS', 'HC', 'SUM'];
     private const ALLOWED_EXTENSIONS = ['xls', 'xlsx'];
 
     private array $riskCategoryMap = [];
@@ -63,6 +66,7 @@ class ImportRiskRegisterCommand extends Command
         ini_set('memory_limit', '1024M');
 
         $availableSheets = $this->listWorksheetNames($file);
+        $visibleSheets = $this->listVisibleWorksheetNames($file);
         $requestedSheets = $this->option('sheet');
         $sheetNames = !empty($requestedSheets) ? array_values($requestedSheets) : self::DEFAULT_SHEETS;
         $sheetNames = array_values(array_unique($sheetNames));
@@ -71,6 +75,12 @@ class ImportRiskRegisterCommand extends Command
         if (!empty($missingSheets)) {
             $this->warn('Sheet tidak ditemukan dan akan di-skip: ' . implode(', ', $missingSheets));
             $sheetNames = array_values(array_diff($sheetNames, $missingSheets));
+        }
+
+        $hiddenSheets = array_values(array_diff($sheetNames, $visibleSheets));
+        if (!empty($hiddenSheets)) {
+            $this->warn('Sheet hidden dan akan di-skip: ' . implode(', ', $hiddenSheets));
+            $sheetNames = array_values(array_diff($sheetNames, $hiddenSheets));
         }
 
         if (empty($sheetNames)) {
@@ -87,6 +97,7 @@ class ImportRiskRegisterCommand extends Command
 
         $dryRun = (bool) $this->option('dry-run');
         $truncate = (bool) $this->option('truncate');
+        $actorId = $this->parseActorId($this->option('actor-id'));
 
         $this->prepareLookupMaps();
         $this->prepareWorkbookScoreLookupMaps($file);
@@ -99,6 +110,14 @@ class ImportRiskRegisterCommand extends Command
             'rows_skipped_missing_title' => 0,
             'rows_skipped_missing_row_no' => 0,
             'treatments_imported' => 0,
+            'imported_risk_ids' => [],
+            'kri_auto' => [
+                'processed' => 0,
+                'created' => 0,
+                'updated' => 0,
+                'logged' => 0,
+                'skipped' => 0,
+            ],
         ];
 
         $runner = function () use ($file, $sheetNames, $importYear, &$summary): void {
@@ -111,6 +130,10 @@ class ImportRiskRegisterCommand extends Command
                 $summary['rows_skipped_missing_title'] += $stats['rows_skipped_missing_title'];
                 $summary['rows_skipped_missing_row_no'] += $stats['rows_skipped_missing_row_no'];
                 $summary['treatments_imported'] += $stats['treatments_imported'];
+                $summary['imported_risk_ids'] = array_merge(
+                    $summary['imported_risk_ids'],
+                    $stats['risk_ids'] ?? []
+                );
 
                 $this->line(sprintf(
                     '[%s] seen=%d imported=%d skipped=%d',
@@ -129,9 +152,25 @@ class ImportRiskRegisterCommand extends Command
                 $runner();
                 DB::rollBack();
             } else {
-                DB::transaction(function () use ($truncate, $runner): void {
+                DB::transaction(function () use ($truncate, $runner, &$summary, $actorId): void {
                     $this->truncateDataIfNeeded($truncate);
                     $runner();
+
+                    $importedRiskIds = collect($summary['imported_risk_ids'])
+                        ->map(function ($id) {
+                            return (int) $id;
+                        })
+                        ->filter(function (int $id) {
+                            return $id > 0;
+                        })
+                        ->unique()
+                        ->values()
+                        ->all();
+
+                    if (!empty($importedRiskIds)) {
+                        $summary['kri_auto'] = app(KriAutoSyncService::class)
+                            ->syncByRiskIds($importedRiskIds, $actorId);
+                    }
                 });
             }
         } catch (\Throwable $e) {
@@ -149,6 +188,15 @@ class ImportRiskRegisterCommand extends Command
         $this->line('Rows skipped (missing title): ' . $summary['rows_skipped_missing_title']);
         $this->line('Rows skipped (missing row no): ' . $summary['rows_skipped_missing_row_no']);
         $this->line('Treatments imported: ' . $summary['treatments_imported']);
+        if ($dryRun) {
+            $this->line('Auto KRI sync: skipped (dry-run).');
+        } else {
+            $this->line('Auto KRI processed: ' . $summary['kri_auto']['processed']);
+            $this->line('Auto KRI created: ' . $summary['kri_auto']['created']);
+            $this->line('Auto KRI updated: ' . $summary['kri_auto']['updated']);
+            $this->line('Auto KRI logs added: ' . $summary['kri_auto']['logged']);
+            $this->line('Auto KRI skipped: ' . $summary['kri_auto']['skipped']);
+        }
 
         if ($dryRun) {
             $this->warn('Dry-run mode aktif: tidak ada data yang disimpan.');
@@ -174,6 +222,7 @@ class ImportRiskRegisterCommand extends Command
             'rows_skipped_missing_title' => 0,
             'rows_skipped_missing_row_no' => 0,
             'treatments_imported' => 0,
+            'risk_ids' => [],
         ];
 
         $started = false;
@@ -205,6 +254,7 @@ class ImportRiskRegisterCommand extends Command
             $stats['rows_seen']++;
 
             $processName = $this->cleanString($this->cell($worksheet, 'C' . $row));
+            $sasaranTarget = $this->cleanString($this->cell($worksheet, 'D' . $row));
             $riskIdentification = $this->firstNonEmpty([
                 $this->cleanString($this->cell($worksheet, 'E' . $row)),
                 $this->cleanString($this->cell($worksheet, 'AT' . $row)),
@@ -283,6 +333,7 @@ class ImportRiskRegisterCommand extends Command
                 'risk_id' => $riskId,
             ], [
                 'risk_title' => $riskTitle,
+                'sasaran_target' => $sasaranTarget,
                 'risk_description' => $riskDescription,
                 'risk_category_id' => $riskCategoryId,
                 'risk_cause_category_id' => $riskCauseCategoryId,
@@ -419,6 +470,7 @@ class ImportRiskRegisterCommand extends Command
             }
 
             $stats['rows_imported']++;
+            $stats['risk_ids'][] = (int) $risk->id;
         }
 
         $stats['rows_skipped'] += ($stats['rows_seen'] - $stats['rows_imported']);
@@ -435,6 +487,56 @@ class ImportRiskRegisterCommand extends Command
         return array_map(static function (array $item): string {
             return (string) $item['worksheetName'];
         }, $infos);
+    }
+
+    private function listVisibleWorksheetNames(string $file): array
+    {
+        $extension = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
+        if ($extension !== 'xlsx') {
+            return $this->listWorksheetNames($file);
+        }
+
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($file) !== true) {
+                return $this->listWorksheetNames($file);
+            }
+
+            $workbookXml = $zip->getFromName('xl/workbook.xml');
+            $zip->close();
+
+            if ($workbookXml === false) {
+                return $this->listWorksheetNames($file);
+            }
+
+            $workbook = simplexml_load_string($workbookXml);
+            if ($workbook === false) {
+                return $this->listWorksheetNames($file);
+            }
+
+            $workbook->registerXPathNamespace('x', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+
+            $visibleSheets = [];
+            foreach ($workbook->xpath('//x:sheets/x:sheet') as $sheet) {
+                $state = strtolower(trim((string) $sheet['state']));
+                if ($state !== '' && $state !== 'visible') {
+                    continue;
+                }
+
+                $sheetName = (string) $sheet['name'];
+                if ($sheetName !== '') {
+                    $visibleSheets[] = $sheetName;
+                }
+            }
+
+            if (!empty($visibleSheets)) {
+                return array_values(array_unique($visibleSheets));
+            }
+        } catch (\Throwable $e) {
+            $this->warn('Gagal membaca metadata visibility sheet, fallback ke daftar sheet standar.');
+        }
+
+        return $this->listWorksheetNames($file);
     }
 
     private function loadWorksheet(string $file, string $sheetName, int $maxRow, int $maxColumnIndex): Worksheet
@@ -965,6 +1067,24 @@ class ImportRiskRegisterCommand extends Command
         }
 
         return 0.00;
+    }
+
+    private function parseActorId($value): ?int
+    {
+        if (is_null($value) || $value === '') {
+            return null;
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $actorId = (int) $value;
+        if ($actorId <= 0) {
+            return null;
+        }
+
+        return User::query()->whereKey($actorId)->exists() ? $actorId : null;
     }
 
     private function parseDateOrFallback($value): string

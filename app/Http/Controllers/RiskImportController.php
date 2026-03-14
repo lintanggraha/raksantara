@@ -37,6 +37,10 @@ class RiskImportController extends Controller
                 'file' => $absolutePath,
             ];
 
+            if ((int) $user->id > 0) {
+                $commandParams['--actor-id'] = (string) $user->id;
+            }
+
             if (!empty($validated['year'])) {
                 $commandParams['--year'] = (string) $validated['year'];
             }
