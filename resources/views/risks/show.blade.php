@@ -16,6 +16,9 @@
 <div class="d-flex justify-content-between align-items-center">
     <h1>Risk Details - {{ $risk->risk_id }}</h1>
     <div class="d-flex gap-2">
+        <a href="{{ route('risks.rcsa.show', $risk->id) }}" class="btn btn-info btn-sm with-icon">
+            <i class="fas fa-clipboard-check"></i> RCSA Workspace
+        </a>
         @if($canManage)
             <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-warning btn-sm with-icon">
                 <i class="fas fa-edit"></i> Edit
@@ -513,6 +516,9 @@
         <a class="nav-link" href="#treatment" role="tab" data-toggle="tab">Treatment</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link" href="#rcsa" role="tab" data-toggle="tab">RCSA</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link" href="#residual" role="tab" data-toggle="tab">Residual</a>
     </li>
     <li class="nav-item">
@@ -587,8 +593,12 @@
                                 <div class="col-md-2"><strong>PIC</strong><div>{{ $treatment->pic }}</div></div>
                                 <div class="col-md-2"><strong>Deadline</strong><div>{{ $treatment->deadline ? \Carbon\Carbon::parse($treatment->deadline)->format('d-m-Y') : '-' }}</div></div>
                                 <div class="col-md-2"><strong>Effectiveness</strong><div>{{ $treatment->effectiveness }}</div></div>
+                                <div class="col-md-3"><strong>Playbook</strong><div>{{ optional($treatment->template)->name ?? '-' }}</div></div>
                                 <div class="col-md-2"><strong>Effectiveness Score</strong><div>{{ $treatment->effectiveness_score ?? '-' }}</div></div>
                                 <div class="col-md-2"><strong>Status</strong><div>{{ $treatment->status ?? '-' }}</div></div>
+                                <div class="col-md-3"><strong>Next Action</strong><div>{{ optional($treatment->next_action_at)->format('d-m-Y') ?? '-' }}</div></div>
+                                <div class="col-md-5"><strong>Blocked Reason</strong><div>{{ $treatment->blocked_reason ?: '-' }}</div></div>
+                                <div class="col-md-12"><strong>Checklist</strong><div>{!! nl2br(e($treatment->playbook_checklist ?: '-')) !!}</div></div>
                             </div>
                             <hr>
                             <div class="d-flex justify-content-between align-items-center">
@@ -629,6 +639,49 @@
                             </div>
                         </div>
                     @endforeach
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div role="tabpanel" class="tab-pane" id="rcsa">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div>
+                        <div class="fw-bold">RCSA Workspace</div>
+                        <div class="text-muted small">
+                            @if($risk->rcsaWorkspace)
+                                Last updated {{ optional($risk->rcsaWorkspace->updated_at)->format('d-m-Y H:i') ?? '-' }}
+                                @if($risk->rcsaWorkspace->updater)
+                                    by {{ $risk->rcsaWorkspace->updater->name }}
+                                @endif
+                            @else
+                                No RCSA assessment captured yet.
+                            @endif
+                        </div>
+                    </div>
+                    <a href="{{ route('risks.rcsa.show', $risk->id) }}" class="btn btn-sm btn-outline-primary">Open Full Workspace</a>
+                </div>
+
+                @if($risk->rcsaWorkspace)
+                    <div class="row g-3">
+                        <div class="col-md-4"><strong>Process Owner</strong><div>{{ $risk->rcsaWorkspace->process_owner ?: '-' }}</div></div>
+                        <div class="col-md-4"><strong>Review Frequency</strong><div>{{ $risk->rcsaWorkspace->review_frequency ?: '-' }}</div></div>
+                        <div class="col-md-4"><strong>Next Review</strong><div>{{ optional($risk->rcsaWorkspace->next_review_at)->format('d-m-Y') ?? '-' }}</div></div>
+                        <div class="col-md-6"><strong>Objective</strong><div>{!! nl2br(e($risk->rcsaWorkspace->objective ?: '-')) !!}</div></div>
+                        <div class="col-md-6"><strong>Scope</strong><div>{!! nl2br(e($risk->rcsaWorkspace->scope ?: '-')) !!}</div></div>
+                        <div class="col-md-6"><strong>Key Controls</strong><div>{!! nl2br(e($risk->rcsaWorkspace->key_controls ?: '-')) !!}</div></div>
+                        <div class="col-md-6"><strong>Control Gaps</strong><div>{!! nl2br(e($risk->rcsaWorkspace->control_gaps ?: '-')) !!}</div></div>
+                        <div class="col-md-6"><strong>Likelihood Rationale</strong><div>{!! nl2br(e($risk->rcsaWorkspace->likelihood_rationale ?: '-')) !!}</div></div>
+                        <div class="col-md-6"><strong>Impact Rationale</strong><div>{!! nl2br(e($risk->rcsaWorkspace->impact_rationale ?: '-')) !!}</div></div>
+                        <div class="col-md-4"><strong>Sign-Off Name</strong><div>{{ $risk->rcsaWorkspace->sign_off_name ?: '-' }}</div></div>
+                        <div class="col-md-4"><strong>Sign-Off Role</strong><div>{{ $risk->rcsaWorkspace->sign_off_role ?: '-' }}</div></div>
+                        <div class="col-md-4"><strong>Signed-Off Date</strong><div>{{ optional($risk->rcsaWorkspace->signed_off_at)->format('d-m-Y') ?? '-' }}</div></div>
+                        <div class="col-md-12"><strong>Notes</strong><div>{!! nl2br(e($risk->rcsaWorkspace->notes ?: '-')) !!}</div></div>
+                    </div>
+                @else
+                    <div class="text-muted">No RCSA workspace data available.</div>
                 @endif
             </div>
         </div>

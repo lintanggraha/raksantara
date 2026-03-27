@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Risk;
 use App\RiskComment;
 use App\Support\AuditLogger;
+use App\Support\RiskAccess;
 use App\Support\InputValidation;
 use App\User;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ class RiskCommentController extends Controller
 {
     public function store(Request $request, Risk $risk)
     {
-        $this->ensureCanComment();
+        $this->ensureCanCommentOnRisk($risk);
         $validated = $this->validateCommentRequest($request, true);
 
         DB::transaction(function () use ($validated, $risk, $request): void {
@@ -203,11 +204,11 @@ class RiskCommentController extends Controller
         abort_unless((int) $comment->risk_id === (int) $risk->id, 404);
     }
 
-    private function ensureCanComment(): void
+    private function ensureCanCommentOnRisk(Risk $risk): void
     {
         $user = auth()->user();
         abort_unless(
-            !is_null($user) && !$user->isSuperadmin(),
+            !is_null($user) && !$user->isSuperadmin() && RiskAccess::canView($user, $risk),
             403,
             'You are not allowed to comment on this risk.'
         );
@@ -216,8 +217,14 @@ class RiskCommentController extends Controller
     private function ensureCanModifyComment(RiskComment $comment): void
     {
         $user = auth()->user();
+        $comment->loadMissing('risk');
+
         abort_unless(
-            !is_null($user) && !$user->isSuperadmin() && (int) $comment->user_id === (int) $user->id,
+            !is_null($user)
+                && !$user->isSuperadmin()
+                && !is_null($comment->risk)
+                && RiskAccess::canView($user, $comment->risk)
+                && (int) $comment->user_id === (int) $user->id,
             403,
             'You are not allowed to modify this comment.'
         );

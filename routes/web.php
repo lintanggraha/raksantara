@@ -22,6 +22,9 @@ use App\Http\Controllers\AuditDashboardController;
 use App\Http\Controllers\OjkMitigationController;
 use App\Http\Controllers\IncidentManagementController;
 use App\Http\Controllers\ThreatIntelligenceController;
+use App\Http\Controllers\OwnerWorkloadController;
+use App\Http\Controllers\RiskTreatmentTemplateController;
+use App\Http\Controllers\RiskRcsaWorkspaceController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -215,6 +218,21 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'threat-intel.au
     // Action Plan Kanban Routes
     Route::get('/mitigation-kanban', [\App\Http\Controllers\RiskTreatmentKanbanController::class, 'index'])->name('treatments.kanban');
     Route::patch('/mitigation-kanban/{treatment}/status', [\App\Http\Controllers\RiskTreatmentKanbanController::class, 'updateStatus'])->name('treatments.update-status');
+    Route::get('/owner-workload', [OwnerWorkloadController::class, 'index'])->name('owners.workload');
+    Route::get('/mitigation-playbooks', [RiskTreatmentTemplateController::class, 'index'])->name('treatment-templates.index');
+    Route::post('/mitigation-playbooks', [RiskTreatmentTemplateController::class, 'store'])->name('treatment-templates.store');
+    Route::put('/mitigation-playbooks/{template}', [RiskTreatmentTemplateController::class, 'update'])
+        ->whereNumber('template')
+        ->name('treatment-templates.update');
+    Route::delete('/mitigation-playbooks/{template}', [RiskTreatmentTemplateController::class, 'destroy'])
+        ->whereNumber('template')
+        ->name('treatment-templates.destroy');
+    Route::get('/risks/{risk}/rcsa', [RiskRcsaWorkspaceController::class, 'show'])
+        ->whereNumber('risk')
+        ->name('risks.rcsa.show');
+    Route::put('/risks/{risk}/rcsa', [RiskRcsaWorkspaceController::class, 'update'])
+        ->whereNumber('risk')
+        ->name('risks.rcsa.update');
 
     Route::resource('risks', RiskController::class);
 });

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Risk;
 use App\Support\RiskAnalyticsCacheVersion;
+use App\Support\RiskAccess;
 use App\Support\RiskOwnerAccess;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -73,13 +75,14 @@ class TrendAnalysisController extends Controller
 
     private function getCachedTrendPayload(string $granularity, int $daysBack): array
     {
-        $userId = (int) (optional(auth()->user())->id ?? 0);
+        $actor = auth()->user();
+        $scopeKey = RiskAccess::scopeCacheKey($actor instanceof User ? $actor : null);
         $cacheKey = implode(':', [
             'risk',
             'trend_analysis',
             'v2',
             'cv' . RiskAnalyticsCacheVersion::current(),
-            'u' . $userId,
+            'scope_' . $scopeKey,
             'g' . $granularity,
             'd' . $daysBack,
         ]);
@@ -108,7 +111,7 @@ class TrendAnalysisController extends Controller
     {
         $startDate = now()->subDays($daysBack)->startOfDay();
 
-        return Risk::query()
+        $query = Risk::query()
             ->select([
                 'id',
                 'risk_category_id',
@@ -122,8 +125,10 @@ class TrendAnalysisController extends Controller
                 'residualAnalysis:id,risk_id,residual_risk_score,probability_score,impact_score',
             ])
             ->where('created_at', '>=', $startDate)
-            ->orderBy('created_at')
-            ->get();
+            ->orderBy('created_at');
+        RiskAccess::applyVisibilityScope($query, auth()->user());
+
+        return $query->get();
     }
 
     /**

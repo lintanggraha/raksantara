@@ -391,6 +391,8 @@
                                     || request()->routeIs('trends.analysis')
                                     || request()->routeIs('kris.*')
                                     || request()->routeIs('treatments.kanban')
+                                    || request()->routeIs('owners.workload')
+                                    || request()->routeIs('treatment-templates.*')
                                     || request()->routeIs('incidents.*')) ? 'active' : ''
                                 }}"
                                 data-risk-nav
@@ -421,6 +423,12 @@
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('treatments.kanban') ? 'active' : '' }}" href="{{ route('treatments.kanban') }}">
                                         Mitigation Kanban
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('owners.workload') ? 'active' : '' }}" href="{{ route('owners.workload') }}">
+                                        Owner Workload
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('treatment-templates.*') ? 'active' : '' }}" href="{{ route('treatment-templates.index') }}">
+                                        Mitigation Playbooks
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('incidents.*') ? 'active' : '' }}" href="{{ route('incidents.index') }}">
                                         Incident Management

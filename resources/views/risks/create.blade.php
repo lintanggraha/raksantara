@@ -371,12 +371,31 @@
                     <h5 class="mb-0"><i class="fas fa-stethoscope"></i> Risk Treatment</h5>
                 </div>
                 <div class="card-body">
-                    <small class="text-muted">Add treatment options to mitigate the risk (Optional)</small>
+                    <small class="text-muted">Add treatment options to mitigate the risk, or apply a reusable mitigation playbook.</small>
 
-                    <div class="form-group mt-3">
-                        <button type="button" class="btn btn-success" onclick="addTreatmentRow()">
-                            <i class="fas fa-plus"></i> Add Treatment Option
-                        </button>
+                    <div class="row g-3 align-items-end mt-1">
+                        <div class="col-md-7">
+                            <div class="form-group mb-0">
+                                <label>Mitigation Playbook</label>
+                                <select id="treatment-template-select" class="form-control">
+                                    <option value="">Select playbook</option>
+                                </select>
+                                <small class="text-muted">Playbooks follow the selected risk owner from tab 1.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-primary" id="apply-template-button" onclick="applySelectedTreatmentTemplate()">
+                                    <i class="fas fa-copy"></i> Apply Playbook
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="addTreatmentRow()">
+                                    <i class="fas fa-plus"></i> Add Treatment Option
+                                </button>
+                                <a href="{{ route('treatment-templates.index') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-book"></i> Manage Playbooks
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="treatments-container">
@@ -702,6 +721,46 @@
 
 </div>
 
+@php
+    $treatmentTemplateCatalog = ($treatmentTemplates ?? collect())
+        ->map(function ($template) {
+            return [
+                'id' => (int) $template->id,
+                'name' => (string) $template->name,
+                'risk_owner' => (string) $template->risk_owner,
+                'option' => (string) $template->option,
+                'description' => (string) $template->description,
+                'default_pic' => (string) ($template->default_pic ?? ''),
+                'default_effectiveness' => (string) $template->default_effectiveness,
+                'target_days' => is_null($template->target_days) ? null : (int) $template->target_days,
+                'next_action_offset_days' => is_null($template->next_action_offset_days) ? null : (int) $template->next_action_offset_days,
+                'checklist' => (string) ($template->checklist ?? ''),
+            ];
+        })
+        ->values();
+    $oldTreatmentRows = collect(old('treatment_option', []))
+        ->values()
+        ->map(function ($option, $index) {
+            return [
+                'templateId' => old("treatment_template_id.$index"),
+                'option' => $option,
+                'description' => old("treatment_description.$index"),
+                'pic' => old("treatment_pic.$index"),
+                'deadline' => old("treatment_deadline.$index"),
+                'nextActionAt' => old("treatment_next_action_at.$index"),
+                'blockedReason' => old("treatment_blocked_reason.$index"),
+                'checklist' => old("treatment_playbook_checklist.$index"),
+                'effectiveness' => old("treatment_effectiveness.$index"),
+                'effectivenessScore' => old("treatment_effectiveness_score.$index"),
+            ];
+        })
+        ->filter(function ($row) {
+            return trim((string) ($row['option'] ?? '')) !== ''
+                || trim((string) ($row['description'] ?? '')) !== '';
+        })
+        ->values();
+@endphp
+
 @stop
 
 @section('js')
@@ -709,6 +768,8 @@
 <script>
 
 let treatmentCount = 0;
+const treatmentTemplateCatalog = @json($treatmentTemplateCatalog);
+const oldTreatmentRows = @json($oldTreatmentRows);
 
 // ================= UPDATE SUMMARY FIELDS =================
 function updateSummaryFields() {
@@ -844,14 +905,119 @@ function scrollToTab(tabName) {
 }
 
 // ================= TREATMENT MANAGEMENT =================
-function addTreatmentRow() {
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
+function selectedRiskOwner() {
+    return $('select[name="risk_owner"]').val() || '';
+}
+
+function effectivenessScoreFor(level) {
+    const map = { 'Low': 0.25, 'Medium': 0.5, 'High': 1 };
+    return map[level] || 0;
+}
+
+function buildIsoDateFromOffset(days) {
+    if (days === null || days === undefined || days === '') {
+        return '';
+    }
+
+    const baseDate = new Date();
+    baseDate.setHours(0, 0, 0, 0);
+    baseDate.setDate(baseDate.getDate() + Number(days));
+
+    const year = baseDate.getFullYear();
+    const month = String(baseDate.getMonth() + 1).padStart(2, '0');
+    const day = String(baseDate.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+function normalizeTreatmentRowData(raw = {}) {
+    const templateId = raw.templateId ? Number(raw.templateId) : '';
+    const template = templateId
+        ? treatmentTemplateCatalog.find((item) => Number(item.id) === Number(templateId))
+        : null;
+    const effectiveness = raw.effectiveness || (template ? template.default_effectiveness : '');
+
+    return {
+        templateId: templateId || '',
+        templateName: raw.templateName || (template ? template.name : ''),
+        option: raw.option || (template ? template.option : ''),
+        description: raw.description || (template ? template.description : ''),
+        pic: raw.pic || (template ? (template.default_pic || selectedRiskOwner()) : ''),
+        deadline: raw.deadline || (template ? buildIsoDateFromOffset(template.target_days) : ''),
+        nextActionAt: raw.nextActionAt || (template ? buildIsoDateFromOffset(template.next_action_offset_days) : ''),
+        blockedReason: raw.blockedReason || '',
+        checklist: raw.checklist || (template ? template.checklist : ''),
+        effectiveness: effectiveness,
+        effectivenessScore: raw.effectivenessScore || effectivenessScoreFor(effectiveness),
+    };
+}
+
+function renderTreatmentTemplateOptions() {
+    const owner = selectedRiskOwner();
+    const select = $('#treatment-template-select');
+    const currentValue = select.val();
+    const templates = treatmentTemplateCatalog.filter((template) => !owner || template.risk_owner === owner);
+
+    select.empty().append('<option value="">Select playbook</option>');
+    templates.forEach((template) => {
+        select.append(`<option value="${template.id}">${escapeHtml(template.name)} - ${escapeHtml(template.option)}</option>`);
+    });
+
+    if (templates.some((template) => String(template.id) === String(currentValue))) {
+        select.val(String(currentValue));
+    }
+
+    $('#apply-template-button').prop('disabled', templates.length === 0);
+}
+
+function syncTreatmentRowsWithOwner() {
+    const owner = selectedRiskOwner();
+
+    $('.treatment-row').each(function() {
+        const row = $(this);
+        const templateInput = row.find('input[name="treatment_template_id[]"]');
+        const templateId = Number(templateInput.val() || 0);
+        if (!templateId) {
+            return;
+        }
+
+        const template = treatmentTemplateCatalog.find((item) => Number(item.id) === templateId);
+        if (!template || template.risk_owner !== owner) {
+            templateInput.val('');
+            row.find('.treatment-playbook-label').text('Custom action');
+        }
+    });
+}
+
+function addTreatmentRow(rowData = {}) {
     treatmentCount++;
+    const row = normalizeTreatmentRowData(rowData);
     const html = `
         <div class="card mb-2 treatment-row" id="treatment-${treatmentCount}">
             <div class="card-body">
-                <button type="button" class="btn btn-danger btn-sm float-right" onclick="removeTreatment(${treatmentCount})">
-                    <i class="fas fa-trash"></i> Remove
-                </button>
+                <input type="hidden" name="treatment_template_id[]" value="${escapeAttr(row.templateId)}">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div>
+                        <div class="small text-uppercase text-muted fw-bold">Treatment Action</div>
+                        <div class="small text-muted treatment-playbook-label">${row.templateName ? `Playbook: ${escapeHtml(row.templateName)}` : 'Custom action'}</div>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeTreatment(${treatmentCount})">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
                 
                 <div class="row">
                     <div class="col-md-4">
@@ -859,10 +1025,10 @@ function addTreatmentRow() {
                             <label>Treatment Option</label>
                             <select name="treatment_option[]" class="form-control" required>
                                 <option value="">Select Option</option>
-                                <option value="Avoidance">Avoidance</option>
-                                <option value="Mitigation">Mitigation</option>
-                                <option value="Transfer">Transfer/Insurance</option>
-                                <option value="Acceptance">Acceptance</option>
+                                <option value="Avoidance" ${row.option === 'Avoidance' ? 'selected' : ''}>Avoidance</option>
+                                <option value="Mitigation" ${row.option === 'Mitigation' ? 'selected' : ''}>Mitigation</option>
+                                <option value="Transfer" ${row.option === 'Transfer' ? 'selected' : ''}>Transfer/Insurance</option>
+                                <option value="Acceptance" ${row.option === 'Acceptance' ? 'selected' : ''}>Acceptance</option>
                             </select>
                         </div>
                     </div>
@@ -870,7 +1036,7 @@ function addTreatmentRow() {
                     <div class="col-md-8">
                         <div class="form-group">
                             <label>Description</label>
-                            <input type="text" name="treatment_description[]" class="form-control" placeholder="Describe the treatment action" required>
+                            <input type="text" name="treatment_description[]" class="form-control" placeholder="Describe the treatment action" value="${escapeAttr(row.description)}" required>
                         </div>
                     </div>
                 </div>
@@ -879,14 +1045,14 @@ function addTreatmentRow() {
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>PIC / Related Division</label>
-                            <input type="text" name="treatment_pic[]" class="form-control" required>
+                            <input type="text" name="treatment_pic[]" class="form-control" value="${escapeAttr(row.pic)}" required>
                         </div>
                     </div>
                     
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Deadline</label>
-                            <input type="date" name="treatment_deadline[]" class="form-control" required>
+                            <input type="date" name="treatment_deadline[]" class="form-control" value="${escapeAttr(row.deadline)}" required>
                         </div>
                     </div>
 
@@ -896,15 +1062,39 @@ function addTreatmentRow() {
                             <div class="input-group">
                                 <select name="treatment_effectiveness[]" class="form-control treatment-effectiveness-select" onchange="onTreatmentEffectivenessChange(this)" required>
                                     <option value="">Select Level</option>
-                                    <option value="Low">Low</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="High">High</option>
+                                    <option value="Low" ${row.effectiveness === 'Low' ? 'selected' : ''}>Low</option>
+                                    <option value="Medium" ${row.effectiveness === 'Medium' ? 'selected' : ''}>Medium</option>
+                                    <option value="High" ${row.effectiveness === 'High' ? 'selected' : ''}>High</option>
                                 </select>
                                 <div class="input-group-append">
-                                    <input type="text" class="form-control treatment-eff-score-display" readonly style="width:90px; text-align:center;" placeholder="Score">
+                                    <input type="text" class="form-control treatment-eff-score-display" readonly style="width:90px; text-align:center;" value="${escapeAttr(row.effectivenessScore)}" placeholder="Score">
                                 </div>
                             </div>
-                            <input type="hidden" name="treatment_effectiveness_score[]" value="0">
+                            <input type="hidden" name="treatment_effectiveness_score[]" value="${escapeAttr(row.effectivenessScore)}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Next Action Date</label>
+                            <input type="date" name="treatment_next_action_at[]" class="form-control" value="${escapeAttr(row.nextActionAt)}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Blocked Reason</label>
+                            <input type="text" name="treatment_blocked_reason[]" class="form-control" maxlength="1000" placeholder="Only needed when the action becomes blocked" value="${escapeAttr(row.blockedReason)}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group mb-0">
+                            <label>Playbook Checklist</label>
+                            <textarea name="treatment_playbook_checklist[]" class="form-control" rows="3" maxlength="5000" placeholder="Evidence checklist or completion checklist">${escapeHtml(row.checklist)}</textarea>
                         </div>
                     </div>
                 </div>
@@ -912,10 +1102,30 @@ function addTreatmentRow() {
         </div>
     `;
     $('#treatments-container').append(html);
+    computeResidualAdjustment();
 }
 
 function removeTreatment(id) {
     $('#treatment-' + id).remove();
+}
+
+function applySelectedTreatmentTemplate() {
+    const templateId = Number($('#treatment-template-select').val() || 0);
+    if (!templateId) {
+        alert('Select a playbook first.');
+        return;
+    }
+
+    const template = treatmentTemplateCatalog.find((item) => Number(item.id) === templateId);
+    if (!template) {
+        alert('Selected playbook could not be loaded.');
+        return;
+    }
+
+    addTreatmentRow({
+        templateId: template.id,
+        templateName: template.name,
+    });
 }
 
 function syncPotentialLoss(prefix, force = false){
@@ -1154,6 +1364,16 @@ $('#radar_group_id').on('change', function(){
     updateRadarCode();
 });
 
+$('select[name="risk_owner"]').on('change', function(){
+    renderTreatmentTemplateOptions();
+    syncTreatmentRowsWithOwner();
+});
+
+renderTreatmentTemplateOptions();
+syncTreatmentRowsWithOwner();
+oldTreatmentRows.forEach(function(row){
+    addTreatmentRow(row);
+});
 updateRadarCode();
 updateSummaryFields();
 syncPotentialLoss('inherent');

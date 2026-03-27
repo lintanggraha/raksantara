@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Support\RiskAccess;
 use App\User;
 use App\Risk;
 
@@ -20,18 +21,7 @@ class RiskPolicy
      */
     public function view(User $user, Risk $risk): bool
     {
-        // Superadmin can view all risks
-        if ($user->isSuperadmin()) {
-            return true;
-        }
-
-        // User can view risks from their division
-        if ($user->isDivisionVerified()) {
-            $userAllowedOwners = $user->allowedRiskOwners();
-            return in_array($risk->risk_owner, $userAllowedOwners, true);
-        }
-
-        return false;
+        return RiskAccess::canView($user, $risk);
     }
 
     /**
@@ -39,7 +29,9 @@ class RiskPolicy
      */
     public function create(User $user): bool
     {
-        return $user->isDivisionVerified() || $user->isSuperadmin();
+        return $user->isDivisionVerified()
+            && !$user->isSuperadmin()
+            && !empty($user->allowedRiskOwners());
     }
 
     /**
@@ -47,18 +39,7 @@ class RiskPolicy
      */
     public function update(User $user, Risk $risk): bool
     {
-        // Superadmin can update all risks
-        if ($user->isSuperadmin()) {
-            return true;
-        }
-
-        // User can update risks they own or that are in their allowed divisions
-        if ($user->isDivisionVerified()) {
-            $userAllowedOwners = $user->allowedRiskOwners();
-            return in_array($risk->risk_owner, $userAllowedOwners, true);
-        }
-
-        return false;
+        return RiskAccess::canManage($user, $risk);
     }
 
     /**
@@ -66,8 +47,7 @@ class RiskPolicy
      */
     public function delete(User $user, Risk $risk): bool
     {
-        // Only superadmin can delete risks
-        return $user->isSuperadmin();
+        return RiskAccess::canManage($user, $risk);
     }
 
     /**
@@ -83,6 +63,6 @@ class RiskPolicy
      */
     public function forceDelete(User $user, Risk $risk): bool
     {
-        return $user->isSuperadmin();
+        return RiskAccess::canManage($user, $risk);
     }
 }

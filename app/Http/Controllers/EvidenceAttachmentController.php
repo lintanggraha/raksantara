@@ -7,6 +7,7 @@ use App\Risk;
 use App\RiskComment;
 use App\RiskTreatment;
 use App\Support\AuditLogger;
+use App\Support\RiskAccess;
 use App\Support\InputValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -126,11 +127,9 @@ class EvidenceAttachmentController extends Controller
     private function ensureCanManage(Risk $risk): void
     {
         $user = auth()->user();
-        $isCreator = !is_null($user) && (int) $risk->created_by > 0 && (int) $risk->created_by === (int) $user->id;
-        $allowLegacyOwnerManage = !is_null($user) && ((int) $risk->created_by <= 0) && $user->canManageRiskOwner($risk->risk_owner);
 
         abort_unless(
-            !is_null($user) && !$user->isSuperadmin() && ($isCreator || $allowLegacyOwnerManage),
+            RiskAccess::canManage($user, $risk),
             403,
             'You are not allowed to modify this risk evidence.'
         );
@@ -139,8 +138,14 @@ class EvidenceAttachmentController extends Controller
     private function ensureCanManageCommentAttachment(RiskComment $comment): void
     {
         $user = auth()->user();
+        $comment->loadMissing('risk');
+
         abort_unless(
-            !is_null($user) && !$user->isSuperadmin() && (int) $comment->user_id === (int) $user->id,
+            !is_null($user)
+                && !$user->isSuperadmin()
+                && !is_null($comment->risk)
+                && RiskAccess::canView($user, $comment->risk)
+                && (int) $comment->user_id === (int) $user->id,
             403,
             'You are not allowed to modify this comment evidence.'
         );
@@ -149,6 +154,6 @@ class EvidenceAttachmentController extends Controller
     private function ensureCanView(Risk $risk): void
     {
         $user = auth()->user();
-        abort_unless(!is_null($user), 403);
+        abort_unless(RiskAccess::canView($user, $risk), 403);
     }
 }

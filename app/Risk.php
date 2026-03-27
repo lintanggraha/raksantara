@@ -169,4 +169,9 @@ class Risk extends Model
         return $this->hasMany(Kri::class);
     }
 
+    public function rcsaWorkspace()
+    {
+        return $this->hasOne(RiskRcsaWorkspace::class);
+    }
+
 }

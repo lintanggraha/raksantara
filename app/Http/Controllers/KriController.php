@@ -6,6 +6,7 @@ use App\Kri;
 use App\KriLog;
 use App\Risk;
 use App\Support\AuditLogger;
+use App\Support\RiskAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -55,7 +56,7 @@ class KriController extends Controller
             ->limit(500)
             ->get();
 
-        $canManage = !is_null($user);
+        $canManage = !is_null($user) && !$user->isSuperadmin();
 
         return view('kris.index', compact(
             'kris',
@@ -290,14 +291,8 @@ class KriController extends Controller
      */
     private function ensureCanManageRisk(Risk $risk): void
     {
-        $user = Auth::user();
-        $isCreator = !is_null($user)
-            && (int) ($risk->created_by ?? 0) > 0
-            && (int) $risk->created_by === (int) $user->id;
-        $allowOwnerManage = !is_null($user) && $user->canManageRiskOwner($risk->risk_owner);
-
         abort_unless(
-            !is_null($user) && ($user->isSuperadmin() || $isCreator || $allowOwnerManage),
+            RiskAccess::canManage(Auth::user(), $risk),
             403,
             'You are not allowed to modify this KRI.'
         );

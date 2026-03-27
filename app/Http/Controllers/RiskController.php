@@ -21,6 +21,7 @@ use App\RiskComment;
 use App\ImpactCategory;
 use App\ImpactScale;
 use App\RiskTreatment;
+use App\RiskTreatmentTemplate;
 use App\RiskScoreMatrix;
 use App\RiskInherentAnalysis;
 use App\RiskResidualAnalysis;
@@ -28,6 +29,7 @@ use App\RiskStatusChangeRequest;
 use App\RadarGroup;
 use App\User;
 use App\Support\AuditLogger;
+use App\Support\RiskAccess;
 use App\Support\InputValidation;
 use App\Support\RiskAnalyticsCacheVersion;
 use App\Support\RiskOwnerAccess;
@@ -38,11 +40,14 @@ class RiskController extends Controller
 
     public function heatmap()
     {
-        $risks = Risk::with([
+        $query = Risk::with([
             'category',
             'inherentAnalysis',
             'residualAnalysis.radarGroup',
-        ])->get();
+        ]);
+        RiskAccess::applyVisibilityScope($query, auth()->user());
+
+        $risks = $query->get();
 
         return view('risks.heatmap', $this->buildHeatmapViewDataFromRisks($risks));
     }
@@ -430,11 +435,13 @@ class RiskController extends Controller
 
     private function buildRecapViewData($selectedYear = null): array
     {
-        $availableYears = Risk::query()
+        $availableYearsQuery = Risk::query()
             ->whereNotNull('year')
             ->orderBy('year', 'desc')
-            ->distinct()
-            ->pluck('year');
+            ->distinct();
+        RiskAccess::applyVisibilityScope($availableYearsQuery, auth()->user());
+
+        $availableYears = $availableYearsQuery->pluck('year');
 
         $radarGroups = RadarGroup::with('quantProfile')
             ->get()
@@ -451,6 +458,7 @@ class RiskController extends Controller
             'inherentAnalysis',
             'residualAnalysis.radarGroup',
         ]);
+        RiskAccess::applyVisibilityScope($riskQuery, auth()->user());
 
         if (!empty($selectedYear)) {
             $riskQuery->where('year', (int) $selectedYear);
@@ -1150,7 +1158,8 @@ class RiskController extends Controller
 
     private function buildDashboardSummaryCacheKey(Request $request, string $trendGranularity): string
     {
-        $userId = (int) (optional(auth()->user())->id ?? 0);
+        $actor = auth()->user();
+        $scopeKey = RiskAccess::scopeCacheKey($actor instanceof User ? $actor : null);
         $categoryId = (int) $request->input('risk_category_id', 0);
         $causeCategoryId = (int) $request->input('risk_cause_category_id', 0);
 
@@ -1159,7 +1168,7 @@ class RiskController extends Controller
             'dashboard_summary',
             'v2',
             'cv' . RiskAnalyticsCacheVersion::current(),
-            'u' . $userId,
+            'scope_' . $scopeKey,
             'g' . $trendGranularity,
             'cat' . $categoryId,
             'cause' . $causeCategoryId,
@@ -1198,6 +1207,7 @@ class RiskController extends Controller
                         ->orderBy('created_at');
                 },
             ]);
+        RiskAccess::applyVisibilityScope($query, auth()->user());
 
         if ($request->risk_category_id) {
             $query->where('risk_category_id', $request->risk_category_id);
@@ -1219,6 +1229,7 @@ class RiskController extends Controller
         $impactCategories = ImpactCategory::all();
         $radarGroups = RadarGroup::with('quantProfile')->orderBy('id')->get();
         $allowedRiskOwners = $this->allowedRiskOwners();
+        $treatmentTemplates = $this->loadTreatmentTemplatesForUser();
 
         abort_if(
             empty($allowedRiskOwners),
@@ -1231,7 +1242,8 @@ class RiskController extends Controller
             'causeCategories',
             'impactCategories',
             'radarGroups',
-            'allowedRiskOwners'
+            'allowedRiskOwners',
+            'treatmentTemplates'
         ));
     }
 
@@ -1261,8 +1273,13 @@ class RiskController extends Controller
             ]);
         }
 
+        $templateMap = $this->resolveTreatmentTemplateMap(
+            $validated['treatment_template_id'] ?? [],
+            (string) $validated['risk_owner']
+        );
+
         try {
-            DB::transaction(function () use ($validated) {
+            DB::transaction(function () use ($validated, $templateMap) {
                 $risk = Risk::createWithGeneratedRiskId([
                     'year' => now()->year,
                     'risk_title' => $validated['risk_title'],
@@ -1321,7 +1338,11 @@ class RiskController extends Controller
                 $descriptions = $validated['treatment_description'] ?? [];
                 $pics = $validated['treatment_pic'] ?? [];
                 $deadlines = $validated['treatment_deadline'] ?? [];
+                $nextActions = $validated['treatment_next_action_at'] ?? [];
+                $blockedReasons = $validated['treatment_blocked_reason'] ?? [];
+                $playbookChecklists = $validated['treatment_playbook_checklist'] ?? [];
                 $effectiveness = $validated['treatment_effectiveness'] ?? [];
+                $templateIds = $validated['treatment_template_id'] ?? [];
 
                 foreach ($treatments as $key => $option) {
                     if (empty($option)) {
@@ -1336,12 +1357,19 @@ class RiskController extends Controller
                     ];
                     $effScore = $map[$effLabel] ?? 0;
 
+                    $templateId = isset($templateIds[$key]) ? (int) $templateIds[$key] : 0;
+
                     RiskTreatment::create([
                         'risk_id' => $risk->id,
+                        'template_id' => $templateId > 0 && isset($templateMap[$templateId]) ? $templateId : null,
                         'option' => $option,
                         'description' => $descriptions[$key] ?? null,
                         'pic' => $pics[$key] ?? null,
+                        'status_updated_at' => now(),
                         'deadline' => $deadlines[$key] ?? null,
+                        'next_action_at' => $nextActions[$key] ?? null,
+                        'blocked_reason' => $blockedReasons[$key] ?? null,
+                        'playbook_checklist' => $playbookChecklists[$key] ?? null,
                         'effectiveness' => $effLabel,
                         'effectiveness_score' => $effScore,
                     ]);
@@ -1461,12 +1489,13 @@ class RiskController extends Controller
 
     public function show($id)
     {
-        $risk = Risk::with([
+        $riskQuery = Risk::with([
             'category',
             'causeCategory',
             'impactScale.category',
             'attachments.uploader',
             'treatments.attachments.uploader',
+            'treatments.template',
             'comments' => function ($query) {
                 $query
                     ->with(['user', 'mentions', 'attachments.uploader'])
@@ -1480,12 +1509,16 @@ class RiskController extends Controller
                     ->with(['requester', 'reviewer'])
                     ->latest();
             },
+            'rcsaWorkspace.updater',
             'alerts' => function ($query) {
                 $query
                     ->with('treatment')
                     ->latest();
             },
-        ])->findOrFail($id);
+        ]);
+        RiskAccess::applyVisibilityScope($riskQuery, auth()->user());
+
+        $risk = $riskQuery->findOrFail($id);
 
         $activityLogs = $this->loadRiskActivityLogs($risk);
         $mentionUsers = User::query()
@@ -1508,7 +1541,7 @@ class RiskController extends Controller
             'inherentAnalysis.impactScale.category',
             'residualAnalysis.impactScale.category',
             'residualAnalysis.radarGroup',
-            'treatments',
+            'treatments.template',
             'statusChangeRequests' => function ($query) {
                 $query
                     ->where('status', 'pending')
@@ -1521,6 +1554,7 @@ class RiskController extends Controller
         $impactCategories = ImpactCategory::all();
         $radarGroups = RadarGroup::with('quantProfile')->orderBy('id')->get();
         $allowedRiskOwners = $this->allowedRiskOwners($risk->risk_owner);
+        $treatmentTemplates = $this->loadTreatmentTemplatesForUser();
 
         return view('risks.edit', compact(
             'risk',
@@ -1528,7 +1562,8 @@ class RiskController extends Controller
             'causeCategories',
             'impactCategories',
             'radarGroups',
-            'allowedRiskOwners'
+            'allowedRiskOwners',
+            'treatmentTemplates'
         ));
     }
 
@@ -1556,8 +1591,13 @@ class RiskController extends Controller
 
         $statusApprovalRequested = false;
 
+        $templateMap = $this->resolveTreatmentTemplateMap(
+            $validated['treatment_template_id'] ?? [],
+            (string) $validated['risk_owner']
+        );
+
         try {
-            DB::transaction(function () use ($risk, $validated, &$statusApprovalRequested) {
+            DB::transaction(function () use ($risk, $validated, &$statusApprovalRequested, $templateMap) {
                 $isSuperadmin = !is_null(auth()->user()) && auth()->user()->isSuperadmin();
                 $requestedStatus = (string) $validated['status'];
                 $currentStatus = (string) $risk->status;
@@ -1642,7 +1682,11 @@ class RiskController extends Controller
                 $descriptions = $validated['treatment_description'] ?? [];
                 $pics = $validated['treatment_pic'] ?? [];
                 $deadlines = $validated['treatment_deadline'] ?? [];
+                $nextActions = $validated['treatment_next_action_at'] ?? [];
+                $blockedReasons = $validated['treatment_blocked_reason'] ?? [];
+                $playbookChecklists = $validated['treatment_playbook_checklist'] ?? [];
                 $effectiveness = $validated['treatment_effectiveness'] ?? [];
+                $templateIds = $validated['treatment_template_id'] ?? [];
 
                 foreach ($treatments as $key => $option) {
                     if (empty($option)) {
@@ -1657,11 +1701,17 @@ class RiskController extends Controller
                     ];
                     $effScore = $map[$effLabel] ?? 0;
 
+                    $templateId = isset($templateIds[$key]) ? (int) $templateIds[$key] : 0;
+
                     $payload = [
+                        'template_id' => $templateId > 0 && isset($templateMap[$templateId]) ? $templateId : null,
                         'option' => $option,
                         'description' => $descriptions[$key] ?? null,
                         'pic' => $pics[$key] ?? null,
                         'deadline' => $deadlines[$key] ?? null,
+                        'next_action_at' => $nextActions[$key] ?? null,
+                        'blocked_reason' => $blockedReasons[$key] ?? null,
+                        'playbook_checklist' => $playbookChecklists[$key] ?? null,
                         'effectiveness' => $effLabel,
                         'effectiveness_score' => $effScore,
                     ];
@@ -1950,6 +2000,8 @@ class RiskController extends Controller
             'status_change_reason' => ['nullable', 'string', 'max:2000', $textRule5000],
             'treatment_id' => 'nullable|array|max:20',
             'treatment_id.*' => 'nullable|integer|min:1',
+            'treatment_template_id' => 'nullable|array|max:20',
+            'treatment_template_id.*' => 'nullable|integer|exists:risk_treatment_templates,id',
             'treatment_option' => 'nullable|array|max:20',
             'treatment_option.*' => 'nullable|string|in:Avoidance,Mitigation,Transfer,Acceptance',
             'treatment_description' => 'nullable|array|max:20',
@@ -1958,6 +2010,12 @@ class RiskController extends Controller
             'treatment_pic.*' => ['nullable', 'string', 'max:255', $textRule255],
             'treatment_deadline' => 'nullable|array|max:20',
             'treatment_deadline.*' => 'nullable|date',
+            'treatment_next_action_at' => 'nullable|array|max:20',
+            'treatment_next_action_at.*' => 'nullable|date',
+            'treatment_blocked_reason' => 'nullable|array|max:20',
+            'treatment_blocked_reason.*' => ['nullable', 'string', 'max:1000', $textRule1000],
+            'treatment_playbook_checklist' => 'nullable|array|max:20',
+            'treatment_playbook_checklist.*' => ['nullable', 'string', 'max:5000', $textRule5000],
             'treatment_effectiveness' => 'nullable|array|max:20',
             'treatment_effectiveness.*' => 'nullable|string|in:Low,Medium,High',
         ];
@@ -1983,6 +2041,8 @@ class RiskController extends Controller
             'residual_impact_description.regex' => InputValidation::safeTextMessage(),
             'treatment_description.*.regex' => InputValidation::safeTextMessage(),
             'treatment_pic.*.regex' => InputValidation::safeTextMessage(),
+            'treatment_blocked_reason.*.regex' => InputValidation::safeTextMessage(),
+            'treatment_playbook_checklist.*.regex' => InputValidation::safeTextMessage(),
             'inherent_impact_amount.regex' => InputValidation::strictIntegerMessage(),
             'inherent_probability_percent.regex' => InputValidation::strictDecimalMessage(),
             'inherent_potential_loss.regex' => InputValidation::strictIntegerMessage(),
@@ -2013,9 +2073,73 @@ class RiskController extends Controller
             'residual_probability_percent' => 'Residual Probability (%)',
             'residual_potential_loss' => 'Residual Potential Loss (Rp)',
             'status_change_reason' => 'Status Change Reason',
+            'treatment_template_id.*' => 'Mitigation Playbook',
             'treatment_description.*' => 'Treatment Description',
             'treatment_pic.*' => 'Treatment PIC',
+            'treatment_next_action_at.*' => 'Next Action Date',
+            'treatment_blocked_reason.*' => 'Blocked Reason',
+            'treatment_playbook_checklist.*' => 'Playbook Checklist',
         ];
+    }
+
+    private function loadTreatmentTemplatesForUser()
+    {
+        $user = auth()->user();
+
+        if (is_null($user)) {
+            return collect();
+        }
+
+        return RiskTreatmentTemplate::query()
+            ->visibleTo($user)
+            ->where('is_active', true)
+            ->orderBy('risk_owner')
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'risk_owner',
+                'option',
+                'description',
+                'default_pic',
+                'default_effectiveness',
+                'target_days',
+                'next_action_offset_days',
+                'checklist',
+            ]);
+    }
+
+    private function resolveTreatmentTemplateMap(array $templateIds, string $riskOwner): array
+    {
+        $requestedIds = collect($templateIds)
+            ->map(function ($value) {
+                return (int) $value;
+            })
+            ->filter(function ($value) {
+                return $value > 0;
+            })
+            ->unique()
+            ->values();
+
+        if ($requestedIds->isEmpty()) {
+            return [];
+        }
+
+        $templates = RiskTreatmentTemplate::query()
+            ->visibleTo(auth()->user())
+            ->where('risk_owner', $riskOwner)
+            ->where('is_active', true)
+            ->whereIn('id', $requestedIds->all())
+            ->get()
+            ->keyBy('id');
+
+        if ($templates->count() !== $requestedIds->count()) {
+            throw ValidationException::withMessages([
+                'treatment_template_id' => 'One or more selected mitigation playbooks are invalid for this risk owner.',
+            ]);
+        }
+
+        return $templates->all();
     }
 
     private function loadRiskActivityLogs(Risk $risk)
@@ -2188,6 +2312,7 @@ class RiskController extends Controller
                 $kriQuery->where('status', 'Red');
             },
         ]);
+        RiskAccess::applyVisibilityScope($query, auth()->user());
 
         if ($request->risk_category_id) {
             $query->where('risk_category_id', $request->risk_category_id);

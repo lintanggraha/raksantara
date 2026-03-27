@@ -3,18 +3,22 @@
 namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 
-class ArraySheetExport implements FromArray, WithHeadings, WithColumnWidths, WithTitle, WithEvents
+class ArraySheetExport extends DefaultValueBinder implements FromArray, WithHeadings, WithColumnWidths, WithTitle, WithEvents, WithCustomValueBinder
 {
     private const COLUMN_SAMPLE_LIMIT = 300;
     private const CELL_TEXT_LIMIT = 120;
@@ -43,6 +47,22 @@ class ArraySheetExport implements FromArray, WithHeadings, WithColumnWidths, Wit
     public function array(): array
     {
         return $this->rows;
+    }
+
+    /**
+     * Prevent spreadsheet formula injection for user-controlled text cells.
+     *
+     * @param  mixed  $value
+     */
+    public function bindValue(Cell $cell, $value): bool
+    {
+        if (is_string($value) && $this->shouldBindAsExplicitString($value)) {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 
     public function columnWidths(): array
@@ -194,5 +214,17 @@ class ArraySheetExport implements FromArray, WithHeadings, WithColumnWidths, Wit
         }
 
         return (float) min(48, max(12, $baseWidth));
+    }
+
+    private function shouldBindAsExplicitString(string $value): bool
+    {
+        $trimmed = ltrim($value);
+        if ($trimmed === '') {
+            return false;
+        }
+
+        $firstCharacter = $trimmed[0];
+
+        return in_array($firstCharacter, ['=', '+', '-', '@'], true);
     }
 }
