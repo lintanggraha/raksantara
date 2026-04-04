@@ -1,0 +1,20 @@
+flowchart TD
+    A["/risks index/"] --> B["Filter search import export"]
+    B --> C{"Add new or edit existing risk?"}
+    C -- Add --> D["Open create form"]
+    C -- Edit --> E["Open edit form"]
+    D --> F["Fill basic fields"]
+    E --> F
+    F --> G["Set category owner cause appetite vendor"]
+    G --> H["Fill inherent analysis"]
+    H --> I["Add treatments manually or use playbooks"]
+    I --> J["Fill residual analysis and radar"]
+    J --> K["Validate request"]
+    K --> L["Persist Risk"]
+    L --> M["Persist analyses and treatments"]
+    M --> N{"post_submit_action == bcm?"}
+    N -- Yes --> O["/risks/:id#bcm"]
+    N -- No --> P["/risks or risk detail"]
+    O --> Q["Open detail tabs"]
+    P --> Q
+    Q --> R["Basic Inherent Treatment RCSA Residual BCM Governance KRI"]

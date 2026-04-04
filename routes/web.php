@@ -20,6 +20,7 @@ use App\Http\Controllers\ScheduledReportController;
 use App\Http\Controllers\TrendAnalysisController;
 use App\Http\Controllers\AuditDashboardController;
 use App\Http\Controllers\OjkMitigationController;
+use App\Http\Controllers\ImportTemplateController;
 use App\Http\Controllers\IncidentManagementController;
 use App\Http\Controllers\ThreatIntelligenceController;
 use App\Http\Controllers\OwnerWorkloadController;
@@ -111,6 +112,10 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'threat-intel.au
     Route::post('/audit/import', [AuditDashboardController::class, 'importSpreadsheet'])
         ->middleware('compliance.division')
         ->name('audit.import.store');
+    Route::get('/import-templates/{template}', [ImportTemplateController::class, 'download'])
+        ->where('template', 'risk-register|audit-dashboard|ojk-mitigation')
+        ->middleware('compliance.division')
+        ->name('import-templates.download');
     Route::get('/audit/export/{format}', [AuditDashboardController::class, 'export'])
         ->where('format', 'pdf|xlsx|xls|pptx')
         ->middleware('compliance.division')
@@ -234,5 +239,16 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'threat-intel.au
         ->whereNumber('risk')
         ->name('risks.rcsa.update');
 
+    // BCM Routes
+    Route::get('/bcm', [\App\Http\Controllers\BcmController::class, 'index'])->name('bcm.index');
+    Route::post('/risks/{risk}/bia', [\App\Http\Controllers\BiaController::class, 'update'])
+        ->whereNumber('risk')
+        ->name('bia.store');
+    Route::post('/bias/{bia}/bcp', [\App\Http\Controllers\BcpController::class, 'update'])
+        ->whereNumber('bia')
+        ->name('bcp.store');
+
+    Route::resource('vendors', \App\Http\Controllers\VendorController::class);
+    Route::resource('risk-appetites', \App\Http\Controllers\RiskAppetiteController::class);
     Route::resource('risks', RiskController::class);
 });

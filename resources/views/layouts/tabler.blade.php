@@ -371,6 +371,9 @@
                             <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
                                 <a class="nav-link nav-link-main" href="{{ route('users.index') }}">User Management</a>
                             </li>
+                            <li class="nav-item {{ request()->routeIs('risk-appetites.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risk-appetites.index') }}">Corp. Risk Appetite</a>
+                            </li>
                             <li class="nav-item {{ request()->routeIs('risk-status-approvals.*') ? 'active' : '' }}">
                                 <a class="nav-link nav-link-main" href="{{ route('risk-status-approvals.index') }}">Status Approvals</a>
                             </li>
@@ -433,7 +436,16 @@
                                     <a class="dropdown-item {{ request()->routeIs('incidents.*') ? 'active' : '' }}" href="{{ route('incidents.index') }}">
                                         Incident Management
                                     </a>
+                                    <a class="dropdown-item {{ request()->routeIs('bcm.*') ? 'active' : '' }}" href="{{ route('bcm.index') }}">
+                                        Business Continuity (BCM)
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('risk-appetites.*') ? 'active' : '' }}" href="{{ route('risk-appetites.index') }}">
+                                        Corporate Risk Appetite
+                                    </a>
                                 </div>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('vendors.*') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('vendors.index') }}">Third-Party Vendors</a>
                             </li>
                             @if(auth()->user()->isComplianceDivision())
                                 <li class="nav-item {{ request()->routeIs('audit.placeholder') ? 'active' : '' }}">
@@ -443,7 +455,7 @@
                             <li class="nav-item {{ request()->routeIs('threat-intelligence.*') ? 'active' : '' }}">
                                 <a class="nav-link nav-link-main" href="{{ route('threat-intelligence.index') }}">Threat Intel</a>
                             </li>
-                            @if(auth()->user()->isComplianceDivision())
+                            @if(auth()->user()->isComplianceDivision() && config('features.show_ojk_mitigation', false))
                                 <li class="nav-item {{ request()->routeIs('ojk-mitigation.*') ? 'active' : '' }}">
                                     <a class="nav-link nav-link-main" href="{{ route('ojk-mitigation.index') }}">Mitigasi OJK</a>
                                 </li>

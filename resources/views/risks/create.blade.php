@@ -131,28 +131,30 @@
                             </div>
                         </div>
 
-                        <div class="col-md-8">
-                            <div class="form-group">
-                                <label>Process <span class="text-danger">*</span></label>
-                                <input type="text" name="risk_title" class="form-control" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label>Risk Category <span class="text-danger">*</span></label>
                                 <select name="risk_category_id" class="form-control" required>
                                     <option value="">Select Category</option>
                                     @foreach($categories as $cat)
-                                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                        <option value="{{ $cat->id }}" {{ (string) old('risk_category_id') === (string) $cat->id ? 'selected' : '' }}>
+                                            {{ $cat->name }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Process <span class="text-danger">*</span></label>
+                                <input type="text" name="risk_title" class="form-control" value="{{ old('risk_title') }}" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label>Risk Owner <span class="text-danger">*</span></label>
                                 @php($riskOwners = $allowedRiskOwners ?? [])
@@ -170,19 +172,54 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Corporate Risk Appetite</label>
+                                <select name="risk_appetite_id" class="form-control">
+                                    <option value="">None / Custom</option>
+                                    @foreach($riskAppetites ?? [] as $appetite)
+                                        <option value="{{ $appetite->id }}" {{ (string) old('risk_appetite_id') === (string) $appetite->id ? 'selected' : '' }}>
+                                            {{ $appetite->name }}
+                                            @if($appetite->isQuantitative())
+                                                - {{ $appetite->threshold_metric_label }}
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Select a framework if this risk should follow a declared corporate appetite.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label>Cause Category</label>
                                 <select name="risk_cause_category_id" class="form-control">
                                     <option value="">Select Cause Category</option>
                                     @foreach($causeCategories as $c)
-                                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                        <option value="{{ $c->id }}" {{ (string) old('risk_cause_category_id') === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Third-Party Vendor</label>
+                                <select name="vendor_id" class="form-control">
+                                    <option value="">None / Not Applicable</option>
+                                    @foreach($vendors ?? [] as $vendor)
+                                        <option value="{{ $vendor->id }}" {{ (string) old('vendor_id') === (string) $vendor->id ? 'selected' : '' }}>
+                                            {{ $vendor->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Select if risk is vendor-related</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
                             <div class="form-group">
                                 <label>Sasaran Target</label>
                                 <textarea name="sasaran_target" class="form-control" rows="2">{{ old('sasaran_target') }}</textarea>
@@ -702,14 +739,19 @@
 
                     <hr>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <button type="button" class="btn btn-secondary btn-lg btn-block" onclick="scrollToTab('group-radar')">
                                 <i class="fas fa-arrow-left"></i> Back
                             </button>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <button type="submit" class="btn btn-success btn-lg btn-block">
                                 <i class="fas fa-save"></i> SAVE COMPLETE RISK
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" name="post_submit_action" value="bcm" class="btn btn-info btn-lg btn-block">
+                                <i class="fas fa-life-ring"></i> SAVE & CONTINUE TO BCM
                             </button>
                         </div>
                     </div>
@@ -721,8 +763,15 @@
 
 </div>
 
-@php
-    $treatmentTemplateCatalog = ($treatmentTemplates ?? collect())
+@stop
+
+@section('js')
+
+<script>
+
+let treatmentCount = {{ max(0, old('treatments') ? count(old('treatments')) : 0) }};
+const treatmentTemplateCatalog = <?php echo json_encode(
+    ($treatmentTemplates ?? collect())
         ->map(function ($template) {
             return [
                 'id' => (int) $template->id,
@@ -737,8 +786,11 @@
                 'checklist' => (string) ($template->checklist ?? ''),
             ];
         })
-        ->values();
-    $oldTreatmentRows = collect(old('treatment_option', []))
+        ->values(),
+    JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
+); ?>;
+const oldTreatmentRows = <?php echo json_encode(
+    collect(old('treatment_option', []))
         ->values()
         ->map(function ($option, $index) {
             return [
@@ -758,18 +810,9 @@
             return trim((string) ($row['option'] ?? '')) !== ''
                 || trim((string) ($row['description'] ?? '')) !== '';
         })
-        ->values();
-@endphp
-
-@stop
-
-@section('js')
-
-<script>
-
-let treatmentCount = 0;
-const treatmentTemplateCatalog = @json($treatmentTemplateCatalog);
-const oldTreatmentRows = @json($oldTreatmentRows);
+        ->values(),
+    JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
+); ?>;
 
 // ================= UPDATE SUMMARY FIELDS =================
 function updateSummaryFields() {

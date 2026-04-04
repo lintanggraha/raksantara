@@ -15,6 +15,7 @@ class Risk extends Model
     'year',
     'risk_title',
     'risk_category_id',
+    'risk_appetite_id',
     'risk_cause_category_id',
     'cause',
     'existing_control',
@@ -28,7 +29,8 @@ class Risk extends Model
     'impact_notes',
     'impact_score',
     'risk_score',
-    'status'
+    'status',
+    'vendor_id'
 ];
 
     public function category()
@@ -136,7 +138,12 @@ class Risk extends Model
 
     public function statusChangeRequests()
     {
-        return $this->hasMany(RiskStatusChangeRequest::class);
+        return $this->hasMany(RiskStatusChangeRequest::class, 'risk_id');
+    }
+
+    public function riskAppetite()
+    {
+        return $this->belongsTo(RiskAppetite::class, 'risk_appetite_id', 'id');
     }
 
     public function alerts()
@@ -172,6 +179,16 @@ class Risk extends Model
     public function rcsaWorkspace()
     {
         return $this->hasOne(RiskRcsaWorkspace::class);
+    }
+
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class);
+    }
+
+    public function bia()
+    {
+        return $this->hasOne(Bia::class);
     }
 
 }

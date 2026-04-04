@@ -72,11 +72,12 @@
         .page-number:before { content: counter(page); }
 
         .report-cover {
-            margin-bottom: 16px;
-            border: 1px solid #e2e8f0;
+            margin-bottom: 24px;
+            border: 1px solid #cbd5e1;
             background: #ffffff;
-            border-radius: 6px;
-            padding: 12px 14px;
+            border-radius: 8px;
+            padding: 16px 20px;
+            border-top: 4px solid #1e3a8a;
         }
 
         .cover-title {
@@ -106,30 +107,31 @@
         }
 
         .section {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             page-break-inside: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
             background: #ffffff;
-            padding: 12px;
+            padding: 16px;
         }
 
         .section + .section {
-            margin-top: 16px;
+            margin-top: 20px;
         }
 
         .section h2 {
-            margin: 0 0 6px;
-            font-size: 14px;
+            margin: 0 0 8px;
+            font-size: 15px;
             color: #0f172a;
-            border-left: 4px solid #3b82f6;
-            padding-left: 10px;
+            border-left: 4px solid #1d4ed8;
+            padding-left: 12px;
+            letter-spacing: -0.01em;
         }
 
         .section-subtitle {
-            margin: 0 0 10px;
-            font-size: 9.5px;
-            color: #64748b;
+            margin: 0 0 12px;
+            font-size: 10px;
+            color: #475569;
         }
 
         .section-keep-together {
@@ -137,8 +139,8 @@
         }
 
         .section h3 {
-            margin: 10px 0 6px;
-            font-size: 11.5px;
+            margin: 12px 0 8px;
+            font-size: 12px;
             color: #1e293b;
         }
 
@@ -242,32 +244,32 @@
 
         .kpi-cell {
             width: 25%;
-            padding: 10px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
             background: #ffffff;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
         }
 
         .kpi-label {
             font-size: 8.5px;
             font-weight: 700;
             text-transform: uppercase;
-            color: #64748b;
-            margin-bottom: 4px;
+            color: #475569;
+            margin-bottom: 6px;
+            letter-spacing: 0.05em;
         }
 
         .kpi-value {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 800;
             color: #0f172a;
             line-height: 1.2;
         }
 
-        .kpi-tone-blue { background: #dbeafe; }
-        .kpi-tone-red { background: #fee2e2; }
-        .kpi-tone-amber { background: #fef3c7; }
-        .kpi-tone-green { background: #dcfce7; }
+        .kpi-tone-blue { background: #eff6ff; border-top: 3px solid #3b82f6; border-bottom: none; border-left: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; }
+        .kpi-tone-red { background: #fef2f2; border-top: 3px solid #ef4444; border-bottom: none; border-left: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; }
+        .kpi-tone-amber { background: #fffbeb; border-top: 3px solid #f59e0b; border-bottom: none; border-left: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; }
+        .kpi-tone-green { background: #f0fdf4; border-top: 3px solid #22c55e; border-bottom: none; border-left: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; }
 
         .board-insight {
             margin-top: 8px;
@@ -465,11 +467,11 @@
             margin-top: 2px;
         }
 
-        .level-low { background: #00b050; color: #fff; }
-        .level-low-moderate { background: #8cc84b; color: #111; }
-        .level-moderate { background: #fff200; color: #111; }
-        .level-moderate-high { background: #ffc000; color: #111; }
-        .level-high { background: #ff0000; color: #fff; }
+        .level-low { background: #10b981; color: #fff; }
+        .level-low-moderate { background: #84cc16; color: #fff; }
+        .level-moderate { background: #eab308; color: #111; }
+        .level-moderate-high { background: #f97316; color: #fff; }
+        .level-high { background: #ef4444; color: #fff; }
 
         .axis-note {
             margin-top: 6px;
@@ -904,7 +906,7 @@
                 @endif
             @elseif(!empty($section['rows']))
                 @php
-                    $defaultHeadings = $resolveHeadings($section);
+                    $defaultHeadings = $resolveHeadings($section, []);
                     $defaultTableClass = $resolveTableClass($section, $defaultHeadings);
                 @endphp
                 <table class="{{ $defaultTableClass }}">

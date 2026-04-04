@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Risk;
 use App\RiskAlert;
 use App\RiskTreatment;
+use App\Support\RiskAppetiteEvaluator;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -12,7 +13,7 @@ class ScanRiskAlertsCommand extends Command
 {
     protected $signature = 'risk:scan-alerts {--days=3 : Reminder window before deadline}';
 
-    protected $description = 'Generate deadline reminders/escalations and KRI threshold alerts';
+    protected $description = 'Generate deadline reminders/escalations and risk threshold alerts';
 
     public function handle(): int
     {
@@ -121,41 +122,45 @@ class ScanRiskAlertsCommand extends Command
                 ]);
         }
 
-        $risks = Risk::with(['residualAnalysis.radarGroup.quantProfile'])->get();
+        $risks = Risk::with(['riskAppetite', 'residualAnalysis.radarGroup.quantProfile'])->get();
         foreach ($risks as $risk) {
-            $residual = $risk->residualAnalysis;
-            $residualScore = (int) (optional($residual)->residual_risk_score ?? 0);
-            $residualLoss = (int) (optional($residual)->potential_loss ?? 0);
-            $quantProfile = optional(optional($residual)->radarGroup)->quantProfile;
-            $thresholdScore = (int) (optional($quantProfile)->risk_appetite_score ?? 15);
-            $thresholdLoss = optional($quantProfile)->risk_appetite_loss;
+            $evaluation = RiskAppetiteEvaluator::evaluate($risk);
 
-            $isBreachByScore = $residualScore > 0 && $residualScore > $thresholdScore;
-            $isBreachByLoss = !is_null($thresholdLoss) && $residualLoss > (int) $thresholdLoss;
-            $isBreach = $isBreachByScore || $isBreachByLoss;
+            if (in_array($evaluation['status'], ['warning', 'breach'], true)) {
+                $thresholdLabel = $evaluation['status'] === 'breach'
+                    ? 'breached'
+                    : 'exceeded';
+                $thresholdDetail = !is_null($evaluation['breach_threshold'])
+                    ? $evaluation['breach_threshold']
+                    : $evaluation['warning_threshold'];
 
-            if ($isBreach) {
                 RiskAlert::updateOrCreate(
                     [
                         'risk_id' => $risk->id,
                         'risk_treatment_id' => null,
-                        'alert_type' => 'kri_threshold_breach',
+                        'alert_type' => 'risk_appetite_threshold_breach',
                         'status' => RiskAlert::STATUS_OPEN,
                     ],
                     [
-                        'severity' => 'critical',
+                        'severity' => $evaluation['status'] === 'breach' ? 'critical' : 'warning',
                         'message' => sprintf(
-                            'Risk %s exceeded appetite threshold (score=%d, threshold=%d).',
+                            'Risk %s %s %s threshold via %s.',
                             (string) ($risk->risk_id ?: ('ID-' . $risk->id)),
-                            $residualScore,
-                            $thresholdScore
+                            $thresholdLabel,
+                            (string) ($evaluation['metric_label'] ?? 'threshold'),
+                            (string) ($evaluation['source_label'] ?? 'configured source')
                         ),
                         'alerted_at' => now(),
                         'meta' => [
-                            'residual_score' => $residualScore,
-                            'threshold_score' => $thresholdScore,
-                            'residual_loss' => $residualLoss,
-                            'threshold_loss' => $thresholdLoss,
+                            'source' => $evaluation['source'],
+                            'metric' => $evaluation['metric'],
+                            'metric_label' => $evaluation['metric_label'],
+                            'current_value' => $evaluation['current_value'],
+                            'warning_threshold' => $evaluation['warning_threshold'],
+                            'breach_threshold' => $evaluation['breach_threshold'],
+                            'threshold_reference' => $thresholdDetail,
+                            'unit' => $evaluation['unit'],
+                            'status' => $evaluation['status'],
                         ],
                     ]
                 );
@@ -164,7 +169,7 @@ class ScanRiskAlertsCommand extends Command
                 $resolved += RiskAlert::query()
                     ->where('risk_id', $risk->id)
                     ->whereNull('risk_treatment_id')
-                    ->where('alert_type', 'kri_threshold_breach')
+                    ->whereIn('alert_type', ['kri_threshold_breach', 'risk_appetite_threshold_breach'])
                     ->where('status', RiskAlert::STATUS_OPEN)
                     ->update([
                         'status' => RiskAlert::STATUS_RESOLVED,
@@ -183,4 +188,3 @@ class ScanRiskAlertsCommand extends Command
         return self::SUCCESS;
     }
 }
-

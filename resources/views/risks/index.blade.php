@@ -1319,6 +1319,11 @@ applyRiskWorkspaceTab(serverActiveRiskTab, false);
                         <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
                         <small class="text-muted">Gunakan template RM-02 yang sama seperti file lama kamu.</small>
                         <small class="text-muted d-block">Default sheet import: BT, DI, CR, OM, CS, BS, HC, SUM (sheet hidden otomatis di-skip).</small>
+                        <div class="mt-2">
+                            <a class="btn btn-outline-primary btn-sm" href="{{ route('import-templates.download', 'risk-register') }}">
+                                <i class="fas fa-file-download"></i> Download Template
+                            </a>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Year (Optional)</label>

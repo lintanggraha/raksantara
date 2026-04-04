@@ -29,9 +29,9 @@
     </a>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <strong>{{ $isEditing ? 'Edit Schedule' : 'Create Schedule' }}</strong>
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom">
+        <h3 class="card-title mb-0">{{ $isEditing ? 'Edit Schedule' : 'Create Schedule' }}</h3>
         @if($isEditing)
             <a href="{{ route('reports.scheduled.index') }}" class="btn btn-sm btn-outline-secondary">Cancel Edit</a>
         @endif
@@ -201,12 +201,12 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <strong>Your Schedules</strong>
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom">
+        <h3 class="card-title mb-0">Your Schedules</h3>
     </div>
-    <div class="card-body table-responsive">
-        <table class="table table-sm table-bordered mb-0">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-vcenter card-table table-striped mb-0">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -323,7 +323,13 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted">Belum ada scheduled report.</td>
+                        <td colspan="8" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-calendar-times fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i>
+                                <h5 class="text-dark">No Scheduled Reports Found</h5>
+                                <p class="mb-0">You have not created any automated report schedules yet.</p>
+                            </div>
+                        </td>
                     </tr>
                 @endforelse
             </tbody>

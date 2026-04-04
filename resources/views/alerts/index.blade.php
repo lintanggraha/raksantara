@@ -69,7 +69,7 @@
                             @endif
                         </td>
                         <td>{{ $alert->risk_treatment_id ?: '-' }}</td>
-                        <td>{{ $alert->alert_type }}</td>
+                        <td>{{ $alert->alert_type_label }}</td>
                         <td>{{ strtoupper($alert->severity) }}</td>
                         <td>{{ strtoupper($alert->status) }}</td>
                         <td>{{ $alert->due_date ? \Carbon\Carbon::parse($alert->due_date)->format('d-m-Y') : '-' }}</td>

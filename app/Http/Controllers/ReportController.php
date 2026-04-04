@@ -432,9 +432,17 @@ class ReportController extends Controller
                 $headerCell = $headerRow->nextCell();
                 $headerCell->setWidth($columnWidth);
                 $headerFill = $headerCell->getFill();
-                $headerFill->setFillType(Fill::FILL_SOLID)
-                    ->getStartColor()
-                    ->setARGB('FF0F172A');
+                $headerFill->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF0F172A');
+                
+                $borderColor = new Color('FF334155');
+                $headerCell->getBorders()->getBottom()->setLineWidth(1)->setColor($borderColor);
+                $headerCell->getBorders()->getTop()->setLineWidth(1)->setColor($borderColor);
+                $headerCell->getBorders()->getLeft()->setLineWidth(1)->setColor($borderColor);
+                $headerCell->getBorders()->getRight()->setLineWidth(1)->setColor($borderColor);
+                
+                if (method_exists($headerCell, 'setMarginLeft')) {
+                    $headerCell->setMarginLeft(6)->setMarginRight(6)->setMarginTop(4)->setMarginBottom(4);
+                }
                 $headerAlignment = $headerCell->getActiveParagraph()->getAlignment();
                 $headerAlignment->setHorizontal(Alignment::HORIZONTAL_LEFT);
                 $headerRun = $headerCell->createTextRun((string) ($headings[$col] ?? ('Column ' . ($col + 1))));
@@ -451,9 +459,17 @@ class ReportController extends Controller
                     $cell = $bodyRow->nextCell();
                     $cell->setWidth($columnWidth);
                     $cellFill = $cell->getFill();
-                    $cellFill->setFillType(Fill::FILL_SOLID)
-                        ->getStartColor()
-                        ->setARGB($rowIndex % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC');
+                    $cellFill->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($rowIndex % 2 === 0 ? 'FFFFFFFF' : 'FFF1F5F9');
+                    
+                    $borderColor = new Color('FFCBD5E1');
+                    $cell->getBorders()->getBottom()->setLineWidth(1)->setColor($borderColor);
+                    $cell->getBorders()->getTop()->setLineWidth(1)->setColor($borderColor);
+                    $cell->getBorders()->getLeft()->setLineWidth(1)->setColor($borderColor);
+                    $cell->getBorders()->getRight()->setLineWidth(1)->setColor($borderColor);
+                    
+                    if (method_exists($cell, 'setMarginLeft')) {
+                        $cell->setMarginLeft(6)->setMarginRight(6)->setMarginTop(4)->setMarginBottom(4);
+                    }
                     $alignment = $cell->getActiveParagraph()->getAlignment();
                     $alignment->setHorizontal(Alignment::HORIZONTAL_LEFT);
                     $rawValue = isset($rowData[$col]) ? $rowData[$col] : '';
@@ -656,7 +672,7 @@ class ReportController extends Controller
         $headerRow = $table->createRow()->setHeight(24);
         foreach (['Period', 'Inh', 'Res'] as $heading) {
             $cell = $headerRow->nextCell()->setWidth(80);
-            $cell->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF0F4C81');
+            $cell->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF0F172A');
             $cell->getActiveParagraph()->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $run = $cell->createTextRun($heading);
             $run->getFont()->setBold(true)->setSize(8)->setColor(new Color(Color::COLOR_WHITE));
@@ -716,7 +732,7 @@ class ReportController extends Controller
                 $themeRun->getFont()
                     ->setBold(true)
                     ->setSize(14)
-                    ->setColor(new Color('FF0F4C81'));
+                    ->setColor(new Color('FF0F172A'));
                 $narrativeShape->createBreak();
 
                 $recommendationRun = $narrativeShape->createTextRun('  ' . Str::limit($recommendation, 450, '...'));
@@ -740,7 +756,7 @@ class ReportController extends Controller
         $headerRow = $table->createRow()->setHeight(24);
         foreach ([$labelHeader, 'Count'] as $header) {
             $cell = $headerRow->nextCell()->setWidth(120);
-            $cell->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF0F4C81');
+            $cell->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF0F172A');
             $cell->getActiveParagraph()->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $run = $cell->createTextRun($header);
             $run->getFont()->setBold(true)->setSize(8)->setColor(new Color(Color::COLOR_WHITE));
@@ -795,7 +811,7 @@ class ReportController extends Controller
         if ($headerFill) {
             $headerFill->setFillType(Fill::FILL_SOLID)
                 ->getStartColor()
-                ->setARGB('FF0F4C81');
+                ->setARGB('FF0F172A');
         }
 
         $titleShape = $slide->createRichTextShape()

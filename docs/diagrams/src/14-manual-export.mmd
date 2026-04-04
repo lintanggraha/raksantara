@@ -1,0 +1,12 @@
+flowchart TD
+    A["User clicks export from monitoring or report endpoint"] --> B["Validate scope format filters"]
+    B --> C["Normalize risk owner filter"]
+    C --> D["Build payload via ReportDataService"]
+    D --> E{"Format?"}
+    E -- PDF --> F["Render PDF"]
+    E -- XLS or XLSX --> G["Build spreadsheet"]
+    E -- PPTX --> H["Build PowerPoint"]
+    F --> I["Download file"]
+    G --> I
+    H --> I
+    I --> J["Write audit log for export event"]

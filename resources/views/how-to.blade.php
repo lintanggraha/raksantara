@@ -161,458 +161,607 @@
 
         <div class="tab-content" id="userGuideTabContent">
             <div class="tab-pane fade show active" id="guide-start-pane" role="tabpanel" aria-labelledby="guide-start-tab">
-                <div class="guide-pane-title">Quick Start untuk Pengguna Baru</div>
+                <div class="guide-pane-title">Panduan Cepat Sesuai Kebutuhan</div>
+                <p class="mb-2">
+                    Halaman ini menjelaskan menu yang aktif dan tampil di aplikasi saat ini. Nama menu, tombol, dan alur di bawah disesuaikan dengan implementasi terbaru agar pengguna tidak perlu menebak langkah berikutnya.
+                </p>
+
+                <div class="table-responsive mb-2">
+                    <table class="table table-sm table-bordered guide-table">
+                        <thead>
+                            <tr>
+                                <th>Jika Anda ingin...</th>
+                                <th>Buka menu / URL</th>
+                                <th>Yang akan Anda dapatkan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Melihat prioritas risiko organisasi secara cepat</td>
+                                <td><strong>Risk &gt; Risk Monitoring</strong><br><code>/risk-monitoring</code></td>
+                                <td>Dashboard ringkas untuk overview, KPI mitigasi, distribusi status, benchmark, dan root cause analysis.</td>
+                            </tr>
+                            <tr>
+                                <td>Membuat atau memperbarui entri risk</td>
+                                <td><strong>Risk &gt; Risk Register</strong><br><code>/risks</code></td>
+                                <td>Workspace utama untuk Add Risk, Edit Risk, View detail, import, filter, dan export register.</td>
+                            </tr>
+                            <tr>
+                                <td>Mendalami satu risk sampai level evidence dan governance</td>
+                                <td><strong>View</strong> pada baris risk</td>
+                                <td>Tab detail risk: Basic, Inherent, Treatment, RCSA, Residual, BCM, Governance, dan Key Risk Indicators.</td>
+                            </tr>
+                            <tr>
+                                <td>Mengelola indikator peringatan dini</td>
+                                <td><strong>Risk &gt; Key Risk Indicators</strong><br><code>/kris</code></td>
+                                <td>Daftar KRI, status Healthy/Warning/Critical, threshold, dan log nilai terbaru.</td>
+                            </tr>
+                            <tr>
+                                <td>Menggerakkan action mitigasi harian</td>
+                                <td><strong>Risk &gt; Mitigation Kanban</strong><br><code>/mitigation-kanban</code></td>
+                                <td>Board drag-and-drop untuk treatment status: Not Started, In Progress, Blocked, Completed.</td>
+                            </tr>
+                            <tr>
+                                <td>Melihat owner yang paling sibuk atau paling butuh perhatian</td>
+                                <td><strong>Risk &gt; Owner Workload</strong><br><code>/owners/workload</code></td>
+                                <td>Skor beban owner berdasarkan open actions, overdue, blocked items, pending approvals, dan red KRIs.</td>
+                            </tr>
+                            <tr>
+                                <td>Menggunakan template mitigasi berulang</td>
+                                <td><strong>Risk &gt; Mitigation Playbooks</strong><br><code>/treatment-templates</code></td>
+                                <td>Library playbook, checklist evidence, target deadline, default PIC, dan status aktif/nonaktif.</td>
+                            </tr>
+                            <tr>
+                                <td>Mengisi BIA atau BCP</td>
+                                <td><strong>Risk &gt; Business Continuity (BCM)</strong><br><code>/bcm</code></td>
+                                <td>Register BIA/BCP dan shortcut ke tab BCM di detail risk.</td>
+                            </tr>
+                            <tr>
+                                <td>Mengelola vendor pihak ketiga</td>
+                                <td><strong>Third-Party Vendors</strong><br><code>/vendors</code></td>
+                                <td>Daftar vendor, status, criticality, contact person, dan associated risks yang terlihat dalam scope Anda.</td>
+                            </tr>
+                            <tr>
+                                <td>Melihat kerangka appetite korporat</td>
+                                <td><strong>Risk &gt; Corporate Risk Appetite</strong><br><code>/risk-appetites</code></td>
+                                <td>Daftar appetite statement, target, tolerance, dan status aktif.</td>
+                            </tr>
+                            <tr>
+                                <td>Mencatat insiden dan kaitannya ke risk</td>
+                                <td><strong>Risk &gt; Incident Management</strong><br><code>/incident-management</code></td>
+                                <td>Register incident, severity, handling status, root cause, corrective action, dan resolution notes.</td>
+                            </tr>
+                            <tr>
+                                <td>Melakukan triage ancaman eksternal</td>
+                                <td><strong>Threat Intel</strong><br><code>/threat-intelligence</code></td>
+                                <td>Feed CVE, CISA KEV, priority queue, dan analyst console.</td>
+                            </tr>
+                            <tr>
+                                <td>Menjalankan audit atau program compliance</td>
+                                <td><strong>Audit</strong> dan <strong>Compliance</strong></td>
+                                <td>Dashboard audit, import/export audit, dan program kerja Internal Audit, Risk Management, Governance &amp; Compliance.</td>
+                            </tr>
+                            <tr>
+                                <td>Mengirim laporan otomatis berkala</td>
+                                <td><code>/reports/scheduled</code></td>
+                                <td>Scheduler email report untuk monitoring, board, risks, heatmap, recap, dan overall.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="guide-section-title">Urutan Belajar yang Disarankan</div>
                 <ol class="mb-2">
-                    <li>Login menggunakan username dan password.</li>
-                    <li>Cek menu navbar untuk memastikan role/divisi Anda sudah benar.</li>
-                    <li>Buka <strong>Risk Monitoring</strong> untuk melihat ringkasan prioritas.</li>
-                    <li>Buka <strong>Risk Register</strong> untuk analisa detail per risiko.</li>
-                    <li>Gunakan <strong>View</strong> di baris risk untuk membuka detail, evidence, komentar, dan KRI.</li>
-                    <li>Gunakan <strong>Risk Trend Analysis</strong> untuk melihat arah pergerakan risk lintas periode.</li>
-                    <li>Gunakan <strong>KRI</strong>, <strong>Mitigation Kanban</strong>, dan <strong>Incident Management</strong> untuk operasional harian.</li>
-                    <li>Gunakan <strong>Threat Intel</strong> untuk triage CVE/KEV.</li>
-                    <li>Jika butuh distribusi laporan berkala, buka <strong>/reports/scheduled</strong> lewat URL langsung.</li>
+                    <li>Login, lalu cek navbar untuk memastikan role dan divisi Anda sudah sesuai.</li>
+                    <li>Mulai dari <strong>Risk Monitoring</strong> untuk melihat portfolio secara umum.</li>
+                    <li>Lanjut ke <strong>Risk Register</strong> untuk mencari, membuat, atau membuka detail risk.</li>
+                    <li>Masuk ke modul operasional sesuai kebutuhan: <strong>KRI</strong>, <strong>Mitigation Kanban</strong>, <strong>BCM</strong>, <strong>Incident Management</strong>, atau <strong>Third-Party Vendors</strong>.</li>
+                    <li>Jika perlu distribusi rutin ke manajemen, buat jadwal di <code>/reports/scheduled</code>.</li>
                 </ol>
 
                 <div class="guide-note">
-                    Jika menu yang Anda butuhkan tidak muncul, penyebab paling umum adalah akun masih <strong>pending verification</strong> atau divisi akun belum sesuai.
+                    Jika menu yang Anda cari tidak muncul, penyebab paling umum adalah akun masih <strong>pending verification</strong>, role akun belum sesuai, atau data Anda berada di luar scope owner/divisi yang boleh diakses.
                 </div>
             </div>
 
             <div class="tab-pane fade" id="guide-role-pane" role="tabpanel" aria-labelledby="guide-role-tab">
-                <div class="guide-pane-title">Matriks Akses</div>
+                <div class="guide-pane-title">Role, Scope, dan Hak Tulis</div>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered guide-table">
                         <thead>
                             <tr>
                                 <th>Role</th>
-                                <th>Menu yang Tampil</th>
-                                <th>Hak Tulis</th>
+                                <th>Menu utama yang tersedia</th>
+                                <th>Scope data</th>
+                                <th>Catatan hak tulis</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td><span class="guide-chip role">Superadmin</span></td>
-                                <td>Dashboard, User Management, Status Approvals, Alerts, Audit Trail, Threat Intel</td>
-                                <td>Read-only untuk Risk Register dan Incident Management</td>
+                                <td>Dashboard, User Management, Status Approvals, Alerts, Audit Trail, Threat Intel, User Guide</td>
+                                <td>Governance level</td>
+                                <td>Read-only untuk workflow Risk Register dan Incident Management. Superadmin difokuskan untuk approval, audit trail, dan administrasi sistem.</td>
                             </tr>
                             <tr>
                                 <td><span class="guide-chip role">Verified User</span></td>
-                                <td>Risk (Monitoring, Register, Trend, KRI, Mitigation Kanban, Incident), Threat Intel, User Guide, Scheduled Reports via URL langsung</td>
-                                <td>Kelola risk dalam scope owner/divisi</td>
+                                <td>Risk Monitoring, Risk Register, Trend Analysis, KRI, Mitigation Kanban, Owner Workload, Mitigation Playbooks, Incident Management, BCM, Corporate Risk Appetite, Third-Party Vendors, Threat Intel, User Guide, Scheduled Reports via URL</td>
+                                <td>Dibatasi owner/divisi yang diizinkan untuk akun tersebut</td>
+                                <td>Dapat membuat dan mengubah risk dalam scope-nya, termasuk BIA/BCP, KRI, treatment, komentar, attachment, incident, dan vendor association.</td>
                             </tr>
                             <tr>
                                 <td><span class="guide-chip role">Compliance Division</span></td>
-                                <td>Semua menu verified + Audit + Mitigasi OJK + Compliance + import lintas owner</td>
-                                <td>Kelola data lintas owner + fitur import compliance</td>
+                                <td>Semua menu verified user + Audit + Compliance + import lintas owner</td>
+                                <td>Lintas owner / lintas divisi sesuai kewenangan compliance</td>
+                                <td>Dapat melakukan import risk register dan audit, melihat dashboard lintas owner, serta mengelola program compliance.</td>
                             </tr>
                             <tr>
                                 <td><span class="guide-chip role">Pending Approval</span></td>
                                 <td>Halaman pending approval</td>
-                                <td>Tidak bisa akses modul risk sebelum diverifikasi</td>
+                                <td>Tidak ada akses operasional</td>
+                                <td>Tidak bisa masuk ke modul risk sebelum diverifikasi oleh superadmin.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="guide-note">
-                    Scope data non-compliance dibatasi oleh owner/divisi. Compliance dapat melihat lintas owner. Scheduled Reports aktif di <strong>/reports/scheduled</strong> untuk user verified non-superadmin meskipun link belum tampil di navbar.
+                    Catatan penting:
+                    <ul class="mb-0 mt-2">
+                        <li>Non-compliance hanya melihat risk, BIA/BCP, vendor-associated risk, dan report sesuai scope owner/divisi.</li>
+                        <li>Compliance dapat melihat data lintas owner dan menjalankan import compliance.</li>
+                        <li><strong>Corporate Risk Appetite</strong> dapat dilihat lebih luas, tetapi tombol add/edit hanya tersedia untuk superadmin.</li>
+                        <li><strong>Scheduled Reports</strong> aktif di <code>/reports/scheduled</code> untuk user verified non-superadmin walaupun link belum tampil di navbar.</li>
+                    </ul>
                 </div>
             </div>
 
             <div class="tab-pane fade" id="guide-risk-pane" role="tabpanel" aria-labelledby="guide-risk-tab">
-                <div class="guide-pane-title">Risk Monitoring dan Risk Register (Detail Fungsi)</div>
+                <div class="guide-pane-title">Risk Lifecycle End-to-End</div>
 
-                <div class="guide-section-title">A) Risk Monitoring (`/risk-monitoring`)</div>
+                <div class="guide-section-title">1) Risk Monitoring (<code>/risk-monitoring</code>)</div>
                 <ol class="mb-2">
-                    <li>Buka menu <strong>Risk > Risk Monitoring</strong>.</li>
-                    <li>Pilih dashboard tab sesuai tujuan analisa (Dashboard 1/2/3).</li>
-                    <li>Jika perlu, klik <strong>Customize Widgets</strong> untuk show/hide komponen.</li>
-                    <li>Drag card memakai ikon grip untuk mengubah urutan widget.</li>
-                    <li>Gunakan tombol export untuk mengirim laporan manajerial.</li>
+                    <li>Buka menu <strong>Risk &gt; Risk Monitoring</strong>.</li>
+                    <li>Pilih tab dashboard sesuai tujuan analisa: overview, status/core matrix, atau root cause analysis.</li>
+                    <li>Gunakan <strong>Customize Widgets</strong> untuk menampilkan widget yang relevan untuk meeting Anda.</li>
+                    <li>Geser urutan widget dengan ikon grip jika ingin menyusun dashboard sesuai preferensi pribadi.</li>
+                    <li>Gunakan tombol export untuk membuat bahan rapat atau board pack.</li>
                 </ol>
 
                 <div class="table-responsive mb-2">
                     <table class="table table-sm table-bordered guide-table">
                         <thead>
                             <tr>
-                                <th>Kontrol</th>
-                                <th>Fungsi</th>
-                                <th>Catatan Operasional</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Dashboard 1 / 2 / 3</strong></td>
-                                <td>Berpindah fokus analisa monitoring.</td>
-                                <td>Tab hanya mengubah tampilan widget, bukan mengubah data sumber.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Customize Widgets</strong></td>
-                                <td>Show/hide widget sesuai kebutuhan meeting.</td>
-                                <td>Preferensi visibilitas disimpan per user.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Drag Widget (ikon grip)</strong></td>
-                                <td>Mengatur urutan widget di layar.</td>
-                                <td>Urutan disimpan per user.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Export Buttons</strong></td>
-                                <td>Export dashboard monitoring (PDF/XLSX/PPTX sesuai opsi).</td>
-                                <td>Gunakan saat monthly review atau komite risiko.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Add Risk</strong></td>
-                                <td>Shortcut membuat risk baru.</td>
-                                <td>Tidak tampil untuk superadmin (read-only di risk workflow).</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Auto Refresh Summary</strong></td>
-                                <td>Memperbarui angka KPI dan widget secara berkala.</td>
-                                <td>Waktu refresh mengikuti konfigurasi frontend.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="guide-section-title">Mapping Seluruh Dashboard di Risk Monitoring</div>
-                <div class="table-responsive mb-2">
-                    <table class="table table-sm table-bordered guide-table">
-                        <thead>
-                            <tr>
-                                <th>Dashboard Tab</th>
-                                <th>Widget</th>
-                                <th>Penjelasan Singkat Output</th>
+                                <th>Tab dashboard</th>
+                                <th>Widget utama</th>
+                                <th>Dipakai untuk</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td><strong>Dashboard 1 - Risk Overview</strong></td>
-                                <td>Mitigation, SLA & KPI Dashboard</td>
-                                <td>Efektivitas mitigasi, SLA target vs actual, dan KPI response/closure/overdue.</td>
+                                <td>Mitigation, SLA &amp; KPI Dashboard; Organizational Risk Overview</td>
+                                <td>Menilai efektivitas mitigasi, SLA response/closure, dan performa per divisi.</td>
                             </tr>
                             <tr>
-                                <td><strong>Dashboard 1 - Risk Overview</strong></td>
-                                <td>Organizational Risk Overview</td>
-                                <td>Performa per divisi: jumlah risk, prioritas inherent/residual, treatment stats, dan score.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Dashboard 2 - Risk Status & Core Matrix</strong></td>
-                                <td>Status & Core Metrics</td>
-                                <td>Total risk, status Open/Monitoring/Closed, avg score, dan variance global.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Dashboard 2 - Risk Status & Core Matrix</strong></td>
-                                <td>Portfolio Command Center</td>
-                                <td>Donut distribution (priority, category, division, treatment timeline, status) + top risk table.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Dashboard 2 - Risk Status & Core Matrix</strong></td>
-                                <td>Benchmark Scoring</td>
-                                <td>Gap internal vs industry/target, posisi benchmark, sumber referensi, metodologi, dan alasan posisi.</td>
+                                <td><strong>Dashboard 2 - Risk Status &amp; Core Matrix</strong></td>
+                                <td>Status &amp; Core Metrics; Portfolio Command Center; Benchmark Scoring</td>
+                                <td>Melihat total risk, distribusi status, top risk, dan gap terhadap target/benchmark.</td>
                             </tr>
                             <tr>
                                 <td><strong>Dashboard 3 - Risk Root Cause Analysis</strong></td>
-                                <td>Root Cause Analysis</td>
-                                <td>Top cause category, recurring keywords, pattern insights + recommendation.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Dashboard 3 - Risk Root Cause Analysis</strong></td>
-                                <td>Variance Analysis (Inherent vs Residual)</td>
-                                <td>Per kategori: risk count, avg inherent, avg residual, dan selisih variance.</td>
+                                <td>Root Cause Analysis; Variance Analysis</td>
+                                <td>Mengidentifikasi penyebab dominan dan selisih inherent vs residual per kategori.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="guide-section-title">B) Risk Register Workspace (`/risks`)</div>
+                <div class="guide-note">
+                    Preferensi widget dan urutan dashboard disimpan per user. Mengubah tampilan dashboard tidak mengubah data sumber.
+                </div>
+
+                <div class="guide-section-title">2) Risk Register Workspace (<code>/risks</code>)</div>
                 <ul>
-                    <li>Bagian atas menampilkan summary card: Total Risks + distribusi level residual (Low s.d High).</li>
-                    <li>Halaman ini punya 3 dashboard workspace: Register, Heat Map, dan Recapitulation.</li>
-                    <li>Kolom inti workspace Register memuat Risk ID, Year, Process, Sasaran Target, dan Risk Identification.</li>
+                    <li>Bagian atas menampilkan summary card total risk dan distribusi level residual.</li>
+                    <li>Workspace ini memiliki 3 tampilan utama: <strong>Risk Register</strong>, <strong>Risk Heat Map</strong>, dan <strong>Risk Recapitulation</strong>.</li>
+                    <li>Halaman ini adalah titik masuk utama untuk pencarian risk, Add Risk, Edit Risk, export, dan import.</li>
                 </ul>
 
                 <div class="table-responsive mb-2">
                     <table class="table table-sm table-bordered guide-table">
                         <thead>
                             <tr>
-                                <th>Dashboard Workspace</th>
+                                <th>Workspace</th>
                                 <th>Nama di UI</th>
-                                <th>Fungsi</th>
+                                <th>Fungsi utama</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td><strong>Dashboard 1</strong></td>
                                 <td>Risk Register</td>
-                                <td>Tabel detail semua risiko untuk operasi harian (filter, sort, edit, export).</td>
+                                <td>Tabel kerja harian untuk filter, search, preset kolom, edit, delete, view, import, dan export.</td>
                             </tr>
                             <tr>
                                 <td><strong>Dashboard 2</strong></td>
                                 <td>Risk Heat Map</td>
-                                <td>Visual matrix 5x5 inherent vs residual + pemetaan risk event.</td>
+                                <td>Pemetaan matrix 5x5 antara likelihood dan impact untuk inherent serta residual risk.</td>
                             </tr>
                             <tr>
                                 <td><strong>Dashboard 3</strong></td>
                                 <td>Risk Recapitulation</td>
-                                <td>Rekap agregat per radar code + detail recap + quantitative totals.</td>
+                                <td>Rekap agregat per radar code, summary score, dan quantitative totals.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="guide-section-title">Detail Fungsi Dashboard 1 - Risk Register</div>
                 <div class="table-responsive mb-2">
                     <table class="table table-sm table-bordered guide-table">
                         <thead>
                             <tr>
-                                <th>Kontrol / Tombol</th>
+                                <th>Tombol / kontrol</th>
                                 <th>Fungsi</th>
-                                <th>Kapan Dipakai</th>
+                                <th>Catatan</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td><strong>Filter Owner</strong></td>
-                                <td>Menyaring baris risiko berdasarkan owner/divisi.</td>
-                                <td>Saat review risiko per unit kerja.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Export Buttons</strong></td>
-                                <td>Export data register.</td>
-                                <td>Saat butuh snapshot untuk rapat dan arsip.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Import XLS</strong> (compliance)</td>
-                                <td>Bulk import risk register dari file spreadsheet, termasuk opsi dry-run dan year override.</td>
-                                <td>Saat onboarding data atau update batch.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Monitoring</strong></td>
-                                <td>Pindah cepat ke halaman Risk Monitoring.</td>
-                                <td>Saat perlu lihat KPI agregat sebelum drill down.</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Add Risk</strong></td>
-                                <td>Buat entri risk baru.</td>
-                                <td>Saat ada risk event baru yang belum terdaftar.</td>
+                                <td>Menyaring daftar risk berdasarkan owner/divisi yang tersedia di scope Anda.</td>
+                                <td>Sering dipakai saat review per unit kerja.</td>
                             </tr>
                             <tr>
                                 <td><strong>Preset Kolom</strong></td>
-                                <td>Ganti tampilan kolom: Overview / Full / Analysis / Treatment / Quantitative.</td>
-                                <td>Saat menyesuaikan tampilan untuk audience berbeda.</td>
+                                <td>Mengganti tampilan tabel menjadi Overview, Full, Analysis, Treatment, atau Quantitative.</td>
+                                <td>Cocok untuk audience yang berbeda tanpa mengubah data.</td>
                             </tr>
                             <tr>
-                                <td><strong>Search + Sorting + Pagination</strong></td>
-                                <td>Pencarian cepat, urutkan kolom, dan navigasi data.</td>
-                                <td>Saat dataset risk sudah besar.</td>
+                                <td><strong>Search / Sorting / Pagination</strong></td>
+                                <td>Menelusuri dataset yang besar dengan cepat.</td>
+                                <td>Gunakan saat register sudah memiliki banyak entri.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Export Buttons</strong></td>
+                                <td>Mengekspor register sesuai filter yang sedang aktif.</td>
+                                <td>Tersedia format PDF, XLSX, atau PPTX sesuai konteks report.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Import XLS</strong> (compliance)</td>
+                                <td>Bulk import risk register dengan opsi dry-run, override year, dan download template.</td>
+                                <td>Digunakan untuk onboarding data atau update massal.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Add Risk</strong></td>
+                                <td>Membuka form risk baru.</td>
+                                <td>Tidak tersedia untuk superadmin karena workflow risk bersifat read-only untuk role tersebut.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="guide-section-title">Action per Baris Risk Register</div>
+                <div class="guide-section-title">3) Action pada baris Risk Register</div>
                 <ul>
-                    <li><strong>View</strong>: membuka detail risk lengkap.</li>
-                    <li><strong>Edit</strong>: mengubah risk (hanya jika user punya hak kelola).</li>
-                    <li><strong>Delete</strong>: menghapus risk (hanya jika user punya hak kelola).</li>
-                    <li><strong>Chip KRI</strong>: shortcut ke tab KRI pada detail risk.</li>
+                    <li><strong>View</strong>: membuka detail risk lengkap untuk review mendalam, evidence, komentar, BCM, dan KRI.</li>
+                    <li><strong>Edit</strong>: mengubah entri risk jika akun Anda punya hak kelola.</li>
+                    <li><strong>Delete</strong>: menghapus risk jika akun Anda punya hak kelola.</li>
+                    <li><strong>Chip KRI</strong>: shortcut langsung ke tab <strong>Key Risk Indicators</strong> pada risk tersebut.</li>
                 </ul>
 
-                <div class="guide-section-title">Detail Fungsi Dashboard 2 - Risk Heat Map</div>
+                <div class="guide-section-title">4) Add Risk dan Edit Risk</div>
                 <ul>
-                    <li><strong>Matrix 5x5 (Likelihood vs Impact)</strong>: memetakan posisi risiko pada skala 1-5.</li>
-                    <li><strong>Marker Inherent vs Residual</strong>: chip hitam = inherent, chip putih = residual.</li>
-                    <li><strong>Risk Event Mapping</strong>: tabel kode/category/event/owner dengan link ke detail risk.</li>
-                    <li><strong>Export Heat Map</strong>: tersedia di toolbar atas panel heatmap.</li>
+                    <li>Form <strong>Add Risk</strong> dan <strong>Edit Risk</strong> sama-sama menggunakan 6 section: <strong>Risk</strong>, <strong>Inherent Analysis</strong>, <strong>Risk Treatment</strong>, <strong>Residual Analysis</strong>, <strong>Group Radar</strong>, dan <strong>Quantitative Result</strong>.</li>
+                    <li>Pada section <strong>Risk</strong>, pengguna mengisi Process, Risk Owner, Risk Category, Cause Category, Third-Party Vendor, Sasaran Target, Risk Identification, Cause, dan Existing Control.</li>
+                    <li><strong>Risk ID</strong> dan <strong>Year</strong> dihasilkan atau ditetapkan sistem sehingga pengguna tidak perlu mengetik manual.</li>
+                    <li>Section <strong>Risk Treatment</strong> mendukung pemilihan <strong>Mitigation Playbook</strong>, pengisian PIC, target deadline, effectiveness, dan checklist evidence.</li>
+                    <li>Section <strong>Quantitative Result</strong> menghitung potential loss berdasarkan impact x probability untuk inherent dan residual, lalu tetap bisa disesuaikan jika diperlukan.</li>
+                    <li>Di form create tersedia tombol <strong>SAVE</strong> dan <strong>SAVE &amp; CONTINUE TO BCM</strong>.</li>
+                    <li>Di form edit tersedia tombol <strong>UPDATE</strong> dan <strong>UPDATE &amp; OPEN BCM</strong>.</li>
+                    <li><strong>Third-Party Vendor</strong> sudah tersedia di form create dan edit.</li>
+                    <li><strong>Corporate Risk Appetite</strong> sekarang tersedia di form add dan edit risk. Jika dipilih dan framework-nya kuantitatif, threshold scanner akan memakai appetite tersebut lebih dulu.</li>
                 </ul>
 
-                <div class="guide-section-title">Detail Fungsi Dashboard 3 - Risk Recapitulation</div>
+                <div class="guide-section-title">5) Detail Risk: tab dan fungsinya</div>
+                <div class="table-responsive mb-2">
+                    <table class="table table-sm table-bordered guide-table">
+                        <thead>
+                            <tr>
+                                <th>Tab di detail risk</th>
+                                <th>Apa yang dilakukan di tab ini</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Basic</strong></td>
+                                <td>Melihat identitas risk, owner, category, vendor terkait, sasaran, dan deskripsi dasar.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Inherent</strong></td>
+                                <td>Melihat skor, level, dan analisa sebelum treatment diterapkan.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Treatment</strong></td>
+                                <td>Melihat daftar treatment, progress, evidence, playbook yang dipakai, dan target action.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>RCSA</strong></td>
+                                <td>Ringkasan workspace RCSA dan shortcut ke halaman RCSA Workspace yang lebih lengkap.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Residual</strong></td>
+                                <td>Melihat skor, level, dan analisa sesudah treatment diterapkan.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>BCM (BIA/BCP)</strong></td>
+                                <td>Mengisi Business Impact Analysis terlebih dahulu, lalu Business Continuity Plan untuk risk yang sama.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Governance</strong></td>
+                                <td>Mengelola risk evidence, comments, activity log, status approval history, dan risk alerts.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Key Risk Indicators</strong></td>
+                                <td>Melihat, menambah, mengubah, atau mencatat nilai KRI milik risk tersebut.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="guide-note">
+                    Di area governance, komentar mendukung mention user seperti <strong>@username</strong>. Lampiran evidence dan status approval history juga dicatat di sana agar jejak review tidak tersebar.
+                </div>
+
+                <div class="guide-section-title">6) RCSA Workspace (<code>/risks/{id}/rcsa</code>)</div>
                 <ul>
-                    <li><strong>Filter Year</strong>: menyaring data recap per tahun.</li>
-                    <li><strong>Summary Recap (By Radar Code)</strong>: agregasi n, sigma inherent, sigma residual, dan risk adjustment.</li>
-                    <li><strong>Detailed Recap</strong>: rata-rata skor inherent/residual + evaluasi level + potential loss inherent/residual.</li>
-                    <li><strong>Export Recap</strong>: tersedia langsung di panel filter recap.</li>
+                    <li>RCSA Workspace dipakai untuk mendokumentasikan konteks assessment, key controls, control gaps, residual rationale, dan sign-off.</li>
+                    <li>Blok form utamanya adalah <strong>Assessment Context</strong>, <strong>Control Assessment</strong>, <strong>Residual Rationale</strong>, dan <strong>Sign-Off</strong>.</li>
+                    <li>Field penting yang biasa diisi: Process Owner, Review Frequency, Next Review Date, Objective, Scope, Key Controls, Control Gaps, Likelihood Rationale, Impact Rationale, dan Signed-Off Date.</li>
+                    <li>Jika akun Anda tidak punya hak kelola pada risk tersebut, halaman ini tetap bisa dilihat tetapi mode-nya read-only.</li>
                 </ul>
 
-                <div class="guide-section-title">C) Add/Edit Risk dan Detail Risk</div>
+                <div class="guide-section-title">7) Business Continuity Management / BCM (<code>/bcm</code>)</div>
                 <ul>
-                    <li>Form Add/Edit terdiri dari 6 tab: Basic, Inherent, Treatment, Residual, Group Radar, Quantitative Result.</li>
-                    <li>Tab Basic memuat <strong>Risk ID</strong> dan <strong>Year</strong> yang digenerate sistem, serta field <strong>Sasaran Target</strong>.</li>
-                    <li>Tab Quantitative Result memuat impact, probability, dan potential loss untuk inherent/residual; nilai potential loss akan terisi otomatis dari impact x probability tetapi masih bisa disesuaikan.</li>
-                    <li>Risk detail berisi governance lengkap: evidence, comments, activity log, status approval history, alerts, dan tab KRI.</li>
-                    <li>Komentar mendukung mention user (`@username`) dan attachment.</li>
+                    <li>Halaman BCM menampilkan register BIA/BCP dengan ringkasan <strong>Total BIAs</strong>, <strong>Tier 1 (Critical)</strong>, <strong>Tested BCPs</strong>, dan <strong>Missing BCPs</strong>.</li>
+                    <li>Tombol <strong>Conduct BIA</strong> menampilkan modal untuk memilih risk yang belum memiliki BIA.</li>
+                    <li>Pada register BCM, filter <strong>All Tiers / Tier 1 / Tier 2 / Tier 3 / Tier 4</strong> membantu fokus ke proses paling kritis.</li>
+                    <li>Setiap baris BCM memiliki tombol <strong>View</strong> yang mengarah ke detail risk pada tab <strong>#bcm</strong>.</li>
+                    <li>Di detail risk, isi form <strong>BIA</strong> terlebih dahulu: RTO, RPO, MAO, financial impact, operational impact, regulatory impact, reputational impact, criticality tier, dan justification notes.</li>
+                    <li>Form <strong>BCP</strong> baru aktif setelah BIA tersimpan. Field utamanya mencakup strategy summary, recovery procedures, primary workaround, testing frequency, last tested date, dan last test result.</li>
+                    <li>Alur paling cepat untuk pengguna baru adalah membuat risk, lalu gunakan tombol <strong>SAVE &amp; CONTINUE TO BCM</strong> atau <strong>UPDATE &amp; OPEN BCM</strong>.</li>
                 </ul>
 
-                <div class="guide-section-title">D) Risk Trend Analysis (`/trend-analysis`)</div>
+                <div class="guide-section-title">8) Third-Party Vendors (<code>/vendors</code>)</div>
+                <ul>
+                    <li>Halaman vendor menampilkan daftar vendor dengan kolom nama, contact, criticality level, status, dan action view/edit.</li>
+                    <li>Saat membuat atau mengedit vendor, isi minimal informasi identitas vendor, contact person, email, status, dan criticality level.</li>
+                    <li>Detail vendor menampilkan <strong>Associated Risks</strong>, yaitu risk yang terhubung ke vendor tersebut dan masih berada dalam scope akses Anda.</li>
+                    <li>Dari detail risk, vendor yang terhubung akan muncul di tab Basic sehingga user bisa berpindah dari risk ke detail vendor.</li>
+                    <li>Field vendor juga tersedia di form Add Risk dan Edit Risk agar risk pihak ketiga bisa ditandai sejak awal.</li>
+                </ul>
+
+                <div class="guide-section-title">9) Corporate Risk Appetite (<code>/risk-appetites</code>)</div>
+                <ul>
+                    <li>Halaman ini menampilkan framework appetite organisasi: kategori, nama appetite, appetite statement, appetite target, tolerance limit, dan status active/inactive.</li>
+                    <li>Semua user yang memiliki akses menu dapat melihat daftar appetite, tetapi tombol <strong>Add New Appetite Limit</strong> dan tombol edit hanya tersedia untuk superadmin.</li>
+                    <li>Jika appetite bersifat kuantitatif, halaman ini menampilkan nilai target appetite dan batas maksimum tolerance.</li>
+                    <li>Framework appetite dapat di-link langsung dari form add/edit risk. Jika metriknya kuantitatif, appetite target dan tolerance akan menjadi sumber threshold untuk risk yang terhubung.</li>
+                </ul>
+
+                <div class="guide-section-title">10) Risk Trend Analysis (<code>/trend-analysis</code>)</div>
                 <ul>
                     <li>Pilih granularity <strong>Monthly</strong>, <strong>Quarterly</strong>, atau <strong>Yearly</strong>.</li>
-                    <li>Pilih rentang periode: 3 bulan, 6 bulan, 1 tahun, atau 2 tahun.</li>
-                    <li>Panel utama meliputi Risk Score Trend, Risk Score by Category, Status Distribution, Owner Concentration, dan Heatmap High-Risk Trend.</li>
-                    <li>Setiap panel bisa di-drag untuk mengubah urutan tampilan sesuai preferensi pengguna.</li>
+                    <li>Pilih rentang periode 3 bulan, 6 bulan, 1 tahun, atau 2 tahun sesuai horizon review.</li>
+                    <li>Panel utamanya meliputi Risk Score Trend, Risk Score by Category, Status Distribution, Owner Concentration, dan Heatmap High-Risk Trend.</li>
+                    <li>Setiap panel dapat di-drag untuk mengubah urutan tampilan sesuai preferensi pengguna.</li>
                 </ul>
             </div>
 
             <div class="tab-pane fade" id="guide-kri-pane" role="tabpanel" aria-labelledby="guide-kri-tab">
-                <div class="guide-pane-title">Key Risk Indicators dan Mitigation Kanban</div>
+                <div class="guide-pane-title">KRI, Mitigation Kanban, Owner Workload, dan Playbooks</div>
 
-                <div class="guide-section-title">KRI Dashboard (`/kris`)</div>
+                <div class="guide-section-title">1) KRI Dashboard (<code>/kris</code>)</div>
                 <ul>
-                    <li>Ringkasan KRI: Healthy, Warning, Critical, Total.</li>
-                    <li>Filter berdasarkan status dan risk.</li>
-                    <li><strong>Add KRI</strong> memerlukan risk yang bisa diakses user.</li>
-                    <li>Setelah import risk register berhasil, sistem dapat membuat atau memperbarui KRI otomatis bertipe <strong>Auto: Residual Risk Score</strong>.</li>
+                    <li>Dashboard KRI menampilkan ringkasan <strong>Healthy</strong>, <strong>Warning</strong>, <strong>Critical</strong>, dan <strong>Total</strong>.</li>
+                    <li>Gunakan filter status dan risk untuk fokus ke indikator yang paling membutuhkan tindak lanjut.</li>
+                    <li>Tombol <strong>Add KRI</strong> hanya bisa dipakai jika ada risk dalam scope akses Anda.</li>
+                    <li>Setelah import risk register, sistem dapat membuat atau memperbarui KRI otomatis bertipe <strong>Auto: Residual Risk Score</strong>.</li>
                 </ul>
 
-                <div class="guide-section-title">KRI pada Detail Risk</div>
+                <div class="guide-section-title">2) KRI pada detail risk</div>
                 <ul>
-                    <li>Tab KRI di detail risk dipakai untuk edit threshold, delete KRI, dan log nilai terbaru.</li>
-                    <li>Status otomatis dihitung dari direction threshold:
-                        <span class="guide-chip info">lower is better</span> atau
+                    <li>Tab <strong>Key Risk Indicators</strong> di detail risk dipakai untuk membuat KRI baru, mengubah threshold, menghapus KRI, dan mencatat nilai terbaru.</li>
+                    <li>Status dihitung otomatis berdasarkan arah threshold:
+                        <span class="guide-chip info">lower is better</span>
+                        atau
                         <span class="guide-chip info">higher is better</span>.
                     </li>
+                    <li>Gunakan tab ini saat indikator memang spesifik untuk satu risk dan perlu direview bersama treatment risk tersebut.</li>
                 </ul>
 
-                <div class="guide-section-title">Mitigation Kanban (`/mitigation-kanban`)</div>
+                <div class="guide-section-title">3) Mitigation Kanban (<code>/mitigation-kanban</code>)</div>
                 <ul>
-                    <li>Card treatment dipindah antar kolom status via drag-and-drop.</li>
-                    <li>Kolom status tersedia: Not Started, In Progress, Blocked, Completed.</li>
-                    <li>Perubahan status disimpan otomatis ke database.</li>
+                    <li>Setiap card mewakili treatment action yang berasal dari risk register.</li>
+                    <li>Card dipindah antar kolom status melalui drag-and-drop.</li>
+                    <li>Kolom status yang tersedia adalah <strong>Not Started</strong>, <strong>In Progress</strong>, <strong>Blocked</strong>, dan <strong>Completed</strong>.</li>
+                    <li>Perubahan status tersimpan otomatis ke database dan langsung memengaruhi dashboard workload maupun monitoring.</li>
+                </ul>
+
+                <div class="guide-section-title">4) Owner Workload Dashboard (<code>/owners/workload</code>)</div>
+                <ul>
+                    <li>Dashboard ini merangkum owner yang paling membutuhkan perhatian berdasarkan jumlah risk, open actions, overdue actions, blocked actions, pending approvals, dan red KRIs.</li>
+                    <li>Kartu summary di bagian atas menampilkan total owner dalam scope, open actions, overdue, blocked, pending approvals, dan red KRIs.</li>
+                    <li>Bagian <strong>Highest Attention Owner</strong> menunjukkan owner dengan workload score tertinggi saat ini.</li>
+                    <li>Tabel <strong>Owner Queue</strong> sudah diurutkan berdasarkan skor tertinggi agar user bisa langsung memprioritaskan owner yang paling berat bebannya.</li>
+                </ul>
+
+                <div class="guide-section-title">5) Mitigation Playbooks (<code>/treatment-templates</code>)</div>
+                <ul>
+                    <li>Playbook adalah template treatment yang bisa dipakai ulang untuk risk serupa.</li>
+                    <li>Setiap playbook dapat memiliki nama, risk owner, treatment option, default action description, default PIC, effectiveness, target deadline, next action offset, checklist, dan status active/inactive.</li>
+                    <li>Halaman ini juga menampilkan preview checklist agar user bisa menilai isi playbook sebelum dipakai.</li>
+                    <li>Di form Add Risk atau Edit Risk, playbook digunakan pada section treatment untuk mempercepat pengisian action yang berulang.</li>
+                    <li>Jika akun Anda read-only untuk playbook management, library tetap bisa dilihat tetapi form create/edit tidak tersedia.</li>
                 </ul>
 
                 <div class="guide-note">
-                    Jika tombol <strong>Add KRI</strong> muncul tapi tidak bisa input risk, berarti tidak ada risk dalam scope akses Anda.
+                    Jika tombol <strong>Add KRI</strong> muncul tetapi dropdown risk kosong, biasanya berarti tidak ada risk yang berada dalam scope akses akun Anda.
                 </div>
             </div>
 
             <div class="tab-pane fade" id="guide-incident-pane" role="tabpanel" aria-labelledby="guide-incident-tab">
                 <div class="guide-pane-title">Incident Management dan Threat Intelligence</div>
 
-                <div class="guide-section-title">Incident Management (`/incident-management`)</div>
+                <div class="guide-section-title">1) Incident Management (<code>/incident-management</code>)</div>
                 <ul>
-                    <li>Incident wajib dikaitkan ke risk.</li>
-                    <li>Tersedia ringkasan total/active/closed/failed/affected risks.</li>
-                    <li>Chart trend 6 bulan dan distribusi mitigation verdict tersedia untuk review cepat.</li>
-                    <li>Form incident mencakup severity, handling status, mitigation verdict, occurred/detected/closed time, impact, root cause, corrective action, dan resolution notes.</li>
-                    <li>Superadmin hanya dapat melihat dashboard incident (read-only).</li>
+                    <li>Setiap incident wajib dikaitkan ke risk agar jejak peristiwa tetap nyambung dengan register risiko.</li>
+                    <li>Halaman incident menampilkan summary total incident, active, closed, failed, dan affected risks.</li>
+                    <li>Grafik trend 6 bulan dan distribusi mitigation verdict membantu review cepat terhadap kualitas penanganan.</li>
+                    <li>Field yang tersedia di form incident meliputi severity, handling status, mitigation verdict, occurred time, detected time, closed time, impact, root cause, corrective action, dan resolution notes.</li>
+                    <li>Gunakan incident management untuk kejadian operasional nyata, bukan untuk action mitigasi biasa.</li>
+                    <li>Superadmin hanya dapat melihat dashboard incident secara read-only.</li>
                 </ul>
 
-                <div class="guide-section-title">Threat Intelligence (`/threat-intelligence`)</div>
+                <div class="guide-section-title">2) Threat Intelligence (<code>/threat-intelligence</code>)</div>
                 <ul>
-                    <li>Gunakan filter keyword, severity, days, dan limit untuk memperkecil triage scope.</li>
-                    <li>Tab utama: Current CVE Feed, Known Exploited Queue, Data Sources, Priority Queue, Analyst Console.</li>
-                    <li>Data source berasal dari NVD CVE API dan CISA KEV catalog.</li>
-                    <li>Working set threat intel dapat di-refresh otomatis saat user membuka aplikasi jika interval refresh sudah terlewati.</li>
+                    <li>Gunakan filter keyword, severity, days, dan limit untuk memperkecil ruang triage.</li>
+                    <li>Tab utama yang tersedia adalah <strong>Current CVE Feed</strong>, <strong>Known Exploited Queue</strong>, <strong>Data Sources</strong>, <strong>Priority Queue</strong>, dan <strong>Analyst Console</strong>.</li>
+                    <li>Data source utama berasal dari <strong>NVD CVE API</strong> dan <strong>CISA KEV catalog</strong>.</li>
+                    <li>Working set threat intel dapat diperbarui otomatis saat aplikasi dibuka kembali jika interval refresh sudah terlewati.</li>
                 </ul>
 
                 <div class="guide-note">
-                    Jika feed kosong, cek koneksi internet/outbound ke endpoint NVD dan CISA, lalu coba refresh setelah beberapa menit.
+                    Jika feed kosong atau tidak berubah, cek koneksi internet/outbound ke endpoint NVD dan CISA, lalu refresh kembali beberapa menit kemudian.
                 </div>
             </div>
 
             <div class="tab-pane fade" id="guide-compliance-pane" role="tabpanel" aria-labelledby="guide-compliance-tab">
-                <div class="guide-pane-title">Compliance, Audit, dan OJK</div>
+                <div class="guide-pane-title">Compliance dan Audit</div>
 
-                <div class="guide-section-title">Audit Dashboard (`/audit`)</div>
+                <div class="guide-section-title">1) Audit Dashboard (<code>/audit</code>)</div>
                 <ul>
-                    <li>Khusus divisi compliance.</li>
-                    <li>Mendukung import spreadsheet audit dan export PDF/XLS/XLSX/PPTX.</li>
+                    <li>Modul ini ditujukan untuk divisi compliance.</li>
+                    <li>Audit dashboard mendukung import spreadsheet audit dan export PDF, XLS, XLSX, serta PPTX.</li>
+                    <li>Template import audit dapat diunduh dari modal <strong>Import XLS</strong>. Pastikan sheet utama mengikuti format <strong>SUMMARY UPDATE</strong>.</li>
+                    <li>Gunakan audit dashboard untuk rekap tindak lanjut audit, monitoring progress, dan distribusi status temuan.</li>
                 </ul>
 
-                <div class="guide-section-title">Mitigasi OJK (`/ojk-mitigation`)</div>
+                <div class="guide-section-title">2) Compliance Programs (<code>/compliance/*</code>)</div>
                 <ul>
-                    <li>Khusus divisi compliance.</li>
-                    <li>Mendukung import timeline XLS/XLSX, edit, update, dan delete item mitigasi.</li>
-                </ul>
-
-                <div class="guide-section-title">Compliance Programs (`/compliance/*`)</div>
-                <ul>
-                    <li>Section yang tersedia: Internal Audit, Risk Management, Governance & Compliance.</li>
+                    <li>Section yang tersedia adalah <strong>Internal Audit</strong>, <strong>Risk Management</strong>, dan <strong>Governance &amp; Compliance</strong>.</li>
                     <li>Masing-masing section mendukung CRUD program kerja.</li>
+                    <li>Gunakan modul ini untuk menyimpan rencana kerja compliance yang tidak tepat dimasukkan sebagai risk register.</li>
                 </ul>
+
+                <div class="guide-section-title">3) Fitur lintas owner untuk compliance</div>
+                <ul>
+                    <li>Compliance dapat melakukan import risk register lintas owner dari halaman register sesuai template yang disediakan sistem.</li>
+                    <li>Compliance juga memiliki akses ke dashboard audit dan program compliance yang tidak tampil untuk user biasa.</li>
+                    <li>Jika Anda adalah compliance tetapi menu audit atau compliance tidak muncul, periksa kembali division pada akun Anda.</li>
+                </ul>
+
+                @if(config('features.show_ojk_mitigation', false))
+                    <div class="guide-section-title">4) Mitigasi OJK (<code>/ojk-mitigation</code>)</div>
+                    <ul>
+                        <li>Modul ini hanya tampil jika feature flag OJK diaktifkan.</li>
+                        <li>Mendukung import timeline XLS/XLSX, edit, update, delete, dan download template.</li>
+                    </ul>
+                @endif
             </div>
 
             <div class="tab-pane fade" id="guide-report-pane" role="tabpanel" aria-labelledby="guide-report-tab">
                 <div class="guide-pane-title">Reporting Manual dan Scheduled Reports</div>
 
-                <div class="guide-section-title">Manual Export</div>
+                <div class="guide-section-title">1) Manual Export</div>
                 <ul>
-                    <li>Tombol export tersedia di halaman Monitoring, Risk Register, Heat Map, dan Recapitulation sesuai konteks halaman.</li>
-                    <li>Format export manual dapat berupa PDF, XLS, XLSX, atau PPTX tergantung scope report yang dipilih.</li>
-                    <li>Scope report yang didukung sistem meliputi monitoring, board, risks, heatmap, recap, dan overall.</li>
+                    <li>Tombol export tersedia di halaman monitoring, risk register, heat map, dan recapitulation sesuai konteks layar.</li>
+                    <li>Format export manual yang tersedia adalah PDF, XLSX, dan PPTX.</li>
+                    <li>Scope report yang dipakai sistem mencakup <strong>monitoring</strong>, <strong>board</strong>, <strong>risks</strong>, <strong>heatmap</strong>, <strong>recap</strong>, dan <strong>overall</strong>.</li>
+                    <li>Jika Anda sudah menerapkan filter di layar, export biasanya mengikuti konteks filter tersebut.</li>
                 </ul>
 
-                <div class="guide-section-title">Scheduled Reports (`/reports/scheduled`)</div>
+                <div class="guide-section-title">2) Scheduled Reports (<code>/reports/scheduled</code>)</div>
                 <ul>
-                    <li>Fitur ini untuk user verified non-superadmin dan diakses lewat URL langsung karena link belum tampil di navbar.</li>
-                    <li>Saat membuat schedule, isi nama schedule, scope, format, frekuensi, jam kirim, timezone, dan email penerima (pisahkan dengan koma).</li>
-                    <li>Format scheduled report: PDF, XLSX, dan PPTX. Frekuensi: Daily, Weekly, Monthly.</li>
-                    <li>Filter opsional yang tersedia: year, risk category, cause category, dan risk owner.</li>
-                    <li>Setelah schedule tersimpan, Anda dapat <strong>Edit</strong>, <strong>Run Now</strong>, <strong>Pause/Activate</strong>, dan <strong>Delete</strong>.</li>
-                    <li>Tabel schedule menampilkan Next Run, Last Delivery, status aktif, dan histori run terbaru.</li>
+                    <li>Fitur ini ditujukan untuk user verified non-superadmin dan saat ini diakses melalui URL langsung.</li>
+                    <li>Ketika membuat schedule baru, isi minimal: nama schedule, scope, format, frequency, jam kirim, timezone, dan daftar email penerima.</li>
+                    <li>Format yang tersedia adalah <strong>PDF</strong>, <strong>XLSX</strong>, dan <strong>PPTX</strong>.</li>
+                    <li>Frekuensi yang tersedia adalah <strong>Daily</strong>, <strong>Weekly</strong>, dan <strong>Monthly</strong>.</li>
+                    <li>Filter opsional yang tersedia mencakup year, risk category, cause category, dan risk owner.</li>
+                    <li>Setelah schedule tersimpan, user dapat <strong>Edit</strong>, <strong>Run Now</strong>, <strong>Pause/Activate</strong>, atau <strong>Delete</strong>.</li>
+                    <li>Tabel schedule menampilkan <strong>Next Run</strong>, <strong>Last Delivery</strong>, status aktif, dan ringkasan run terbaru.</li>
                 </ul>
 
                 <div class="guide-note">
-                    Scheduled Reports cocok untuk board pack atau executive snapshot berkala. Jika route menolak akses, biasanya karena akun adalah superadmin atau masih belum verified.
+                    Scheduled Reports cocok untuk board pack atau executive snapshot berkala. Jika route menolak akses, penyebab paling umum adalah akun masih belum verified atau akun menggunakan role superadmin.
                 </div>
             </div>
 
             <div class="tab-pane fade" id="guide-superadmin-pane" role="tabpanel" aria-labelledby="guide-superadmin-tab">
                 <div class="guide-pane-title">Fitur Operasional Superadmin</div>
 
-                <div class="guide-section-title">1) User Management (`/users`)</div>
+                <div class="guide-section-title">1) User Management (<code>/users</code>)</div>
                 <ul>
-                    <li>Approve divisi user pending.</li>
-                    <li>Promote/demote status superadmin.</li>
-                    <li>Reset password user lain (sistem generate temporary password).</li>
+                    <li>Menyetujui akun yang masih pending dan menentukan division pengguna.</li>
+                    <li>Mengubah status superadmin user tertentu bila diperlukan.</li>
+                    <li>Melakukan reset password user lain dengan password sementara yang dihasilkan sistem.</li>
                 </ul>
 
-                <div class="guide-section-title">2) Status Approvals (`/risk-status-approvals`)</div>
+                <div class="guide-section-title">2) Status Approvals (<code>/risk-status-approvals</code>)</div>
                 <ul>
-                    <li>Review request perubahan status risk dari user operasional.</li>
-                    <li>Action: Approve atau Reject dengan catatan review.</li>
+                    <li>Meninjau request perubahan status risk dari user operasional.</li>
+                    <li>Aksi yang tersedia adalah <strong>Approve</strong> atau <strong>Reject</strong> beserta catatan review.</li>
                 </ul>
 
-                <div class="guide-section-title">3) Alerts (`/risk-alerts`)</div>
+                <div class="guide-section-title">3) Alerts (<code>/risk-alerts</code>)</div>
                 <ul>
-                    <li>Monitor alert open/resolved.</li>
-                    <li>Resolve alert yang sudah ditindaklanjuti.</li>
+                    <li>Memantau alert open dan resolved.</li>
+                    <li>Menandai alert sebagai resolved setelah tindakan governance selesai.</li>
                 </ul>
 
-                <div class="guide-section-title">4) Audit Trail (`/audit-logs`)</div>
+                <div class="guide-section-title">4) Audit Trail (<code>/audit-logs</code>)</div>
                 <ul>
-                    <li>Lacak aktivitas penting sistem untuk kebutuhan governance dan investigasi.</li>
+                    <li>Menelusuri aktivitas penting sistem untuk kebutuhan governance, investigasi, dan evidencing.</li>
                 </ul>
+
+                <div class="guide-note">
+                    Superadmin sebaiknya dipakai untuk administrasi sistem dan approval, bukan untuk data entry risk harian, karena workflow risk dan incident memang dibuat read-only untuk role ini.
+                </div>
             </div>
 
             <div class="tab-pane fade" id="guide-account-pane" role="tabpanel" aria-labelledby="guide-account-tab">
-                <div class="guide-pane-title">Akun, Login, dan Kebijakan Password</div>
+                <div class="guide-pane-title">Akun, Login, dan Keamanan</div>
 
-                <div class="guide-section-title">Login & Registrasi</div>
+                <div class="guide-section-title">1) Login dan registrasi</div>
                 <ul>
-                    <li>Login menggunakan username + password.</li>
-                    <li>Registrasi publik tergantung konfigurasi `ALLOW_PUBLIC_REGISTRATION` (default nonaktif).</li>
-                    <li>Jika registrasi aktif, akun baru tetap menunggu verifikasi divisi oleh superadmin.</li>
+                    <li>Login menggunakan username dan password.</li>
+                    <li>Registrasi publik mengikuti konfigurasi <code>ALLOW_PUBLIC_REGISTRATION</code>. Secara default biasanya nonaktif.</li>
+                    <li>Jika registrasi aktif, akun baru tetap menunggu verifikasi division oleh superadmin sebelum dapat masuk ke modul operasional.</li>
                 </ul>
 
-                <div class="guide-section-title">Forgot / Reset Password</div>
+                <div class="guide-section-title">2) Forgot / Reset Password</div>
                 <ul>
-                    <li>Form reset meminta username akun.</li>
-                    <li>Jika reset via superadmin, user akan diminta mengganti password setelah login.</li>
+                    <li>Form reset password meminta username akun.</li>
+                    <li>Jika password di-reset oleh superadmin, pengguna akan diminta mengganti password setelah berhasil login.</li>
                 </ul>
 
-                <div class="guide-section-title">Password Policy</div>
+                <div class="guide-section-title">3) Password policy</div>
                 <ul>
                     <li>Minimal 8 karakter.</li>
-                    <li>Wajib kombinasi huruf dan angka.</li>
+                    <li>Wajib mengandung kombinasi huruf dan angka.</li>
                     <li>Password baru tidak boleh sama dengan password lama.</li>
                 </ul>
 
-                <div class="guide-section-title">Profile</div>
+                <div class="guide-section-title">4) Profile</div>
                 <ul>
-                    <li>Menu profile untuk update nama.</li>
-                    <li>Menu change password untuk ganti password mandiri.</li>
+                    <li>Menu profile dipakai untuk memperbarui nama tampilan user.</li>
+                    <li>Menu change password dipakai untuk mengganti password secara mandiri.</li>
+                </ul>
+
+                <div class="guide-section-title">5) Troubleshooting login singkat</div>
+                <ul>
+                    <li>Jika login gagal, periksa username dan password terlebih dahulu.</li>
+                    <li>Jika berhasil login tetapi hanya melihat halaman pending, artinya akun belum diverifikasi.</li>
+                    <li>Jika menu terasa kurang lengkap, cek kembali role dan division akun.</li>
                 </ul>
 
                 <div class="guide-note">

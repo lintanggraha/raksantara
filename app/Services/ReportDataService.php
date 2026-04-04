@@ -29,8 +29,6 @@ class ReportDataService
             case 'board':
                 $sections = [];
                 $sections = array_merge($sections, $this->buildBoardSections($risks));
-                $sections = array_merge($sections, $this->buildHeatmapSections($risks));
-                $sections = array_merge($sections, $this->buildRecapSections($risks));
 
                 return [
                     'title' => 'Board of Directors Risk Briefing',
@@ -130,7 +128,7 @@ class ReportDataService
         return $query->get();
     }
 
-    private function applyViewerScope(Builder $query, ?User $viewer): void
+    private function applyViewerScope($query, ?User $viewer): void
     {
         if (is_null($viewer)) {
             return;

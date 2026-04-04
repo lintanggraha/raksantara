@@ -29,6 +29,7 @@ use App\RiskStatusChangeRequest;
 use App\RadarGroup;
 use App\User;
 use App\Support\AuditLogger;
+use App\Support\RiskAppetiteEvaluator;
 use App\Support\RiskAccess;
 use App\Support\InputValidation;
 use App\Support\RiskAnalyticsCacheVersion;
@@ -1237,13 +1238,18 @@ class RiskController extends Controller
             'Your account division is not configured. Please contact administrator.'
         );
 
+        $vendors = \App\Vendor::where('status', 'Active')->get();
+        $riskAppetites = \App\RiskAppetite::where('is_active', true)->orderBy('name')->get();
+
         return view('risks.create', compact(
             'categories',
             'causeCategories',
             'impactCategories',
             'radarGroups',
             'allowedRiskOwners',
-            'treatmentTemplates'
+            'treatmentTemplates',
+            'vendors',
+            'riskAppetites'
         ));
     }
 
@@ -1267,6 +1273,10 @@ class RiskController extends Controller
             $this->riskValidationAttributes()
         );
 
+        $this->ensureSelectableRiskAppetite(
+            isset($validated['risk_appetite_id']) ? (int) $validated['risk_appetite_id'] : null
+        );
+
         if (config('app.debug')) {
             Log::debug('RiskController@store payload keys', [
                 'keys' => array_keys($validated),
@@ -1279,12 +1289,16 @@ class RiskController extends Controller
         );
 
         try {
-            DB::transaction(function () use ($validated, $templateMap) {
+            $createdRisk = null;
+
+            DB::transaction(function () use ($validated, $templateMap, &$createdRisk) {
                 $risk = Risk::createWithGeneratedRiskId([
                     'year' => now()->year,
                     'risk_title' => $validated['risk_title'],
                     'risk_category_id' => $validated['risk_category_id'],
+                    'risk_appetite_id' => $validated['risk_appetite_id'] ?? null,
                     'risk_cause_category_id' => $validated['risk_cause_category_id'] ?? null,
+                    'vendor_id' => $validated['vendor_id'] ?? null,
                     'cause' => $validated['cause'] ?? null,
                     'existing_control' => $validated['existing_control'] ?? null,
                     'risk_owner' => $validated['risk_owner'],
@@ -1293,6 +1307,7 @@ class RiskController extends Controller
                     'risk_description' => $validated['risk_description'] ?? null,
                     'status' => 'Open',
                 ]);
+                $createdRisk = $risk;
 
                 $totalEffScore = [];
 
@@ -1484,6 +1499,13 @@ class RiskController extends Controller
             return redirect()->back()->withInput()->with('error', 'Failed to create risk. Please check the input and try again.');
         }
 
+        if ($request->input('post_submit_action') === 'bcm' && !is_null($createdRisk)) {
+            return redirect()
+                ->route('risks.show', $createdRisk->id)
+                ->withFragment('bcm')
+                ->with('success', 'Risk created successfully. Continue with BCM (BIA/BCP).');
+        }
+
         return redirect()->route('risks.index')->with('success', 'Risk created successfully with all analysis data');
     }
 
@@ -1493,6 +1515,8 @@ class RiskController extends Controller
             'category',
             'causeCategory',
             'impactScale.category',
+            'vendor',
+            'riskAppetite',
             'attachments.uploader',
             'treatments.attachments.uploader',
             'treatments.template',
@@ -1502,6 +1526,7 @@ class RiskController extends Controller
                     ->oldest();
             },
             'inherentAnalysis.impactScale',
+            'bia.bcp',
             'residualAnalysis.impactScale',
             'residualAnalysis.radarGroup',
             'statusChangeRequests' => function ($query) {
@@ -1521,6 +1546,7 @@ class RiskController extends Controller
         $risk = $riskQuery->findOrFail($id);
 
         $activityLogs = $this->loadRiskActivityLogs($risk);
+        $appetiteEvaluation = RiskAppetiteEvaluator::evaluate($risk);
         $mentionUsers = User::query()
             ->select('id', 'name', 'username')
             ->whereNotNull('username')
@@ -1529,7 +1555,7 @@ class RiskController extends Controller
             ->orderBy('username')
             ->get();
 
-        return view('risks.show', compact('risk', 'activityLogs', 'mentionUsers'));
+        return view('risks.show', compact('risk', 'activityLogs', 'mentionUsers', 'appetiteEvaluation'));
     }
 
 
@@ -1556,6 +1582,18 @@ class RiskController extends Controller
         $allowedRiskOwners = $this->allowedRiskOwners($risk->risk_owner);
         $treatmentTemplates = $this->loadTreatmentTemplatesForUser();
 
+        $vendors = \App\Vendor::where('status', 'Active')->get();
+        $riskAppetitesQuery = \App\RiskAppetite::query()
+            ->where(function ($query) use ($risk) {
+                $query->where('is_active', true);
+
+                if (!is_null($risk->risk_appetite_id)) {
+                    $query->orWhere('id', $risk->risk_appetite_id);
+                }
+            })
+            ->orderBy('name');
+        $riskAppetites = $riskAppetitesQuery->get();
+
         return view('risks.edit', compact(
             'risk',
             'categories',
@@ -1563,7 +1601,9 @@ class RiskController extends Controller
             'impactCategories',
             'radarGroups',
             'allowedRiskOwners',
-            'treatmentTemplates'
+            'treatmentTemplates',
+            'vendors',
+            'riskAppetites'
         ));
     }
 
@@ -1587,6 +1627,11 @@ class RiskController extends Controller
             $this->riskValidationRules($allowedRiskOwners, true),
             $this->riskValidationMessages(),
             $this->riskValidationAttributes()
+        );
+
+        $this->ensureSelectableRiskAppetite(
+            isset($validated['risk_appetite_id']) ? (int) $validated['risk_appetite_id'] : null,
+            $risk
         );
 
         $statusApprovalRequested = false;
@@ -1666,7 +1711,9 @@ class RiskController extends Controller
                     'sasaran_target' => $validated['sasaran_target'] ?? null,
                     'risk_description' => $validated['risk_description'] ?? null,
                     'risk_category_id' => $validated['risk_category_id'],
+                    'risk_appetite_id' => $validated['risk_appetite_id'] ?? null,
                     'risk_cause_category_id' => $validated['risk_cause_category_id'] ?? null,
+                    'vendor_id' => $validated['vendor_id'] ?? null,
                     'cause' => $validated['cause'] ?? null,
                     'existing_control' => $validated['existing_control'] ?? null,
                     'risk_owner' => $validated['risk_owner'],
@@ -1921,6 +1968,13 @@ class RiskController extends Controller
                 ->with('success', 'Risk updated. Status change request submitted and waiting for superadmin approval.');
         }
 
+        if ($request->input('post_submit_action') === 'bcm') {
+            return redirect()
+                ->route('risks.show', $risk->id)
+                ->withFragment('bcm')
+                ->with('success', 'Risk updated successfully. Continue with BCM (BIA/BCP).');
+        }
+
         return redirect()->route('risks.index')->with('success', 'Risk updated successfully with analysis data');
     }
 
@@ -1974,7 +2028,9 @@ class RiskController extends Controller
             'sasaran_target' => ['nullable', 'string', 'max:5000', $textRule5000],
             'risk_description' => ['nullable', 'string', 'max:5000', $textRule5000],
             'risk_category_id' => 'required|integer|exists:risk_categories,id',
+            'risk_appetite_id' => 'nullable|integer|exists:risk_appetites,id',
             'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
+            'vendor_id' => 'nullable|integer|exists:vendors,id',
             'cause' => ['nullable', 'string', 'max:5000', $textRule5000],
             'existing_control' => ['nullable', 'string', 'max:5000', $textRule5000],
             'risk_owner' => ['required', 'string', 'max:255', Rule::in($allowedRiskOwners)],
@@ -2058,6 +2114,7 @@ class RiskController extends Controller
     {
         return [
             'risk_title' => 'Process',
+            'risk_appetite_id' => 'Corporate Risk Appetite',
             'sasaran_target' => 'Sasaran Target',
             'risk_description' => 'Risk Identification',
             'cause' => 'Cause',
@@ -2140,6 +2197,33 @@ class RiskController extends Controller
         }
 
         return $templates->all();
+    }
+
+    private function ensureSelectableRiskAppetite(?int $riskAppetiteId, ?Risk $risk = null): void
+    {
+        if (is_null($riskAppetiteId) || $riskAppetiteId <= 0) {
+            return;
+        }
+
+        $existingAppetite = \App\RiskAppetite::query()
+            ->where('id', $riskAppetiteId)
+            ->first();
+
+        if (is_null($existingAppetite)) {
+            throw ValidationException::withMessages([
+                'risk_appetite_id' => 'The selected corporate risk appetite is no longer available.',
+            ]);
+        }
+
+        if (!is_null($risk) && (int) $risk->risk_appetite_id === $riskAppetiteId) {
+            return;
+        }
+
+        if (!$existingAppetite->is_active) {
+            throw ValidationException::withMessages([
+                'risk_appetite_id' => 'The selected corporate risk appetite is inactive and cannot be newly assigned.',
+            ]);
+        }
     }
 
     private function loadRiskActivityLogs(Risk $risk)

@@ -1127,6 +1127,11 @@
                         <label class="form-label">Excel File (.xls/.xlsx)</label>
                         <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
                         <small class="text-muted">Gunakan file summary monitoring audit. Sistem akan memprioritaskan sheet <strong>SUMMARY UPDATE</strong>.</small>
+                        <div class="mt-2">
+                            <a class="btn btn-outline-primary btn-sm" href="{{ route('import-templates.download', 'audit-dashboard') }}">
+                                <i class="fas fa-file-download"></i> Download Template
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

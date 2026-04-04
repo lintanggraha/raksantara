@@ -1,0 +1,13 @@
+flowchart TD
+    A["User opens /bcm or risk detail BCM tab"] --> B["Load visible risks only"]
+    B --> C{"Risk already has BIA?"}
+    C -- No --> D["Conduct BIA"]
+    C -- Yes --> E["Review or update BIA"]
+    D --> F["Save BIA: RTO RPO MAO impacts tier notes"]
+    E --> F
+    F --> G["BCP form unlocked"]
+    G --> H["Save BCP: strategy procedures workaround testing"]
+    H --> I["BCM dashboard metrics refresh"]
+    I --> J["Total BIAs Tier 1 Tested BCPs Missing BCPs"]
+    A --> K["Shortcut from risk form: Save and Continue to BCM"]
+    K --> D

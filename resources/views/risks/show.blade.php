@@ -522,6 +522,9 @@
         <a class="nav-link" href="#residual" role="tab" data-toggle="tab">Residual</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link" href="#bcm" role="tab" data-toggle="tab">BCM (BIA/BCP)</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link" href="#governance" role="tab" data-toggle="tab">Governance</a>
     </li>
     <li class="nav-item">
@@ -540,10 +543,75 @@
                     <div class="col-md-12"><strong>Risk Identification</strong><div>{{ $risk->risk_description ?? '-' }}</div></div>
                     <div class="col-md-4"><strong>Category</strong><div>{{ optional($risk->category)->name ?? '-' }}</div></div>
                     <div class="col-md-4"><strong>Cause Category</strong><div>{{ optional($risk->causeCategory)->name ?? '-' }}</div></div>
+                    <div class="col-md-4">
+                        <strong>Third-Party Vendor</strong>
+                        <div>
+                            @if($risk->vendor)
+                                <a href="{{ route('vendors.show', $risk->vendor_id) }}">{{ $risk->vendor->name }}</a>
+                            @else
+                                -
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Corporate Risk Appetite</strong>
+                        <div>
+                            @if($risk->riskAppetite)
+                                <a href="{{ route('risk-appetites.show', $risk->riskAppetite->id) }}">{{ $risk->riskAppetite->name }}</a>
+                                @if($risk->riskAppetite->tolerance_limit_value !== null)
+                                    <span class="badge bg-danger ms-1" title="Tolerance Limit">
+                                        Max: {{ number_format($risk->riskAppetite->tolerance_limit_value, 0) }}
+                                        {{ $risk->riskAppetite->effectiveThresholdMetric() === \App\RiskAppetite::THRESHOLD_METRIC_RESIDUAL_SCORE ? 'Score' : $risk->riskAppetite->unit }}
+                                    </span>
+                                @endif
+                                @if(!empty($appetiteEvaluation['status_label']))
+                                    <div class="mt-1">
+                                        <span class="badge {{ $appetiteEvaluation['badge_class'] ?? 'bg-secondary-lt' }}">
+                                            {{ $appetiteEvaluation['status_label'] }}
+                                        </span>
+                                    </div>
+                                @endif
+                                @if(!empty($appetiteEvaluation['metric_label']))
+                                    <div class="small text-muted mt-1">
+                                        Threshold engine: {{ $appetiteEvaluation['metric_label'] }}
+                                        @if(!is_null($appetiteEvaluation['warning_threshold']) || !is_null($appetiteEvaluation['breach_threshold']))
+                                            |
+                                            Appetite: {{ $appetiteEvaluation['warning_threshold'] ?? '-' }}
+                                            {{ $appetiteEvaluation['unit'] }}
+                                            |
+                                            Tolerance: {{ $appetiteEvaluation['breach_threshold'] ?? '-' }}
+                                            {{ $appetiteEvaluation['unit'] }}
+                                        @endif
+                                    </div>
+                                @endif
+                                @if(!empty($appetiteEvaluation['message']))
+                                    <div class="small text-muted mt-1">{{ $appetiteEvaluation['message'] }}</div>
+                                @endif
+                            @else
+                                <span class="text-muted">Not specified</span>
+                                @if(!empty($appetiteEvaluation['source_label']))
+                                    <div class="small text-muted mt-1">Threshold source: {{ $appetiteEvaluation['source_label'] }}</div>
+                                @endif
+                                @if(!empty($appetiteEvaluation['message']))
+                                    <div class="small text-muted mt-1">{{ $appetiteEvaluation['message'] }}</div>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
                     <div class="col-md-4"><strong>Owner</strong><div>{{ \App\Support\RiskOwnerAccess::displayLabel($risk->risk_owner) }}</div></div>
-                    <div class="col-md-6"><strong>Cause</strong><div>{{ $risk->cause ?? '-' }}</div></div>
-                    <div class="col-md-6"><strong>Existing Control</strong><div>{{ $risk->existing_control ?? '-' }}</div></div>
-                    <div class="col-md-4"><strong>Status</strong><div>{{ $risk->status }}</div></div>
+                    <div class="col-md-8"><strong>Cause</strong><div>{{ $risk->cause ?? '-' }}</div></div>
+                    <div class="col-md-8"><strong>Existing Control</strong><div>{{ $risk->existing_control ?? '-' }}</div></div>
+                    <div class="col-md-4"><strong>Status</strong>
+                        <div>
+                            @if($risk->status === 'Open')
+                                <span class="badge bg-red-lt">Open</span>
+                            @elseif($risk->status === 'Monitoring')
+                                <span class="badge bg-yellow-lt">Monitoring</span>
+                            @else
+                                <span class="badge bg-green-lt">Closed</span>
+                            @endif
+                        </div>
+                    </div>
                 </div>
                 @if($risk->statusChangeRequests->where('status', 'pending')->isNotEmpty())
                     <div class="alert alert-warning mt-3 mb-0">
@@ -710,6 +778,155 @@
                 @else
                     <div class="text-muted">No residual analysis data.</div>
                 @endif
+            </div>
+        </div>
+    </div>
+
+    <div role="tabpanel" class="tab-pane" id="bcm">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <strong>Business Impact Analysis (BIA)</strong>
+                    </div>
+                    <div class="card-body">
+                        @php
+                            $bia = $risk->bia ?? new \App\Bia();
+                        @endphp
+                        <form action="{{ route('bia.store', $risk->id) }}" method="POST">
+                            @csrf
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Recovery Time Objective (RTO)</label>
+                                    <select name="rto" class="form-select form-select-sm">
+                                        <option value="">Select RTO</option>
+                                        @foreach(['1 Hour', '4 Hours', '24 Hours', '1 Week', '1 Month'] as $opt)
+                                            <option value="{{ $opt }}" {{ $bia->rto === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Recovery Point Objective (RPO)</label>
+                                    <select name="rpo" class="form-select form-select-sm">
+                                        <option value="">Select RPO</option>
+                                        @foreach(['1 Hour', '4 Hours', '24 Hours', '1 Week', '1 Month'] as $opt)
+                                            <option value="{{ $opt }}" {{ $bia->rpo === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Max Acceptable Outage</label>
+                                    <select name="mao" class="form-select form-select-sm">
+                                        <option value="">Select MAO</option>
+                                        @foreach(['1 Hour', '4 Hours', '24 Hours', '1 Week', '1 Month'] as $opt)
+                                            <option value="{{ $opt }}" {{ $bia->mao === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-2 mb-3">
+                                @php $impacts = ['impact_financial' => 'Financial', 'impact_operational' => 'Operational', 'impact_regulatory' => 'Regulatory', 'impact_reputational' => 'Reputational']; @endphp
+                                @foreach($impacts as $field => $label)
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ $label }} Impact</label>
+                                        <select name="{{ $field }}" class="form-select form-select-sm">
+                                            <option value="">Select Impact</option>
+                                            @foreach(['Low', 'Medium', 'High', 'Critical'] as $opt)
+                                                <option value="{{ $opt }}" {{ $bia->$field === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Criticality Tier</label>
+                                <select name="criticality_tier" class="form-select form-select-sm">
+                                    <option value="">Select Tier</option>
+                                    @foreach(['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'] as $opt)
+                                        <option value="{{ $opt }}" {{ $bia->criticality_tier === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Justification / Notes</label>
+                                <textarea name="justification_notes" class="form-control form-control-sm" rows="3">{{ $bia->justification_notes }}</textarea>
+                            </div>
+
+                            @if($canManage)
+                                <button type="submit" class="btn btn-sm btn-primary">Save BIA</button>
+                            @endif
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100 {{ !$risk->bia ? 'bg-secondary-lt' : '' }}">
+                    <div class="card-header">
+                        <strong>Business Continuity Plan (BCP)</strong>
+                    </div>
+                    <div class="card-body">
+                        @if($risk->bia)
+                            @php
+                                $bcp = $risk->bia->bcp ?? new \App\Bcp();
+                            @endphp
+                            <form action="{{ route('bcp.store', $risk->bia->id) }}" method="POST">
+                                @csrf
+                                <div class="mb-3">
+                                    <label class="form-label">Recovery Strategy Summary</label>
+                                    <textarea name="strategy_summary" class="form-control form-control-sm" rows="2">{{ $bcp->strategy_summary }}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Recovery Step-by-Step Procedures</label>
+                                    <textarea name="recovery_procedures" class="form-control form-control-sm" rows="3">{{ $bcp->recovery_procedures }}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Primary Workaround</label>
+                                    <textarea name="primary_workaround" class="form-control form-control-sm" rows="2">{{ $bcp->primary_workaround }}</textarea>
+                                </div>
+
+                                <hr>
+                                <strong>Testing & Maintenance</strong>
+                                
+                                <div class="row g-2 mt-2 mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Testing Frequency</label>
+                                        <select name="testing_frequency" class="form-select form-select-sm">
+                                            <option value="">Select Frequency</option>
+                                            @foreach(['Monthly', 'Quarterly', 'Semi-Annual', 'Annual'] as $opt)
+                                                <option value="{{ $opt }}" {{ $bcp->testing_frequency === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Last Tested Date</label>
+                                        <input type="date" name="last_tested_at" class="form-control form-control-sm" value="{{ optional($bcp->last_tested_at)->format('Y-m-d') }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Last Test Result</label>
+                                        <select name="last_test_result" class="form-select form-select-sm">
+                                            <option value="">Select Result</option>
+                                            @foreach(['Pass', 'Partial', 'Fail'] as $opt)
+                                                <option value="{{ $opt }}" {{ $bcp->last_test_result === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                @if($canManage)
+                                    <button type="submit" class="btn btn-sm btn-primary">Save BCP</button>
+                                @endif
+                            </form>
+                        @else
+                            <div class="text-muted d-flex align-items-center justify-content-center h-100">
+                                <div>Please complete and save the <strong>Business Impact Analysis (BIA)</strong> first to unlock the BCP form.</div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -987,7 +1204,7 @@
                     <tbody>
                         @forelse($risk->alerts as $alert)
                             <tr>
-                                <td>{{ $alert->alert_type }}</td>
+                                <td>{{ $alert->alert_type_label }}</td>
                                 <td>{{ strtoupper($alert->severity) }}</td>
                                 <td>{{ strtoupper($alert->status) }}</td>
                                 <td>{{ $alert->due_date ? \Carbon\Carbon::parse($alert->due_date)->format('d-m-Y') : '-' }}</td>

@@ -1,0 +1,14 @@
+flowchart TD
+    A["/reports/scheduled"] --> B["Load schedules owned by current user"]
+    B --> C{"Create update toggle run or delete?"}
+    C -- Create or update --> D["Validate scope format frequency time recipients filters"]
+    D --> E["Parse recipients"]
+    E --> F["Compute next_run_at"]
+    F --> G["Save ScheduledReport"]
+    C -- Toggle --> H["Activate or pause schedule"]
+    C -- Run now --> I["Dispatch service runs immediately"]
+    I --> J["Build payload and export binary"]
+    J --> K["Email recipients"]
+    K --> L["Record ScheduledReportRun"]
+    L --> M["Update last_run_at and next_run_at"]
+    C -- Delete --> N["Remove schedule"]

@@ -29,14 +29,22 @@
                     z-index: 2100;
                     background-color: #ffffff !important;
                     border: 1px solid #d8e3ef;
-                    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+                    border-radius: 8px;
+                    padding: 8px 0;
+                    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08), 0 4px 6px rgba(15, 23, 42, 0.04);
                     opacity: 1 !important;
                     backdrop-filter: none !important;
                     -webkit-backdrop-filter: none !important;
                 }
 
+                @keyframes dropdownFadeIn {
+                    from { opacity: 0; transform: translateY(-4px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
                 .report-export-menu.show {
                     display: block;
+                    animation: dropdownFadeIn 0.2s ease-out forwards;
                 }
 
                 .report-export-menu .dropdown-item i {
@@ -46,6 +54,8 @@
                 .report-export-menu .dropdown-item {
                     color: #0f172a;
                     background-color: transparent;
+                    transition: all 0.15s ease-in-out;
+                    padding: 8px 16px;
                 }
 
                 .report-export-menu .dropdown-item:hover,
@@ -177,7 +187,7 @@
                 <i class="fas fa-file-powerpoint me-2 text-warning"></i>{{ $overallLabel }} - PPT
             </a>
             <div class="dropdown-divider"></div>
-            <h6 class="dropdown-header">Board of Directors</h6>
+            <h6 class="dropdown-header"><i class="fas fa-users-cog me-1"></i> Board of Directors</h6>
             <a class="dropdown-item" data-report-export-link href="{{ route('reports.export', array_merge(['scope' => 'board', 'format' => 'pdf'], $overallQuery)) }}">
                 <i class="fas fa-file-pdf me-2 text-danger"></i>Board Briefing - PDF
             </a>

@@ -276,6 +276,9 @@
                         <i class="fas fa-file-import"></i> Import XLS
                     </button>
                 </form>
+                <a class="btn btn-outline-primary btn-sm with-icon" href="{{ route('import-templates.download', 'ojk-mitigation') }}">
+                    <i class="fas fa-file-download"></i> Download Template
+                </a>
             @endif
         </div>
     </div>

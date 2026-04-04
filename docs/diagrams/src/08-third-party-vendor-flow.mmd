@@ -1,0 +1,12 @@
+flowchart TD
+    A["/vendors"] --> B{"Create edit or view vendor?"}
+    B -- Create or edit --> C["Save vendor master data"]
+    C --> D["Name description contact status criticality"]
+    B -- View --> E["Load associated risks"]
+    D --> F["Risk create or edit can link vendor_id"]
+    F --> G["Risk saved with vendor association"]
+    G --> E
+    E --> H["Apply RiskAccess visibility scope"]
+    H --> I["Show only risks visible to current user"]
+    B -- Delete --> J["Delete vendor"]
+    J --> K["Existing risk link becomes null or handled by FK"]

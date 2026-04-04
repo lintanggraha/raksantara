@@ -1,0 +1,14 @@
+flowchart TD
+    A["/incident-management"] --> B["Load incidents and accessible risks"]
+    B --> C{"Create or update incident?"}
+    C -- Create --> D["Select risk in scope"]
+    C -- Update --> E["Open existing incident"]
+    D --> F["Fill severity status verdict timestamps actions"]
+    E --> F
+    F --> G["Validate payload"]
+    G --> H["Generate incident code for new record"]
+    H --> I["Save incident"]
+    I --> J["Refresh summary trend verdict charts"]
+    J --> K{"Status == Closed?"}
+    K -- Yes --> L["Set closed_at"]
+    K -- No --> M["Remain active"]

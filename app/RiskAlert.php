@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class RiskAlert extends Model
 {
@@ -40,5 +41,13 @@ class RiskAlert extends Model
     {
         return $this->belongsTo(RiskTreatment::class, 'risk_treatment_id');
     }
-}
 
+    public function getAlertTypeLabelAttribute(): string
+    {
+        return match ((string) $this->alert_type) {
+            'risk_appetite_threshold_breach' => 'Risk Appetite Threshold',
+            'kri_threshold_breach' => 'Legacy Threshold Breach',
+            default => Str::headline(str_replace('_', ' ', (string) $this->alert_type)),
+        };
+    }
+}

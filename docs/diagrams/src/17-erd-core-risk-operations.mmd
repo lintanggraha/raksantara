@@ -1,0 +1,269 @@
+erDiagram
+    USER {
+        bigint id PK
+        string username
+        string division
+        boolean is_superadmin
+        datetime division_verified_at
+    }
+
+    USER_DASHBOARD_PREFERENCE {
+        bigint id PK
+        bigint user_id FK
+        json widget_visibility
+        json widget_order
+        string trend_granularity
+    }
+
+    RISK_CATEGORY {
+        bigint id PK
+        string name
+    }
+
+    RISK_CAUSE_CATEGORY {
+        bigint id PK
+        string name
+    }
+
+    IMPACT_CATEGORY {
+        bigint id PK
+        string name
+    }
+
+    IMPACT_SCALE {
+        bigint id PK
+        bigint impact_category_id FK
+        string description
+        int score
+    }
+
+    VENDOR {
+        bigint id PK
+        string name
+        string status
+        string criticality_level
+        string contact_email
+    }
+
+    RISK_APPETITE {
+        bigint id PK
+        string name
+        string risk_category
+        string threshold_metric
+        decimal appetite_limit_value
+        decimal tolerance_limit_value
+        boolean is_active
+    }
+
+    RISK {
+        bigint id PK
+        string risk_id
+        int year
+        bigint risk_category_id FK
+        bigint risk_cause_category_id FK
+        bigint risk_appetite_id FK
+        bigint vendor_id FK
+        bigint created_by FK
+        string risk_owner
+        string risk_title
+        string status
+    }
+
+    RISK_INHERENT_ANALYSIS {
+        bigint id PK
+        bigint risk_id FK
+        bigint impact_scale_id FK
+        int probability_score
+        int impact_score
+        int inherent_risk_score
+        bigint potential_loss
+    }
+
+    RADAR_GROUP {
+        bigint id PK
+        string code
+        string description
+    }
+
+    RISK_QUANT_PROFILE {
+        bigint id PK
+        bigint radar_group_id FK
+        bigint potential_loss_inherent
+        decimal residual_loss_factor
+        int risk_appetite_score
+        bigint risk_appetite_loss
+    }
+
+    RISK_RESIDUAL_ANALYSIS {
+        bigint id PK
+        bigint risk_id FK
+        bigint impact_scale_id FK
+        bigint radar_group_id FK
+        int probability_score
+        int impact_score
+        int residual_risk_score
+        bigint potential_loss
+        string risk_level
+    }
+
+    RISK_TREATMENT_TEMPLATE {
+        bigint id PK
+        bigint created_by FK
+        string risk_owner
+        string name
+        string option
+        string default_effectiveness
+        boolean is_active
+    }
+
+    RISK_TREATMENT {
+        bigint id PK
+        bigint risk_id FK
+        bigint template_id FK
+        string option
+        string pic
+        string status
+        date deadline
+        date next_action_at
+    }
+
+    RISK_RCSA_WORKSPACE {
+        bigint id PK
+        bigint risk_id FK
+        bigint updated_by FK
+        string process_owner
+        string review_frequency
+        date next_review_at
+    }
+
+    BIA {
+        bigint id PK
+        bigint risk_id FK
+        string rto
+        string rpo
+        string mao
+        string criticality_tier
+    }
+
+    BCP {
+        bigint id PK
+        bigint bia_id FK
+        string testing_frequency
+        date last_tested_at
+        string last_test_result
+    }
+
+    KRI {
+        bigint id PK
+        bigint risk_id FK
+        bigint last_updated_by FK
+        string metric_name
+        string threshold_type
+        decimal threshold_warn
+        decimal threshold_critical
+        decimal current_value
+        string status
+    }
+
+    KRI_LOG {
+        bigint id PK
+        bigint kri_id FK
+        bigint recorded_by FK
+        decimal recorded_value
+        string status_calculated
+    }
+
+    RISK_INCIDENT {
+        bigint id PK
+        string incident_code
+        bigint risk_id FK
+        bigint reported_by FK
+        bigint last_updated_by FK
+        string severity
+        string status
+        string mitigation_verdict
+        datetime occurred_at
+    }
+
+    RISK_COMMENT {
+        bigint id PK
+        bigint risk_id FK
+        bigint user_id FK
+        text content
+        datetime edited_at
+    }
+
+    RISK_COMMENT_MENTION {
+        bigint risk_comment_id FK
+        bigint mentioned_user_id FK
+    }
+
+    EVIDENCE_ATTACHMENT {
+        bigint id PK
+        string attachable_type
+        bigint attachable_id
+        bigint uploaded_by FK
+        string original_name
+        string storage_path
+    }
+
+    RISK_STATUS_CHANGE_REQUEST {
+        bigint id PK
+        bigint risk_id FK
+        bigint requested_by FK
+        bigint reviewed_by FK
+        string from_status
+        string to_status
+        string status
+    }
+
+    RISK_ALERT {
+        bigint id PK
+        bigint risk_id FK
+        bigint risk_treatment_id FK
+        string alert_type
+        string severity
+        string status
+        datetime alerted_at
+    }
+
+    USER ||--o| USER_DASHBOARD_PREFERENCE : owns
+    USER ||--o{ RISK : creates
+    RISK_CATEGORY ||--o{ RISK : classifies
+    RISK_CAUSE_CATEGORY ||--o{ RISK : groups
+    VENDOR ||--o{ RISK : linked_to
+    RISK_APPETITE ||--o{ RISK : applied_to
+    IMPACT_CATEGORY ||--o{ IMPACT_SCALE : contains
+    IMPACT_SCALE ||--o{ RISK_INHERENT_ANALYSIS : used_by
+    IMPACT_SCALE ||--o{ RISK_RESIDUAL_ANALYSIS : used_by
+    RISK ||--o| RISK_INHERENT_ANALYSIS : has
+    RISK ||--o| RISK_RESIDUAL_ANALYSIS : has
+    RADAR_GROUP ||--o{ RISK_RESIDUAL_ANALYSIS : maps
+    RADAR_GROUP ||--o| RISK_QUANT_PROFILE : has
+    USER ||--o{ RISK_TREATMENT_TEMPLATE : creates
+    RISK_TREATMENT_TEMPLATE ||--o{ RISK_TREATMENT : seeds
+    RISK ||--o{ RISK_TREATMENT : has
+    RISK ||--o| RISK_RCSA_WORKSPACE : has
+    USER ||--o{ RISK_RCSA_WORKSPACE : updates
+    RISK ||--o| BIA : has
+    BIA ||--o| BCP : unlocks
+    RISK ||--o{ KRI : has
+    USER ||--o{ KRI : updates
+    KRI ||--o{ KRI_LOG : records
+    USER ||--o{ KRI_LOG : records
+    RISK ||--o{ RISK_INCIDENT : has
+    USER ||--o{ RISK_INCIDENT : reports
+    USER ||--o{ RISK_INCIDENT : updates
+    RISK ||--o{ RISK_COMMENT : has
+    USER ||--o{ RISK_COMMENT : writes
+    RISK_COMMENT ||--o{ RISK_COMMENT_MENTION : contains
+    USER ||--o{ RISK_COMMENT_MENTION : mentioned_in
+    USER ||--o{ EVIDENCE_ATTACHMENT : uploads
+    RISK ||--o{ EVIDENCE_ATTACHMENT : polymorphic
+    RISK_TREATMENT ||--o{ EVIDENCE_ATTACHMENT : polymorphic
+    RISK_COMMENT ||--o{ EVIDENCE_ATTACHMENT : polymorphic
+    RISK ||--o{ RISK_STATUS_CHANGE_REQUEST : requests
+    USER ||--o{ RISK_STATUS_CHANGE_REQUEST : requester
+    USER ||--o{ RISK_STATUS_CHANGE_REQUEST : reviewer
+    RISK ||--o{ RISK_ALERT : raises
+    RISK_TREATMENT ||--o{ RISK_ALERT : raises
