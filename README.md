@@ -409,10 +409,42 @@ Run all tests:
 php artisan test
 ```
 
+Jika environment lokal tidak punya MySQL test yang aktif, jalankan full regression dengan SQLite file-based test database.
+
+Windows PowerShell (Laragon example):
+
+```powershell
+New-Item -ItemType File -Path 'database/testing.sqlite' -Force | Out-Null
+$env:APP_ENV='testing'
+$env:APP_DEBUG='false'
+$env:APP_URL='http://localhost'
+$env:DB_CONNECTION='sqlite'
+$env:DB_DATABASE='database/testing.sqlite'
+$env:CACHE_DRIVER='array'
+$env:SESSION_DRIVER='array'
+$env:QUEUE_CONNECTION='sync'
+$env:MAIL_MAILER='array'
+& 'C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe' artisan migrate:fresh --force
+& 'C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe' artisan test
+```
+
+Coverage summary:
+
+- Feature workflow tests act as end-to-end SIT/UAT-style automation for business flows.
+- Security/regression tests cover access control, export hardening, scheduled report scope, and attachment/comment boundaries.
+- Unit tests cover validation helpers, spreadsheet parsing, and PDF layout helpers.
+
 Run specific suite:
 
 ```bash
 php artisan test --filter="OjkMitigationMonitoringWorkflowTest"
+```
+
+Dependency security audit:
+
+```bash
+php composer.phar audit --no-interaction
+npm audit --audit-level=low
 ```
 
 ## Deployment Notes

@@ -165,6 +165,47 @@ class ScanRiskAlertsCommand extends Command
                     ]
                 );
                 $createdOrUpdated++;
+
+                if (($evaluation['source'] ?? null) === 'radar_quant_profile') {
+                    RiskAlert::updateOrCreate(
+                        [
+                            'risk_id' => $risk->id,
+                            'risk_treatment_id' => null,
+                            'alert_type' => 'kri_threshold_breach',
+                            'status' => RiskAlert::STATUS_OPEN,
+                        ],
+                        [
+                            'severity' => $evaluation['status'] === 'breach' ? 'critical' : 'warning',
+                            'message' => sprintf(
+                                'Legacy threshold alert retained for risk %s from radar quant profile fallback.',
+                                (string) ($risk->risk_id ?: ('ID-' . $risk->id))
+                            ),
+                            'alerted_at' => now(),
+                            'meta' => [
+                                'source' => $evaluation['source'],
+                                'metric' => $evaluation['metric'],
+                                'metric_label' => $evaluation['metric_label'],
+                                'current_value' => $evaluation['current_value'],
+                                'warning_threshold' => $evaluation['warning_threshold'],
+                                'breach_threshold' => $evaluation['breach_threshold'],
+                                'threshold_reference' => $thresholdDetail,
+                                'unit' => $evaluation['unit'],
+                                'status' => $evaluation['status'],
+                            ],
+                        ]
+                    );
+                    $createdOrUpdated++;
+                } else {
+                    $resolved += RiskAlert::query()
+                        ->where('risk_id', $risk->id)
+                        ->whereNull('risk_treatment_id')
+                        ->where('alert_type', 'kri_threshold_breach')
+                        ->where('status', RiskAlert::STATUS_OPEN)
+                        ->update([
+                            'status' => RiskAlert::STATUS_RESOLVED,
+                            'resolved_at' => now(),
+                        ]);
+                }
             } else {
                 $resolved += RiskAlert::query()
                     ->where('risk_id', $risk->id)
