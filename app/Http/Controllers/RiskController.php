@@ -20,6 +20,7 @@ use App\RiskCauseCategory;
 use App\RiskComment;
 use App\ImpactCategory;
 use App\ImpactScale;
+use App\ProbabilityScale;
 use App\RiskTreatment;
 use App\RiskTreatmentTemplate;
 use App\RiskScoreMatrix;
@@ -1228,6 +1229,7 @@ class RiskController extends Controller
         $categories = RiskCategory::all();
         $causeCategories = RiskCauseCategory::all();
         $impactCategories = ImpactCategory::all();
+        $probabilityScales = $this->loadActiveProbabilityScales();
         $radarGroups = RadarGroup::with('quantProfile')->orderBy('id')->get();
         $allowedRiskOwners = $this->allowedRiskOwners();
         $treatmentTemplates = $this->loadTreatmentTemplatesForUser();
@@ -1245,6 +1247,7 @@ class RiskController extends Controller
             'categories',
             'causeCategories',
             'impactCategories',
+            'probabilityScales',
             'radarGroups',
             'allowedRiskOwners',
             'treatmentTemplates',
@@ -1578,6 +1581,7 @@ class RiskController extends Controller
         $categories = RiskCategory::all();
         $causeCategories = RiskCauseCategory::all();
         $impactCategories = ImpactCategory::all();
+        $probabilityScales = $this->loadEditableProbabilityScales($risk);
         $radarGroups = RadarGroup::with('quantProfile')->orderBy('id')->get();
         $allowedRiskOwners = $this->allowedRiskOwners($risk->risk_owner);
         $treatmentTemplates = $this->loadTreatmentTemplatesForUser();
@@ -1599,12 +1603,72 @@ class RiskController extends Controller
             'categories',
             'causeCategories',
             'impactCategories',
+            'probabilityScales',
             'radarGroups',
             'allowedRiskOwners',
             'treatmentTemplates',
             'vendors',
             'riskAppetites'
         ));
+    }
+
+    private function loadActiveProbabilityScales()
+    {
+        return ProbabilityScale::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('score')
+            ->orderBy('id')
+            ->get();
+    }
+
+    private function loadEditableProbabilityScales(Risk $risk)
+    {
+        $scales = $this->loadActiveProbabilityScales();
+
+        $legacyScales = [
+            [
+                'score' => optional($risk->inherentAnalysis)->probability_score,
+                'description' => optional($risk->inherentAnalysis)->probability_description,
+            ],
+            [
+                'score' => optional($risk->residualAnalysis)->probability_score,
+                'description' => optional($risk->residualAnalysis)->probability_description,
+            ],
+        ];
+
+        foreach ($legacyScales as $legacyScale) {
+            $score = (int) ($legacyScale['score'] ?? 0);
+            if ($score < 1 || $score > 5) {
+                continue;
+            }
+
+            $alreadyLoaded = $scales->contains(function ($scale) use ($score) {
+                return (int) $scale->score === $score;
+            });
+
+            if ($alreadyLoaded) {
+                continue;
+            }
+
+            $scales->push(new ProbabilityScale([
+                'score' => $score,
+                'description' => trim((string) ($legacyScale['description'] ?? '')),
+                'sort_order' => 999999,
+                'is_active' => false,
+            ]));
+        }
+
+        return $scales
+            ->sortBy(function ($scale) {
+                return sprintf(
+                    '%06d-%02d-%06d',
+                    (int) ($scale->sort_order ?? 0),
+                    (int) ($scale->score ?? 0),
+                    (int) ($scale->id ?? 0)
+                );
+            })
+            ->values();
     }
 
     public function update(Request $request, $id)

@@ -24,7 +24,7 @@ class RiskTreatmentTemplateController extends Controller
             ->get();
 
         $allowedRiskOwners = $user->allowedRiskOwners();
-        $canManage = !$user->isSuperadmin() && $user->isDivisionVerified();
+        $canManage = $user->isDivisionVerified();
 
         return view('treatment-templates.index', compact('templates', 'allowedRiskOwners', 'canManage'));
     }
@@ -105,7 +105,7 @@ class RiskTreatmentTemplateController extends Controller
     {
         $user = auth()->user();
         abort_if(is_null($user), 403, 'Unauthorized.');
-        abort_if($user->isSuperadmin() || !$user->isDivisionVerified(), 403, 'Your account is read-only for playbook management.');
+        abort_if(!$user->isDivisionVerified(), 403, 'Your account is read-only for playbook management.');
     }
 
     private function ensureTemplateCanManage(RiskTreatmentTemplate $template): void

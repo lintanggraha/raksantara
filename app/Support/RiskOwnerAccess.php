@@ -2,6 +2,9 @@
 
 namespace App\Support;
 
+use App\RiskOwnerParameter;
+use Illuminate\Support\Facades\Schema;
+
 class RiskOwnerAccess
 {
     private const COMPLIANCE_LABEL = 'COMPLIANCE';
@@ -41,7 +44,24 @@ class RiskOwnerAccess
 
     public static function options(): array
     {
-        $options = config('risk_owners.options', []);
+        $options = [];
+
+        try {
+            if (Schema::hasTable('risk_owner_parameters')) {
+                $options = RiskOwnerParameter::query()
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->pluck('name')
+                    ->all();
+            }
+        } catch (\Throwable $e) {
+            $options = [];
+        }
+
+        if (empty($options)) {
+            $options = config('risk_owners.options', []);
+        }
 
         return self::uniqueByNormalizedFull($options);
     }

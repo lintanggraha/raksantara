@@ -75,6 +75,9 @@
     $residualScale = optional($residual)->impactScale;
     $inherentCategoryId = optional(optional($inherentScale)->category)->id;
     $residualCategoryId = optional(optional($residualScale)->category)->id;
+    $probabilityOptions = collect($probabilityScales ?? []);
+    $selectedInherentProbability = (string) old('inherent_probability_score', optional($inherent)->probability_score);
+    $selectedResidualProbability = (string) old('residual_probability_score', optional($residual)->probability_score);
 @endphp
 
 <!-- Nav tabs -->
@@ -353,11 +356,16 @@
                                 <label>Probability Description <span class="text-danger">*</span></label>
                                 <select id="inherent_probability" name="inherent_probability_score" class="form-control" required>
                                     <option value="">Select Probability</option>
-                                    <option value="1" {{ (string) old('inherent_probability_score', optional($inherent)->probability_score) === '1' ? 'selected' : '' }}>1. Sangat tidak mungkin terjadi</option>
-                                    <option value="2" {{ (string) old('inherent_probability_score', optional($inherent)->probability_score) === '2' ? 'selected' : '' }}>2. Kemungkinan kecil terjadi</option>
-                                    <option value="3" {{ (string) old('inherent_probability_score', optional($inherent)->probability_score) === '3' ? 'selected' : '' }}>3. Mungkin terjadi sesekali</option>
-                                    <option value="4" {{ (string) old('inherent_probability_score', optional($inherent)->probability_score) === '4' ? 'selected' : '' }}>4. Sangat mungkin terjadi</option>
-                                    <option value="5" {{ (string) old('inherent_probability_score', optional($inherent)->probability_score) === '5' ? 'selected' : '' }}>5. Hampir pasti terjadi</option>
+                                    @foreach($probabilityOptions as $scale)
+                                        @php($probabilityLabel = trim((string) $scale->description) !== '' ? trim((string) $scale->description) : 'Legacy value')
+                                        <option
+                                            value="{{ $scale->score }}"
+                                            data-description="{{ $scale->description }}"
+                                            {{ $selectedInherentProbability === (string) $scale->score ? 'selected' : '' }}
+                                        >
+                                            {{ $scale->score }}. {{ $probabilityLabel }}{{ !($scale->is_active ?? true) ? ' (Legacy)' : '' }}
+                                        </option>
+                                    @endforeach
                                 </select>
                                 <input type="hidden" name="inherent_probability_description" id="inherent_prob_desc" value="{{ old('inherent_probability_description', optional($inherent)->probability_description) }}">
                             </div>
@@ -465,29 +473,31 @@
                     <h5 class="mb-0"><i class="fas fa-stethoscope"></i> Risk Treatment</h5>
                 </div>
                 <div class="card-body">
-                    <small class="text-muted">Add treatment options to mitigate the risk, or apply a reusable mitigation playbook.</small>
+                    <small class="text-muted">Fill Risk Treatment manually like before. Mitigation playbook is optional and only helps prefill the same fields.</small>
 
                     <div class="row g-3 align-items-end mt-1">
-                        <div class="col-md-7">
-                            <div class="form-group mb-0">
-                                <label>Mitigation Playbook</label>
-                                <select id="treatment-template-select" class="form-control">
-                                    <option value="">Select playbook</option>
-                                </select>
-                                <small class="text-muted">Playbooks follow the selected risk owner from tab 1.</small>
-                            </div>
-                        </div>
                         <div class="col-md-5">
                             <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-primary" id="apply-template-button" onclick="applySelectedTreatmentTemplate()">
-                                    <i class="fas fa-copy"></i> Apply Playbook
-                                </button>
                                 <button type="button" class="btn btn-success" onclick="addTreatmentRow()">
-                                    <i class="fas fa-plus"></i> Add Treatment Option
+                                    <i class="fas fa-plus"></i> Add Treatment Manually
                                 </button>
                                 <a href="{{ route('treatment-templates.index') }}" class="btn btn-outline-secondary">
                                     <i class="fas fa-book"></i> Manage Playbooks
                                 </a>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="form-group mb-0">
+                                <label>Mitigation Playbook (Optional)</label>
+                                <select id="treatment-template-select" class="form-control">
+                                    <option value="">Select playbook</option>
+                                </select>
+                                <small class="text-muted">Playbooks follow the selected risk owner from tab 1 and only prefill Treatment Option, Description, PIC, Deadline, Effectiveness, Next Action Date, Blocked Reason, and Playbook Checklist.</small>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-primary" id="apply-template-button" onclick="applySelectedTreatmentTemplate()">
+                                    <i class="fas fa-copy"></i> Apply Playbook
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -507,7 +517,7 @@
                                                 @if($treatment->template)
                                                     Playbook: {{ $treatment->template->name }}
                                                 @else
-                                                    Custom action
+                                                    Manual entry
                                                 @endif
                                             </div>
                                         </div>
@@ -663,11 +673,16 @@
                                 <label>Probability Description <span class="text-danger">*</span></label>
                                 <select id="residual_probability" name="residual_probability_score" class="form-control" required>
                                     <option value="">Select Probability</option>
-                                    <option value="1" {{ (string) old('residual_probability_score', optional($residual)->probability_score) === '1' ? 'selected' : '' }}>1. Sangat tidak mungkin terjadi</option>
-                                    <option value="2" {{ (string) old('residual_probability_score', optional($residual)->probability_score) === '2' ? 'selected' : '' }}>2. Kemungkinan kecil terjadi</option>
-                                    <option value="3" {{ (string) old('residual_probability_score', optional($residual)->probability_score) === '3' ? 'selected' : '' }}>3. Mungkin terjadi sesekali</option>
-                                    <option value="4" {{ (string) old('residual_probability_score', optional($residual)->probability_score) === '4' ? 'selected' : '' }}>4. Sangat mungkin terjadi</option>
-                                    <option value="5" {{ (string) old('residual_probability_score', optional($residual)->probability_score) === '5' ? 'selected' : '' }}>5. Hampir pasti terjadi</option>
+                                    @foreach($probabilityOptions as $scale)
+                                        @php($probabilityLabel = trim((string) $scale->description) !== '' ? trim((string) $scale->description) : 'Legacy value')
+                                        <option
+                                            value="{{ $scale->score }}"
+                                            data-description="{{ $scale->description }}"
+                                            {{ $selectedResidualProbability === (string) $scale->score ? 'selected' : '' }}
+                                        >
+                                            {{ $scale->score }}. {{ $probabilityLabel }}{{ !($scale->is_active ?? true) ? ' (Legacy)' : '' }}
+                                        </option>
+                                    @endforeach
                                 </select>
                                 <input type="hidden" name="residual_probability_description" id="residual_prob_desc" value="{{ old('residual_probability_description', optional($residual)->probability_description) }}">
                             </div>
@@ -1145,6 +1160,7 @@ function normalizeTreatmentRowData(raw = {}) {
     const template = templateId
         ? treatmentTemplateCatalog.find((item) => Number(item.id) === Number(templateId))
         : null;
+    const owner = selectedRiskOwner();
     const effectiveness = raw.effectiveness || (template ? template.default_effectiveness : '');
 
     return {
@@ -1152,7 +1168,7 @@ function normalizeTreatmentRowData(raw = {}) {
         templateName: raw.templateName || (template ? template.name : ''),
         option: raw.option || (template ? template.option : ''),
         description: raw.description || (template ? template.description : ''),
-        pic: raw.pic || (template ? (template.default_pic || selectedRiskOwner()) : ''),
+        pic: raw.pic || (template ? (template.default_pic || owner) : owner),
         deadline: raw.deadline || (template ? buildIsoDateFromOffset(template.target_days) : ''),
         nextActionAt: raw.nextActionAt || (template ? buildIsoDateFromOffset(template.next_action_offset_days) : ''),
         blockedReason: raw.blockedReason || '',
@@ -1187,16 +1203,58 @@ function syncTreatmentRowsWithOwner() {
         const row = $(this);
         const templateInput = row.find('input[name="treatment_template_id[]"]');
         const templateId = Number(templateInput.val() || 0);
-        if (!templateId) {
-            return;
+        if (templateId) {
+            const template = treatmentTemplateCatalog.find((item) => Number(item.id) === templateId);
+            if (!template || template.risk_owner !== owner) {
+                templateInput.val('');
+                row.find('.treatment-playbook-label').text('Manual entry');
+            }
         }
 
-        const template = treatmentTemplateCatalog.find((item) => Number(item.id) === templateId);
-        if (!template || template.risk_owner !== owner) {
-            templateInput.val('');
-            row.find('.treatment-playbook-label').text('Custom action');
+        const picInput = row.find('input[name="treatment_pic[]"]');
+        if (owner && picInput.val().trim() === '') {
+            picInput.val(owner);
         }
+
+        syncTreatmentRowValidation(row);
     });
+}
+
+function rowHasTreatmentContent(row) {
+    const templateId = Number(row.find('input[name="treatment_template_id[]"]').val() || 0);
+
+    if (templateId > 0) {
+        return true;
+    }
+
+    const fields = [
+        row.find('select[name="treatment_option[]"]').val(),
+        row.find('input[name="treatment_description[]"]').val(),
+        row.find('input[name="treatment_pic[]"]').val(),
+        row.find('input[name="treatment_deadline[]"]').val(),
+        row.find('select[name="treatment_effectiveness[]"]').val(),
+        row.find('input[name="treatment_next_action_at[]"]').val(),
+        row.find('input[name="treatment_blocked_reason[]"]').val(),
+        row.find('textarea[name="treatment_playbook_checklist[]"]').val(),
+    ];
+
+    return fields.some((value) => (value || '').toString().trim() !== '');
+}
+
+function syncTreatmentRowValidation(row) {
+    const hasContent = rowHasTreatmentContent(row);
+
+    row.find('select[name="treatment_option[]"]').prop('required', hasContent);
+    row.find('input[name="treatment_description[]"]').prop('required', hasContent);
+    row.find('input[name="treatment_pic[]"]').prop('required', hasContent);
+    row.find('input[name="treatment_deadline[]"]').prop('required', hasContent);
+    row.find('select[name="treatment_effectiveness[]"]').prop('required', hasContent);
+}
+
+function ensureAtLeastOneTreatmentRow() {
+    if ($('#treatments-container .treatment-row').length === 0) {
+        addTreatmentRow();
+    }
 }
 
 function addTreatmentRow(rowData = {}) {
@@ -1210,7 +1268,7 @@ function addTreatmentRow(rowData = {}) {
                 <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                     <div>
                         <div class="small text-uppercase text-muted fw-bold">Treatment Action</div>
-                        <div class="small text-muted treatment-playbook-label">${row.templateName ? `Playbook: ${escapeHtml(row.templateName)}` : 'Custom action'}</div>
+                        <div class="small text-muted treatment-playbook-label">${row.templateName ? `Playbook: ${escapeHtml(row.templateName)}` : 'Manual entry'}</div>
                     </div>
                     <button type="button" class="btn btn-danger btn-sm" onclick="removeTreatment(${treatmentCount})">
                         <i class="fas fa-trash"></i> Remove
@@ -1300,6 +1358,7 @@ function addTreatmentRow(rowData = {}) {
         </div>
     `;
     $('#treatments-container').append(html);
+    syncTreatmentRowValidation($(`#treatment-${treatmentCount}`));
     computeResidualAdjustment();
 }
 
@@ -1366,11 +1425,27 @@ $('#residual_potential_loss').on('input', function(){
 
 // ================= INHERENT ANALYSIS CALCULATIONS =================
 
+function syncProbabilityDescription(selectSelector, hiddenInputSelector){
+    const select = $(selectSelector);
+    const hiddenInput = $(hiddenInputSelector);
+
+    if (!select.val()) {
+        hiddenInput.val('');
+        return;
+    }
+
+    const selected = select.find(':selected');
+    const rawDescription = (selected.data('description') || '').toString().trim();
+    const fallbackDescription = (selected.text() || '')
+        .replace(/^\s*\d+\s*[\.\-]\s*/, '')
+        .replace(/\s+\(Legacy\)\s*$/i, '')
+        .trim();
+
+    hiddenInput.val(rawDescription !== '' ? rawDescription : fallbackDescription);
+}
+
 $('#inherent_probability').change(function(){
-    let score = $(this).val();
-    let text = $(this).find(':selected').text();
-    
-    $('#inherent_prob_desc').val(text);
+    syncProbabilityDescription('#inherent_probability', '#inherent_prob_desc');
     calculateInherentRisk();
 });
 
@@ -1421,10 +1496,7 @@ function calculateInherentRisk(){
 // ================= RESIDUAL ANALYSIS CALCULATIONS =================
 
 $('#residual_probability').change(function(){
-    let score = $(this).val();
-    let text = $(this).find(':selected').text();
-    
-    $('#residual_prob_desc').val(text);
+    syncProbabilityDescription('#residual_probability', '#residual_prob_desc');
     calculateResidualRisk();
 });
 
@@ -1568,8 +1640,18 @@ $('select[name="risk_owner"]').on('change', function(){
     syncTreatmentRowsWithOwner();
 });
 
+$(document).on('input change', 'select[name="treatment_option[]"], input[name="treatment_description[]"], input[name="treatment_pic[]"], input[name="treatment_deadline[]"], select[name="treatment_effectiveness[]"], input[name="treatment_next_action_at[]"], input[name="treatment_blocked_reason[]"], textarea[name="treatment_playbook_checklist[]"]', function(){
+    syncTreatmentRowValidation($(this).closest('.treatment-row'));
+});
+
 renderTreatmentTemplateOptions();
 syncTreatmentRowsWithOwner();
+ensureAtLeastOneTreatmentRow();
+$('.treatment-row').each(function(){
+    syncTreatmentRowValidation($(this));
+});
+syncProbabilityDescription('#inherent_probability', '#inherent_prob_desc');
+syncProbabilityDescription('#residual_probability', '#residual_prob_desc');
 updateRadarCode();
 updateSummaryFields();
 $('.treatment-effectiveness-select').each(function(){

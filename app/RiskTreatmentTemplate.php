@@ -68,8 +68,12 @@ class RiskTreatmentTemplate extends Model
 
     public function canManageBy(?User $user): bool
     {
-        if (is_null($user) || !$user->isDivisionVerified() || $user->isSuperadmin()) {
+        if (is_null($user) || !$user->isDivisionVerified()) {
             return false;
+        }
+
+        if ($user->isSuperadmin()) {
+            return true;
         }
 
         if ($user->isComplianceDivision()) {

@@ -37,7 +37,7 @@
         color: #f8fafc;
         border: 1px solid rgba(255, 255, 255, 0.12);
         font-weight: 600;
-        padding: 0.45rem 0.75rem;
+        padding: 0.34rem 0.62rem;
     }
 
     .thintel-card {
@@ -48,8 +48,8 @@
 
     .thintel-stat {
         border-radius: 20px;
-        min-height: 150px;
-        padding: 1rem;
+        min-height: 120px;
+        padding: 0.82rem;
         position: relative;
         overflow: hidden;
     }
@@ -65,18 +65,18 @@
         letter-spacing: 0.08em;
         font-weight: 700;
         opacity: 0.84;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.55rem;
     }
 
     .thintel-stat-value {
-        font-size: 2rem;
+        font-size: 1.72rem;
         font-weight: 800;
         line-height: 1;
     }
 
     .thintel-stat-copy {
-        margin-top: 0.6rem;
-        font-size: 0.84rem;
+        margin-top: 0.45rem;
+        font-size: 0.78rem;
     }
 
     .thintel-panel-title {
@@ -186,25 +186,14 @@
 </style>
 @endpush
 
-@section('content_header')
-<div class="row align-items-center">
-    <div class="col">
-        <h2 class="page-title mb-1">Threat Intelligence</h2>
-        <div class="text-muted">
-            Triage dashboard untuk CVE terbaru, overlap dengan CISA KEV, dan source health dalam satu layar.
-        </div>
-    </div>
-</div>
-@endsection
-
 @section('content')
 <div class="card thintel-hero mb-4">
-    <div class="card-body p-4 p-lg-5">
+    <div class="card-body p-3 p-lg-4">
         <div class="row g-4 align-items-start">
             <div class="col-xl-7">
                 <div class="text-uppercase small fw-bold opacity-75 mb-2">Mission Control</div>
-                <h1 class="mb-3" style="font-size:clamp(2rem,4vw,3rem);line-height:1;font-weight:800;letter-spacing:-0.04em;">Threat Intel Triage Board</h1>
-                <p class="mb-4 text-white-50">
+                <h1 class="mb-2" style="font-size:clamp(1.7rem,3.3vw,2.45rem);line-height:1;font-weight:800;letter-spacing:-0.04em;">Threat Intel Triage Board</h1>
+                <p class="mb-3 text-white-50" style="font-size:0.92rem;">
                     Fokuskan analis ke item yang paling layak ditindak: KEV overlap, severity tinggi, CVSS tinggi, dan vendor exposure yang dominan.
                 </p>
                 <div class="d-flex flex-wrap gap-2">

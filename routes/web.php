@@ -26,6 +26,8 @@ use App\Http\Controllers\ThreatIntelligenceController;
 use App\Http\Controllers\OwnerWorkloadController;
 use App\Http\Controllers\RiskTreatmentTemplateController;
 use App\Http\Controllers\RiskRcsaWorkspaceController;
+use App\Http\Controllers\ParameterManagementController;
+use App\Http\Controllers\FrameworkController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -52,6 +54,36 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         ->name('profile.changePassword');
 
     Route::middleware('superadmin')->group(function () {
+        Route::get('/parameters', [ParameterManagementController::class, 'index'])->name('parameters.index');
+        Route::post('/parameters/risk-categories', [ParameterManagementController::class, 'storeRiskCategory'])->name('parameters.risk-categories.store');
+        Route::put('/parameters/risk-categories/{riskCategory}', [ParameterManagementController::class, 'updateRiskCategory'])
+            ->whereNumber('riskCategory')
+            ->name('parameters.risk-categories.update');
+        Route::post('/parameters/risk-owners', [ParameterManagementController::class, 'storeRiskOwner'])->name('parameters.risk-owners.store');
+        Route::put('/parameters/risk-owners/{riskOwner}', [ParameterManagementController::class, 'updateRiskOwner'])
+            ->whereNumber('riskOwner')
+            ->name('parameters.risk-owners.update');
+        Route::post('/parameters/cause-categories', [ParameterManagementController::class, 'storeRiskCauseCategory'])->name('parameters.cause-categories.store');
+        Route::put('/parameters/cause-categories/{riskCauseCategory}', [ParameterManagementController::class, 'updateRiskCauseCategory'])
+            ->whereNumber('riskCauseCategory')
+            ->name('parameters.cause-categories.update');
+        Route::post('/parameters/probability-scales', [ParameterManagementController::class, 'storeProbabilityScale'])->name('parameters.probability-scales.store');
+        Route::put('/parameters/probability-scales/{probabilityScale}', [ParameterManagementController::class, 'updateProbabilityScale'])
+            ->whereNumber('probabilityScale')
+            ->name('parameters.probability-scales.update');
+        Route::post('/parameters/impact-categories', [ParameterManagementController::class, 'storeImpactCategory'])->name('parameters.impact-categories.store');
+        Route::put('/parameters/impact-categories/{impactCategory}', [ParameterManagementController::class, 'updateImpactCategory'])
+            ->whereNumber('impactCategory')
+            ->name('parameters.impact-categories.update');
+        Route::post('/parameters/impact-scales', [ParameterManagementController::class, 'storeImpactScale'])->name('parameters.impact-scales.store');
+        Route::put('/parameters/impact-scales/{impactScale}', [ParameterManagementController::class, 'updateImpactScale'])
+            ->whereNumber('impactScale')
+            ->name('parameters.impact-scales.update');
+        Route::post('/parameters/radar-groups', [ParameterManagementController::class, 'storeRadarGroup'])->name('parameters.radar-groups.store');
+        Route::put('/parameters/radar-groups/{radarGroup}', [ParameterManagementController::class, 'updateRadarGroup'])
+            ->whereNumber('radarGroup')
+            ->name('parameters.radar-groups.update');
+
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
         Route::put('/users/{user}/division', [UserManagementController::class, 'updateDivision'])
             ->whereNumber('user')
@@ -98,6 +130,15 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'threat-intel.au
     Route::get('/trend-analysis', [TrendAnalysisController::class, 'index'])->name('trends.analysis');
     Route::get('/api/trend-analysis/data', [TrendAnalysisController::class, 'data'])->name('trends.data');
     Route::get('/threat-intelligence', [ThreatIntelligenceController::class, 'index'])->name('threat-intelligence.index');
+    
+    // Framework Explorer
+    Route::get('/frameworks/iso27001', [FrameworkController::class, 'iso27001'])->name('frameworks.iso27001');
+    Route::get('/frameworks/nist-csf-2', [FrameworkController::class, 'nist'])->name('frameworks.nist');
+    Route::get('/frameworks/seojk', [FrameworkController::class, 'seojk'])->name('frameworks.seojk');
+    Route::redirect('/frameworks/cis', '/frameworks/panduan-resiliensi-ojk');
+    Route::get('/frameworks/panduan-resiliensi-ojk', [FrameworkController::class, 'cis'])->name('frameworks.cis');
+    Route::redirect('/frameworks/pci-dss', '/frameworks/pbi-02-2024')->name('frameworks.pci-dss');
+    Route::get('/frameworks/pbi-02-2024', [FrameworkController::class, 'pbi'])->name('frameworks.pbi');
     Route::get('/incident-management', [IncidentManagementController::class, 'index'])->name('incidents.index');
     Route::post('/incident-management', [IncidentManagementController::class, 'store'])->name('incidents.store');
     Route::put('/incident-management/{incident}', [IncidentManagementController::class, 'update'])

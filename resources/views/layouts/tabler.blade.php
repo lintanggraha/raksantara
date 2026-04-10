@@ -61,6 +61,11 @@
             height: 2rem;
             font-size: 0.875rem;
         }
+        .avatar-superadmin {
+            background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+            color: #0b57d0;
+            border: 1px solid rgba(11, 87, 208, 0.14);
+        }
         .form-label {
             display: inline-block;
             margin-bottom: 0.5rem;
@@ -236,10 +241,133 @@
             min-width: 12rem;
             z-index: 2000;
         }
+        [data-risk-menu] {
+            width: 31rem;
+            min-width: 31rem;
+            padding: 0.35rem 0.5rem;
+        }
+        .risk-menu-columns {
+            position: relative;
+        }
+
+        /* LinkedIn-style navbar */
+        .navbar-nav > .nav-item > .nav-link-main {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0.5rem 0.75rem !important;
+            gap: 4px !important;
+            min-width: 80px;
+            border-bottom: 2px solid transparent;
+        }
+        .navbar-nav > .nav-item > .nav-link-main .nav-link-icon {
+            margin: 0 !important;
+            width: auto !important;
+            height: auto !important;
+            line-height: 1 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .navbar-nav > .nav-item > .nav-link-main .nav-link-icon i {
+            font-size: 1.4rem !important;
+            color: #6c757d;
+            transition: color 0.15s ease-in-out;
+            margin: 0 !important;
+        }
+        .navbar-nav > .nav-item > .nav-link-main > span:not(.nav-link-icon) {
+            font-size: 0.75rem !important;
+            font-weight: 500 !important;
+            line-height: 1.2 !important;
+            color: #6c757d;
+            transition: color 0.15s ease-in-out;
+            text-align: center;
+            white-space: normal;
+        }
+        
+        /* Active state */
+        .navbar-nav > .nav-item.active > .nav-link-main .nav-link-icon i,
+        .navbar-nav > .nav-item.active > .nav-link-main > span:not(.nav-link-icon),
+        .navbar-nav > .nav-item > .nav-link-main:hover .nav-link-icon i,
+        .navbar-nav > .nav-item > .nav-link-main:hover > span:not(.nav-link-icon),
+        .navbar-nav > .nav-item.dropdown.show > .nav-link.dropdown-toggle > span:not(.nav-link-icon),
+        .navbar-nav > .nav-item.dropdown.show > .nav-link.dropdown-toggle .nav-link-icon i {
+            color: #1e293b !important;
+        }
+        .navbar-nav > .nav-item.active > .nav-link-main {
+            border-bottom: 2px solid #1e293b !important;
+            padding-bottom: 0.5rem !important;
+        }
+
+        /* Hide dropdown caret in main nav */
+        .navbar-nav > .nav-item > .nav-link-main.dropdown-toggle::after {
+            display: none !important;
+        }
+
+        /* Override mobile view */
+        @media (max-width: 991.98px) {
+            .navbar-nav > .nav-item > .nav-link-main {
+                flex-direction: row !important;
+                justify-content: flex-start !important;
+                padding: 0.75rem 1rem !important;
+                gap: 12px !important;
+                border-bottom: none !important;
+            }
+            .navbar-nav > .nav-item.active > .nav-link-main {
+                border-left: 3px solid #1e293b !important;
+                border-bottom: none !important;
+                padding-bottom: 0.75rem !important;
+            }
+            .navbar-nav > .nav-item > .nav-link-main .nav-link-icon i {
+                font-size: 1.25rem !important;
+            }
+            .navbar-nav > .nav-item > .nav-link-main > span:not(.nav-link-icon) {
+                font-size: 0.875rem !important;
+                text-align: left;
+            }
+        }
+
+        .risk-menu-columns {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(2, 15rem);
+            width: 30rem;
+            column-gap: 0;
+        }
+        .risk-menu-columns::before {
+            content: "";
+            position: absolute;
+            top: 0.35rem;
+            bottom: 0.35rem;
+            left: 50%;
+            width: 1px;
+            background: #e5e7eb;
+            transform: translateX(-0.5px);
+        }
+        .risk-menu-column {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            min-width: 0;
+            padding: 0 0.5rem;
+        }
         .navbar .navbar-nav .nav-link.nav-link-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
             border-radius: 0;
             background-color: transparent !important;
             transition: color 0.15s ease;
+        }
+        .navbar .navbar-nav .nav-link-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1rem;
+            color: #5f6b7a;
+            font-size: 0.9rem;
         }
         .navbar .navbar-nav .nav-link.nav-link-main:hover,
         .navbar .navbar-nav .nav-link.nav-link-main:focus {
@@ -254,21 +382,48 @@
             color: #0b57d0 !important;
             font-weight: 600;
         }
+        .navbar .navbar-nav .nav-item.active > .nav-link .nav-link-icon,
+        .navbar .navbar-nav .nav-item.show > .nav-link .nav-link-icon,
+        .navbar .navbar-nav .nav-link.nav-link-main:hover .nav-link-icon,
+        .navbar .navbar-nav .nav-link.nav-link-main:focus .nav-link-icon {
+            color: #0b57d0;
+        }
         .navbar .navbar-nav .nav-link.nav-link-main.dropdown-toggle::after {
             margin-left: 0.4rem;
         }
+        .navbar .dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+        .navbar .dropdown-menu .dropdown-item i {
+            width: 1rem;
+            text-align: center;
+            color: #5f6b7a;
+        }
         [data-compliance-menu] .dropdown-item,
-        [data-risk-menu] .dropdown-item {
+        [data-risk-menu] .dropdown-item,
+        [data-app-management-menu] .dropdown-item {
             border-radius: 0;
             margin: 0;
             padding: 0.5rem 0.75rem;
             background-color: transparent !important;
             transition: color 0.15s ease;
         }
+        [data-risk-menu] .dropdown-item {
+            display: block;
+            width: 100%;
+            line-height: 1.45;
+            white-space: normal;
+            word-break: normal;
+            overflow-wrap: break-word;
+        }
         [data-compliance-menu] .dropdown-item:hover,
         [data-compliance-menu] .dropdown-item:focus,
         [data-risk-menu] .dropdown-item:hover,
-        [data-risk-menu] .dropdown-item:focus {
+        [data-risk-menu] .dropdown-item:focus,
+        [data-app-management-menu] .dropdown-item:hover,
+        [data-app-management-menu] .dropdown-item:focus {
             background-color: transparent !important;
             color: #0b57d0 !important;
         }
@@ -277,11 +432,43 @@
         [data-compliance-menu] .dropdown-item.active:focus,
         [data-risk-menu] .dropdown-item.active,
         [data-risk-menu] .dropdown-item.active:hover,
-        [data-risk-menu] .dropdown-item.active:focus {
+        [data-risk-menu] .dropdown-item.active:focus,
+        [data-app-management-menu] .dropdown-item.active,
+        [data-app-management-menu] .dropdown-item.active:hover,
+        [data-app-management-menu] .dropdown-item.active:focus {
             background-color: transparent !important;
             color: #0b57d0 !important;
             font-weight: 600;
             box-shadow: none;
+        }
+        [data-compliance-menu] .dropdown-item:hover i,
+        [data-compliance-menu] .dropdown-item:focus i,
+        [data-compliance-menu] .dropdown-item.active i,
+        [data-risk-menu] .dropdown-item:hover i,
+        [data-risk-menu] .dropdown-item:focus i,
+        [data-risk-menu] .dropdown-item.active i,
+        [data-app-management-menu] .dropdown-item:hover i,
+        [data-app-management-menu] .dropdown-item:focus i,
+        [data-app-management-menu] .dropdown-item.active i {
+            color: #0b57d0;
+        }
+        @media (max-width: 991.98px) {
+            [data-risk-menu] {
+                width: auto;
+                min-width: 12rem;
+                padding: 0;
+            }
+            .risk-menu-columns {
+                display: block;
+            }
+            .risk-menu-columns::before {
+                display: none;
+            }
+            .risk-menu-column {
+                width: auto;
+                min-width: 0;
+                padding: 0;
+            }
         }
         .select2-container {
             width: 100% !important;
@@ -327,6 +514,9 @@
             <div class="navbar-nav flex-row order-md-last">
                 @auth
                     <div class="nav-item dropdown">
+                        @php($viewer = auth()->user())
+                        @php($viewerDisplayName = $viewer->username ?: $viewer->name)
+                        @php($viewerSubtitle = $viewer->isSuperadmin() ? 'superadmin' : ($viewer->isComplianceDivision() ? 'Compliance' : \App\Support\RiskOwnerAccess::displayLabel($viewer->division, 'User')))
                         <a
                             href="#"
                             class="nav-link d-flex lh-1 text-reset p-0 dropdown-toggle"
@@ -338,12 +528,12 @@
                             aria-expanded="false"
                             aria-label="Open user menu"
                         >
-                            <span class="avatar avatar-sm">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                            <span class="avatar avatar-sm {{ $viewer->isSuperadmin() ? 'avatar-superadmin' : '' }}">
+                                {{ strtoupper(substr($viewerDisplayName, 0, 1)) }}
+                            </span>
                             <div class="d-none d-xl-block ps-2">
-                                <div>{{ auth()->user()->name }}</div>
-                                <div class="mt-1 small text-secondary">
-                                    {{ auth()->user()->isSuperadmin() ? 'Superadmin' : 'Authenticated User' }}
-                                </div>
+                                <div>{{ $viewerDisplayName }}</div>
+                                <div class="mt-1 small text-secondary">{{ $viewerSubtitle }}</div>
                             </div>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow" data-user-menu aria-labelledby="user-menu-toggle">
@@ -365,28 +555,104 @@
                 <ul class="navbar-nav">
                     @auth
                         @if(auth()->user()->isSuperadmin())
+                            @php($isAppManagementActive = request()->routeIs('parameters.*') || request()->routeIs('users.*') || request()->routeIs('risk-appetites.*'))
                             <li class="nav-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">Dashboard</a>
+                                <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-home"></i></span>
+                                    <span>Dashboard</span>
+                                </a>
                             </li>
-                            <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('users.index') }}">User Management</a>
+                            
+                            {{-- Framework Explorer Menu --}}
+                            <li class="nav-item dropdown {{ request()->routeIs('frameworks.*') ? 'active' : '' }}" data-framework-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="false">
+                                    <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
+                                    <span>Frameworks</span>
+                                </a>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
+                                        ISO 27001
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.nist') ? 'active' : '' }}" href="{{ route('frameworks.nist') }}">
+                                        NIST CSF 2.0
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.seojk') ? 'active' : '' }}" href="{{ route('frameworks.seojk') }}">
+                                        SEOJK 29 SEOJK.03 2022
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.cis') ? 'active' : '' }}" href="{{ route('frameworks.cis') }}">
+                                        Panduan Resiliensi OJK
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
+                                        PBI 02/2024
+                                    </a>
+                                </div>
                             </li>
-                            <li class="nav-item {{ request()->routeIs('risk-appetites.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risk-appetites.index') }}">Corp. Risk Appetite</a>
+
+                            <li class="nav-item dropdown {{ $isAppManagementActive ? 'active show' : '' }}" data-app-management-nav>
+                                <a
+                                    class="nav-link nav-link-main dropdown-toggle"
+                                    href="#"
+                                    data-bs-toggle="dropdown"
+                                    data-toggle="dropdown"
+                                    data-app-management-toggle
+                                    role="button"
+                                    aria-expanded="{{ $isAppManagementActive ? 'true' : 'false' }}"
+                                >
+                                    <span class="nav-link-icon"><i class="fas fa-cogs"></i></span>
+                                    <span>App Management</span>
+                                </a>
+                                <div class="dropdown-menu" data-app-management-menu>
+                                    <a class="dropdown-item {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                                        <i class="fas fa-users-cog"></i>
+                                        <span>User Management</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('parameters.*') ? 'active' : '' }}" href="{{ route('parameters.index') }}">
+                                        <i class="fas fa-sliders-h"></i>
+                                        <span>Parameter</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('risk-appetites.*') ? 'active' : '' }}" href="{{ route('risk-appetites.index') }}">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <span>Corporate Risk Appetite</span>
+                                    </a>
+                                </div>
                             </li>
                             <li class="nav-item {{ request()->routeIs('risk-status-approvals.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risk-status-approvals.index') }}">Status Approvals</a>
+                                <a class="nav-link nav-link-main" href="{{ route('risk-status-approvals.index') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-tasks"></i></span>
+                                    <span>Status Approvals</span>
+                                </a>
                             </li>
                             <li class="nav-item {{ request()->routeIs('risk-alerts.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risk-alerts.index') }}">Alerts</a>
+                                <a class="nav-link nav-link-main" href="{{ route('risk-alerts.index') }}">
+                                    <span class="nav-link-icon"><i class="far fa-bell"></i></span>
+                                    <span>Alerts</span>
+                                </a>
                             </li>
                             <li class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('audit-logs.index') }}">Audit Trail</a>
+                                <a class="nav-link nav-link-main" href="{{ route('audit-logs.index') }}">
+                                    <span class="nav-link-icon"><i class="far fa-file-alt"></i></span>
+                                    <span>Audit Trail</span>
+                                </a>
                             </li>
                             <li class="nav-item {{ request()->routeIs('threat-intelligence.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('threat-intelligence.index') }}">Threat Intel</a>
+                                <a class="nav-link nav-link-main" href="{{ route('threat-intelligence.index') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-globe"></i></span>
+                                    <span>Threat Intel</span>
+                                </a>
                             </li>
                         @elseif(auth()->user()->isDivisionVerified())
+                            @php($riskMenuItems = [
+                                ['label' => 'Risk Monitoring', 'href' => route('risks.monitoring'), 'active' => request()->routeIs('risks.monitoring')],
+                                ['label' => 'Risk Register', 'href' => route('risks.index'), 'active' => request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.dashboard-summary')],
+                                ['label' => 'Risk Trend Analysis', 'href' => route('trends.analysis'), 'active' => request()->routeIs('trends.analysis')],
+                                ['label' => 'Key Risk Indicators', 'href' => route('kris.index'), 'active' => request()->routeIs('kris.*')],
+                                ['label' => 'Mitigation Kanban', 'href' => route('treatments.kanban'), 'active' => request()->routeIs('treatments.kanban')],
+                                ['label' => 'Owner Workload', 'href' => route('owners.workload'), 'active' => request()->routeIs('owners.workload')],
+                                ['label' => 'Mitigation Playbooks', 'href' => route('treatment-templates.index'), 'active' => request()->routeIs('treatment-templates.*')],
+                                ['label' => 'Incident Management', 'href' => route('incidents.index'), 'active' => request()->routeIs('incidents.*')],
+                                ['label' => 'Business Continuity (BCM)', 'href' => route('bcm.index'), 'active' => request()->routeIs('bcm.*')],
+                                ['label' => 'Corporate Risk Appetite', 'href' => route('risk-appetites.index'), 'active' => request()->routeIs('risk-appetites.*')],
+                            ])
                                 <li
                                 class="nav-item dropdown {{
                                     (request()->routeIs('risks.monitoring')
@@ -409,64 +675,88 @@
                                     role="button"
                                     aria-expanded="false"
                                 >
-                                    Risk
+                                    <span class="nav-link-icon"><i class="fas fa-shield-alt"></i></span>
+                                    <span>Risk</span>
                                 </a>
                                 <div class="dropdown-menu" data-risk-menu>
-                                    <a class="dropdown-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}" href="{{ route('risks.monitoring') }}">
-                                        Risk Monitoring
+                                    <div class="risk-menu-columns">
+                                        @foreach(array_chunk($riskMenuItems, 5) as $riskMenuChunk)
+                                            <div class="risk-menu-column">
+                                                @foreach($riskMenuChunk as $riskMenuItem)
+                                                    <a class="dropdown-item {{ $riskMenuItem['active'] ? 'active' : '' }}" href="{{ $riskMenuItem['href'] }}">
+                                                        {{ $riskMenuItem['label'] }}
+                                                    </a>
+                                                @endforeach
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </li>
+                            {{-- Framework Explorer Menu --}}
+                            <li class="nav-item dropdown {{ request()->routeIs('frameworks.*') ? 'active' : '' }}" data-framework-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="false">
+                                    <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
+                                    <span>Frameworks</span>
+                                </a>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
+                                        ISO 27001
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.dashboard-summary') ? 'active' : '' }}" href="{{ route('risks.index') }}">
-                                        Risk Register
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.nist') ? 'active' : '' }}" href="{{ route('frameworks.nist') }}">
+                                        NIST CSF 2.0
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('trends.analysis') ? 'active' : '' }}" href="{{ route('trends.analysis') }}">
-                                        Risk Trend Analysis
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.seojk') ? 'active' : '' }}" href="{{ route('frameworks.seojk') }}">
+                                        SEOJK 29 SEOJK.03 2022
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('kris.*') ? 'active' : '' }}" href="{{ route('kris.index') }}">
-                                        Key Risk Indicators 
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.cis') ? 'active' : '' }}" href="{{ route('frameworks.cis') }}">
+                                        Panduan Resiliensi OJK
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('treatments.kanban') ? 'active' : '' }}" href="{{ route('treatments.kanban') }}">
-                                        Mitigation Kanban
-                                    </a>
-                                    <a class="dropdown-item {{ request()->routeIs('owners.workload') ? 'active' : '' }}" href="{{ route('owners.workload') }}">
-                                        Owner Workload
-                                    </a>
-                                    <a class="dropdown-item {{ request()->routeIs('treatment-templates.*') ? 'active' : '' }}" href="{{ route('treatment-templates.index') }}">
-                                        Mitigation Playbooks
-                                    </a>
-                                    <a class="dropdown-item {{ request()->routeIs('incidents.*') ? 'active' : '' }}" href="{{ route('incidents.index') }}">
-                                        Incident Management
-                                    </a>
-                                    <a class="dropdown-item {{ request()->routeIs('bcm.*') ? 'active' : '' }}" href="{{ route('bcm.index') }}">
-                                        Business Continuity (BCM)
-                                    </a>
-                                    <a class="dropdown-item {{ request()->routeIs('risk-appetites.*') ? 'active' : '' }}" href="{{ route('risk-appetites.index') }}">
-                                        Corporate Risk Appetite
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
+                                        PBI 02/2024
                                     </a>
                                 </div>
                             </li>
+
                             <li class="nav-item {{ request()->routeIs('vendors.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('vendors.index') }}">Third-Party Vendors</a>
+                                <a class="nav-link nav-link-main" href="{{ route('vendors.index') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-handshake"></i></span>
+                                    <span>Third-Party Vendors</span>
+                                </a>
                             </li>
+
                             @if(auth()->user()->isComplianceDivision())
                                 <li class="nav-item {{ request()->routeIs('audit.placeholder') ? 'active' : '' }}">
-                                    <a class="nav-link nav-link-main" href="{{ route('audit.placeholder') }}">Audit</a>
+                                    <a class="nav-link nav-link-main" href="{{ route('audit.placeholder') }}">
+                                        <span class="nav-link-icon"><i class="fas fa-clipboard-check"></i></span>
+                                        <span>Audit</span>
+                                    </a>
                                 </li>
                             @endif
                             <li class="nav-item {{ request()->routeIs('threat-intelligence.*') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('threat-intelligence.index') }}">Threat Intel</a>
+                                <a class="nav-link nav-link-main" href="{{ route('threat-intelligence.index') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-globe"></i></span>
+                                    <span>Threat Intel</span>
+                                </a>
                             </li>
                             @if(auth()->user()->isComplianceDivision() && config('features.show_ojk_mitigation', false))
                                 <li class="nav-item {{ request()->routeIs('ojk-mitigation.*') ? 'active' : '' }}">
-                                    <a class="nav-link nav-link-main" href="{{ route('ojk-mitigation.index') }}">Mitigasi OJK</a>
+                                    <a class="nav-link nav-link-main" href="{{ route('ojk-mitigation.index') }}">
+                                        <span class="nav-link-icon"><i class="fas fa-file-invoice"></i></span>
+                                        <span>Mitigasi OJK</span>
+                                    </a>
                                 </li>
                             @endif
                             <li class="nav-item {{ request()->routeIs('howto') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('howto') }}">User Guide</a>
+                                <a class="nav-link nav-link-main" href="{{ route('howto') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-book"></i></span>
+                                    <span>User Guide</span>
+                                </a>
                             </li>
                             @if(auth()->user()->isComplianceDivision())
                                 <li class="nav-item dropdown {{ request()->routeIs('compliance.*') ? 'active' : '' }}" data-compliance-nav>
                                     <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="false">
-                                        Compliance
+                                        <span class="nav-link-icon"><i class="fas fa-balance-scale"></i></span>
+                                        <span>Compliance</span>
                                     </a>
                                     <div class="dropdown-menu" data-compliance-menu>
                                         <a class="dropdown-item {{ request()->routeIs('compliance.internal-audit*') ? 'active' : '' }}" href="{{ route('compliance.internal-audit') }}">
@@ -483,9 +773,14 @@
                             @endif
                         @else
                             <li class="nav-item {{ request()->routeIs('account.pending') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('account.pending') }}">Pending Approval</a>
+                                <a class="nav-link nav-link-main" href="{{ route('account.pending') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-hourglass-half"></i></span>
+                                    <span>Pending Approval</span>
+                                </a>
                             </li>
                         @endif
+
+
                     @endauth
                 </ul>
             </div>
@@ -802,8 +1097,10 @@
         });
     }
 
+    setupManagedNavbarDropdown('[data-app-management-nav]', '[data-app-management-toggle]');
     setupManagedNavbarDropdown('[data-compliance-nav]', '[data-compliance-toggle]');
     setupManagedNavbarDropdown('[data-risk-nav]', '[data-risk-toggle]');
+    setupManagedNavbarDropdown('[data-framework-nav]', '[data-framework-toggle]');
 </script>
 
 @yield('js')

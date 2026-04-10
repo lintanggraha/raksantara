@@ -100,6 +100,9 @@ class BcmVendorFlowRegressionTest extends TestCase
         $this->get(route('risks.create'))
             ->assertOk()
             ->assertSee('name="vendor_id"', false)
+            ->assertSee('Mitigation Playbook (Optional)')
+            ->assertSee('Add Treatment Manually')
+            ->assertSee('ensureAtLeastOneTreatmentRow', false)
             ->assertSee('SAVE & CONTINUE TO BCM', false);
 
         $response = $this->post(route('risks.store'), [
@@ -129,6 +132,9 @@ class BcmVendorFlowRegressionTest extends TestCase
 
         $this->get(route('risks.edit', $risk->id))
             ->assertOk()
+            ->assertSee('Mitigation Playbook (Optional)')
+            ->assertSee('Add Treatment Manually')
+            ->assertSee('ensureAtLeastOneTreatmentRow', false)
             ->assertSee('UPDATE & OPEN BCM', false);
 
         $response = $this->put(route('risks.update', $risk->id), [
