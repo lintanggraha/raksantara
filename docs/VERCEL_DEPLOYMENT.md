@@ -1,6 +1,6 @@
 # Deploying Risk Management on Vercel
 
-This repository is a **Laravel application with a Vite frontend**, not a static Vite-only site. The `vercel.json` and `api/index.php` files route web requests to a PHP serverless function while serving built assets from `public/`.
+This repository is a **Laravel application with a Vite frontend**, not a static Vite-only site. The `vercel.json` and `api/index.php` files route web requests to a PHP serverless function while serving built assets from `public/`. The configuration uses Vercel's current `functions` property for the PHP community runtime; it intentionally does not use the legacy `builds` property.
 
 ## Vercel Project Settings
 
@@ -52,6 +52,7 @@ Laravel requests can run through the supplied PHP runtime, but the platform is n
 | Symptom | Resolution |
 |---|---|
 | `No Output Directory named dist` | Clear the Vercel Output Directory setting. This project uses `vercel.json`; it is not a `dist` static-site deployment. |
+| `Cannot find module /var/task/launcher.launcher` | Ensure the deployed `vercel.json` uses the `functions` property for `api/index.php` and does not include legacy `builds`. Redeploy after merging the runtime configuration change. |
 | The build succeeds but pages return a server error | Check `APP_KEY`, database credentials, `APP_URL`, and the Vercel function logs. |
 | Login works inconsistently between requests | Move `SESSION_DRIVER` and `CACHE_DRIVER` to Redis or another persistent service. |
 | Attachments disappear | Set `FILESYSTEM_DRIVER=s3` and configure the bucket credentials. |
