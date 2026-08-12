@@ -37,6 +37,9 @@ use App\Http\Controllers\ControlFrameworkMappingController;
 use App\Http\Controllers\StrategicRiskReviewController;
 use App\Http\Controllers\TwoFactorAuthenticationController;
 use App\Http\Controllers\OidcSingleSignOnController;
+use App\Http\Controllers\OperationalResilienceController;
+use App\Http\Controllers\DataRetentionController;
+use App\Http\Controllers\OperationalResilienceEvidenceExportController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -157,6 +160,36 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
 
     Route::get('/risk-monitoring', [RiskController::class, 'monitoring'])->name('risks.monitoring');
     Route::get('/enterprise-risk-profile', [EnterpriseRiskProfileController::class, 'index'])->name('enterprise-risk-profile.index');
+    Route::get('/operational-resilience', [OperationalResilienceController::class, 'index'])->name('operational-resilience.index');
+    Route::get('/operational-resilience/evidence-pack.xlsx', [OperationalResilienceEvidenceExportController::class, 'download'])
+        ->middleware('compliance.division')
+        ->name('operational-resilience.evidence-pack.download');
+    Route::get('/data-retention', [DataRetentionController::class, 'index'])->name('data-retention.index');
+    Route::post('/data-retention/schedules', [DataRetentionController::class, 'storeSchedule'])
+        ->middleware('compliance.division')
+        ->name('data-retention.schedules.store');
+    Route::post('/data-retention/purge-requests', [DataRetentionController::class, 'storePurgeRequest'])
+        ->middleware('compliance.division')
+        ->name('data-retention.purge-requests.store');
+    Route::put('/data-retention/purge-requests/{purgeRequest}/review', [DataRetentionController::class, 'reviewPurgeRequest'])
+        ->middleware('superadmin')
+        ->whereNumber('purgeRequest')
+        ->name('data-retention.purge-requests.review');
+    Route::put('/data-retention/purge-requests/{purgeRequest}/execute', [DataRetentionController::class, 'executePurgeRequest'])
+        ->middleware('superadmin')
+        ->whereNumber('purgeRequest')
+        ->name('data-retention.purge-requests.execute');
+    Route::post('/operational-resilience/backups', [OperationalResilienceController::class, 'storeBackup'])
+        ->middleware('compliance.division')
+        ->name('operational-resilience.backups.store');
+    Route::post('/operational-resilience/backups/{backup}/restore-tests', [OperationalResilienceController::class, 'storeRestoreTest'])
+        ->middleware('compliance.division')
+        ->whereNumber('backup')
+        ->name('operational-resilience.restore-tests.store');
+    Route::put('/operational-resilience/restore-tests/{restoreTest}/verify', [OperationalResilienceController::class, 'verifyRestoreTest'])
+        ->middleware('compliance.division')
+        ->whereNumber('restoreTest')
+        ->name('operational-resilience.restore-tests.verify');
     Route::post('/enterprise-risk-profile/decisions', [EnterpriseRiskProfileController::class, 'storeDecision'])
         ->middleware('compliance.division')
         ->name('enterprise-risk-profile.decisions.store');
