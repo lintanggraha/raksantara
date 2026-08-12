@@ -32,6 +32,9 @@ use App\Http\Controllers\RiskGovernanceController;
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\IncidentLearningController;
 use App\Http\Controllers\EnterpriseRiskProfileController;
+use App\Http\Controllers\ThirdPartyRiskController;
+use App\Http\Controllers\ControlFrameworkMappingController;
+use App\Http\Controllers\StrategicRiskReviewController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -139,6 +142,17 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
         ->middleware('compliance.division')
         ->whereNumber('decision')
         ->name('enterprise-risk-profile.decisions.update');
+    Route::get('/strategic-risk-reviews', [StrategicRiskReviewController::class, 'index'])->name('strategic-risk-reviews.index');
+    Route::post('/strategic-risk-reviews/scenarios', [StrategicRiskReviewController::class, 'storeScenario'])
+        ->middleware('compliance.division')
+        ->name('strategic-risk-reviews.scenarios.store');
+    Route::post('/strategic-risk-reviews/scenarios/{scenario}/impacts', [StrategicRiskReviewController::class, 'storeScenarioImpact'])
+        ->middleware('compliance.division')
+        ->whereNumber('scenario')
+        ->name('strategic-risk-reviews.scenarios.impacts.store');
+    Route::post('/strategic-risk-reviews/maturity', [StrategicRiskReviewController::class, 'storeMaturityAssessment'])
+        ->middleware('compliance.division')
+        ->name('strategic-risk-reviews.maturity.store');
     Route::get('/risk-heatmap', [RiskController::class, 'heatmap'])->name('risks.heatmap');
     Route::get('/risk-recap', [RiskController::class, 'recap'])->name('risks.recap');
     Route::get('/risk-dashboard-summary', [RiskController::class, 'dashboardSummary'])->name('risks.dashboard-summary');
@@ -336,6 +350,23 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::post('/bias/{bia}/bcp', [\App\Http\Controllers\BcpController::class, 'update'])
         ->whereNumber('bia')
         ->name('bcp.store');
+
+    Route::get('/control-framework-mappings', [ControlFrameworkMappingController::class, 'index'])->name('control-framework-mappings.index');
+    Route::post('/control-framework-mappings', [ControlFrameworkMappingController::class, 'store'])
+        ->middleware('compliance.division')
+        ->name('control-framework-mappings.store');
+    Route::get('/vendors/{vendor}/third-party-risk', [ThirdPartyRiskController::class, 'show'])
+        ->whereNumber('vendor')
+        ->name('vendors.third-party-risk.show');
+    Route::post('/vendors/{vendor}/third-party-risk/assessments', [ThirdPartyRiskController::class, 'storeAssessment'])
+        ->middleware('compliance.division')
+        ->whereNumber('vendor')
+        ->name('vendors.third-party-risk.assessments.store');
+    Route::put('/vendors/{vendor}/third-party-risk/assessments/{assessment}', [ThirdPartyRiskController::class, 'updateAssessment'])
+        ->middleware('compliance.division')
+        ->whereNumber('vendor')
+        ->whereNumber('assessment')
+        ->name('vendors.third-party-risk.assessments.update');
 
     Route::resource('vendors', \App\Http\Controllers\VendorController::class);
     Route::resource('risk-appetites', \App\Http\Controllers\RiskAppetiteController::class);
