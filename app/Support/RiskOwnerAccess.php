@@ -195,6 +195,34 @@ class RiskOwnerAccess
         return $label !== '' ? $label : $fallback;
     }
 
+    /**
+     * Return stored owner values that correspond to one display label, including legacy aliases.
+     */
+    public static function filterValuesForDisplayLabel(?string $displayLabel): array
+    {
+        $displayLabel = trim((string) $displayLabel);
+        if ($displayLabel === '') {
+            return [];
+        }
+
+        $target = self::displayLabel($displayLabel, '');
+        if ($target === '') {
+            return [$displayLabel];
+        }
+
+        $candidates = array_merge(
+            self::options(),
+            array_keys(self::LEGACY_OWNER_ALIASES),
+            [$displayLabel]
+        );
+
+        $matches = array_filter($candidates, function ($candidate) use ($target) {
+            return self::displayLabel((string) $candidate, '') === $target;
+        });
+
+        return self::uniqueByNormalizedFull(array_values($matches));
+    }
+
     private static function stripLabelPrefix(string $value): string
     {
         $value = trim($value);

@@ -26,7 +26,10 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('risk:scan-alerts --days=3')->dailyAt('07:00');
         $schedule->command('reports:dispatch-scheduled')->everyMinute();
-        $schedule->command('threat-intel:refresh --force')->everyFifteenMinutes()->withoutOverlapping();
+        $schedule->command('threat-intel:refresh --force')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping(30)
+            ->runInBackground();
     }
 
     /**

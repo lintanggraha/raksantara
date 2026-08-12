@@ -11,6 +11,7 @@ class AuditLog extends Model
         'auditable_type',
         'auditable_id',
         'event',
+        'idempotency_key',
         'before_state',
         'after_state',
         'ip_address',

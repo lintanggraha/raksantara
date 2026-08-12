@@ -19,6 +19,9 @@
         <a href="{{ route('risks.rcsa.show', $risk->id) }}" class="btn btn-info btn-sm with-icon">
             <i class="fas fa-clipboard-check"></i> RCSA Workspace
         </a>
+        <a href="{{ route('risks.governance.show', $risk->id) }}" class="btn btn-primary btn-sm with-icon">
+            <i class="fas fa-shield-alt"></i> Control Assurance
+        </a>
         @if($canManage)
             <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-warning btn-sm with-icon">
                 <i class="fas fa-edit"></i> Edit

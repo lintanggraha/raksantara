@@ -28,6 +28,7 @@ use App\Http\Controllers\RiskTreatmentTemplateController;
 use App\Http\Controllers\RiskRcsaWorkspaceController;
 use App\Http\Controllers\ParameterManagementController;
 use App\Http\Controllers\FrameworkController;
+use App\Http\Controllers\RiskGovernanceController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -113,7 +114,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'password.changed', 'approved.user', 'threat-intel.autorefresh'])->group(function () {
+Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function () {
     Route::get('/dashboard-preferences', [DashboardPreferenceController::class, 'show'])
         ->name('dashboard-preferences.show');
     Route::put('/dashboard-preferences', [DashboardPreferenceController::class, 'update'])
@@ -279,6 +280,24 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'threat-intel.au
     Route::put('/risks/{risk}/rcsa', [RiskRcsaWorkspaceController::class, 'update'])
         ->whereNumber('risk')
         ->name('risks.rcsa.update');
+
+    Route::get('/risks/{risk}/governance', [RiskGovernanceController::class, 'show'])
+        ->whereNumber('risk')
+        ->name('risks.governance.show');
+    Route::post('/risks/{risk}/governance/controls', [RiskGovernanceController::class, 'storeControl'])
+        ->whereNumber('risk')
+        ->name('risks.governance.controls.store');
+    Route::post('/risks/{risk}/governance/controls/{control}/tests', [RiskGovernanceController::class, 'storeControlTest'])
+        ->whereNumber('risk')
+        ->whereNumber('control')
+        ->name('risks.governance.controls.tests.store');
+    Route::post('/risks/{risk}/governance/acceptances', [RiskGovernanceController::class, 'requestAcceptance'])
+        ->whereNumber('risk')
+        ->name('risks.governance.acceptances.store');
+    Route::put('/risks/{risk}/governance/acceptances/{acceptance}/decision', [RiskGovernanceController::class, 'decideAcceptance'])
+        ->whereNumber('risk')
+        ->whereNumber('acceptance')
+        ->name('risks.governance.acceptances.decision');
 
     // BCM Routes
     Route::get('/bcm', [\App\Http\Controllers\BcmController::class, 'index'])->name('bcm.index');

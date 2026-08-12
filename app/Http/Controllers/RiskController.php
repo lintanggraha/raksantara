@@ -1074,27 +1074,9 @@ class RiskController extends Controller
             'risk_owner' => 'nullable|string|max:255',
         ]);
 
+                $selectedOwnerFilter = trim((string) $request->input('risk_owner', ''));
+        $ownerFilterOptions = $this->visibleRiskOwnerOptions();
         $risks = $this->buildIndexQuery($request)->get();
-        $ownerFilterOptions = $risks
-            ->map(function ($risk) {
-                return RiskOwnerAccess::displayLabel($risk->risk_owner);
-            })
-            ->filter(function ($owner) {
-                return $owner !== '-';
-            })
-            ->unique()
-            ->sort(function ($left, $right) {
-                return strnatcasecmp((string) $left, (string) $right);
-            })
-            ->values();
-
-        $selectedOwnerFilter = trim((string) $request->input('risk_owner', ''));
-        if ($selectedOwnerFilter !== '') {
-            $risks = $risks->filter(function ($risk) use ($selectedOwnerFilter) {
-                return RiskOwnerAccess::displayLabel($risk->risk_owner) === $selectedOwnerFilter;
-            })->values();
-        }
-
         $activeRiskTab = (string) ($request->input('risk_tab') ?: 'register');
         $selectedYear = $request->input('year');
         $heatmapData = $this->buildHeatmapViewDataFromRisks($risks);
@@ -2470,7 +2452,40 @@ class RiskController extends Controller
             $query->where('risk_cause_category_id', $request->risk_cause_category_id);
         }
 
+        if ($request->filled('year')) {
+            $query->where('year', (int) $request->input('year'));
+        }
+
+        $selectedOwner = trim((string) $request->input('risk_owner', ''));
+        if ($selectedOwner !== '') {
+            $ownerValues = RiskOwnerAccess::filterValuesForDisplayLabel($selectedOwner);
+            $query->whereIn('risk_owner', $ownerValues);
+        }
+
         return $query;
+    }
+
+    private function visibleRiskOwnerOptions()
+    {
+        $query = Risk::query()
+            ->select('risk_owner')
+            ->whereNotNull('risk_owner')
+            ->distinct();
+
+        RiskAccess::applyVisibilityScope($query, auth()->user());
+
+        return $query->pluck('risk_owner')
+            ->map(function ($owner) {
+                return RiskOwnerAccess::displayLabel($owner);
+            })
+            ->filter(function ($owner) {
+                return $owner !== '-';
+            })
+            ->unique()
+            ->sort(function ($left, $right) {
+                return strnatcasecmp((string) $left, (string) $right);
+            })
+            ->values();
     }
 
     private function buildDashboardSummaryFromCollection($risks, string $trendGranularity = 'quarterly'): array

@@ -14,19 +14,50 @@ class AuditLogger
         ?array $after = null
     ): void {
         try {
-            AuditLog::create([
-                'actor_id' => auth()->id(),
-                'auditable_type' => get_class($model),
-                'auditable_id' => $model->getKey(),
-                'event' => $event,
-                'before_state' => self::sanitize($before),
-                'after_state' => self::sanitize($after),
-                'ip_address' => optional(request())->ip(),
-                'user_agent' => substr((string) optional(request())->userAgent(), 0, 255),
-            ]);
+            AuditLog::create(self::buildAttributes($event, $model, $before, $after));
         } catch (\Throwable $e) {
             // Keep business flow resilient even when audit insert fails.
         }
+    }
+
+    /**
+     * Record an auditable event at most once for a deterministic idempotency key.
+     */
+    public static function logModelEventOnce(
+        string $idempotencyKey,
+        string $event,
+        Model $model,
+        ?array $before = null,
+        ?array $after = null
+    ): void {
+        try {
+            AuditLog::query()->firstOrCreate(
+                ['idempotency_key' => $idempotencyKey],
+                self::buildAttributes($event, $model, $before, $after, $idempotencyKey)
+            );
+        } catch (\Throwable $e) {
+            // Keep business flow resilient even when audit insert fails.
+        }
+    }
+
+    private static function buildAttributes(
+        string $event,
+        Model $model,
+        ?array $before,
+        ?array $after,
+        ?string $idempotencyKey = null
+    ): array {
+        return [
+            'actor_id' => auth()->id(),
+            'auditable_type' => get_class($model),
+            'auditable_id' => $model->getKey(),
+            'event' => $event,
+            'idempotency_key' => $idempotencyKey,
+            'before_state' => self::sanitize($before),
+            'after_state' => self::sanitize($after),
+            'ip_address' => optional(request())->ip(),
+            'user_agent' => substr((string) optional(request())->userAgent(), 0, 255),
+        ];
     }
 
     private static function sanitize(?array $payload): ?array
@@ -78,7 +109,7 @@ class AuditLogger
             ];
         }
 
-        if ($value instanceof \Illuminate\Database\Eloquent\Model) {
+        if ($value instanceof Model) {
             return [
                 'model' => get_class($value),
                 'id' => $value->getKey(),
