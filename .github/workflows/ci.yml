@@ -55,8 +55,24 @@ jobs:
           coverage: none
           extensions: mbstring, dom, fileinfo, intl, pdo_mysql, zip, xml, gd
 
+      - name: Refresh trusted CA certificates
+        run: |
+          sudo apt-get update
+          sudo apt-get install --reinstall -y ca-certificates
+          sudo update-ca-certificates
+          composer config --global cafile /etc/ssl/certs/ca-certificates.crt
+          composer config --global --list | grep 'cafile'
+
       - name: Install backend dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run: |
+          for attempt in 1 2 3; do
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress && exit 0
+            if [ "$attempt" -lt 3 ]; then
+              echo "Composer download failed on attempt $attempt; retrying with TLS verification still enabled."
+              sleep $((attempt * 10))
+            fi
+          done
+          exit 1
 
       - name: Audit backend dependencies
         run: composer audit --no-interaction
