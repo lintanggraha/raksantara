@@ -49,7 +49,7 @@ return new class extends Migration
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->unique(['risk_control_id', 'framework_code', 'control_reference'], 'control_framework_mapping_unique');
-            $table->index(['framework_code', 'mapping_status']);
+            $table->index(['framework_code', 'mapping_status'], 'rcfm_framework_status_idx');
         });
     }
 
