@@ -17,7 +17,7 @@ This application is a Laravel monolith with authenticated web workflows, MySQL d
 
 ## Create the Railway project
 
-Create a Railway project and deploy this GitHub repository as the **App** service. Railpack detects Laravel and provides PHP-FPM with Caddy. Use the repository `railway.json`; do not set a Vercel-style output directory or a PHP start command.
+Create a Railway project and deploy this GitHub repository as the **App** service. Railpack detects Laravel and provides PHP-FPM with Caddy. Use the repository `railway.json`; do not set a static-site output directory or a custom PHP start command.
 
 Create a **MySQL** service in the same Railway project. Then create a **Redis** service if queued jobs, cache, or sessions will use Redis. The application can use a database queue initially, but Redis is the recommended production session/cache/queue backend.
 
