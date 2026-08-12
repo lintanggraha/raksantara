@@ -114,6 +114,7 @@
                     <th>Metric & Linked Risk</th>
                     <th class="text-center">Current Value</th>
                     <th>Status</th>
+                    <th>Data Quality & Source</th>
                     <th>Threshold Setting</th>
                     <th>Last Updated</th>
                     <th>Action</th>
@@ -143,6 +144,12 @@
                             @endif
                         </td>
                         <td>
+                            @php($qualityClass = $kri->data_quality_status === 'valid' ? 'success' : ($kri->data_quality_status === 'stale' ? 'warning text-dark' : 'secondary'))
+                            <span class="badge bg-{{ $qualityClass }}">{{ ucfirst($kri->data_quality_status ?: 'unverified') }}</span>
+                            <div class="small text-muted mt-1">{{ str_replace('-', ' ', $kri->data_source ?: 'manual') }}</div>
+                            <div class="small text-muted">{{ optional($kri->source_updated_at)->diffForHumans() ?: 'No source timestamp' }}</div>
+                        </td>
+                        <td>
                             <div class="small">
                                 <span class="text-muted">Type:</span>
                                 {{ $kri->threshold_type === 'lower_is_better' ? 'Lower is Better' : 'Higher is Better' }}<br>
@@ -162,7 +169,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-5">
+                        <td colspan="7" class="text-center text-muted py-5">
                             <i class="fas fa-chart-line fa-3x mb-3 text-secondary"></i>
                             <h4>No Key Risk Indicators Setup</h4>
                             <p class="mb-2">No KRI metrics found yet. KRI is auto-generated after Risk Register import.</p>
@@ -207,6 +214,20 @@
                         <div class="mb-3">
                             <label class="form-label">Description</label>
                             <textarea name="description" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Data Source</label>
+                                <select name="data_source" class="form-select"><option value="manual">Manual</option><option value="file-import">File Import</option><option value="api">API</option><option value="webhook">Webhook</option></select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Expected Refresh (minutes)</label>
+                                <input type="number" min="1" name="expected_refresh_minutes" class="form-control" placeholder="e.g., 1440">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Source Identifier</label>
+                            <input type="text" name="source_identifier" class="form-control" maxlength="255" placeholder="Dataset, API endpoint, or report key">
                         </div>
                         <div class="mb-3">
                             <label class="form-label required">Threshold Direction</label>

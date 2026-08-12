@@ -45,6 +45,12 @@ class RiskIncident extends Model
         'immediate_action',
         'root_cause',
         'corrective_action',
+        'lessons_learned',
+        'risk_review_status',
+        'control_review_status',
+        'kri_review_status',
+        'post_incident_reviewed_by',
+        'post_incident_reviewed_at',
         'resolution_notes',
         'closed_at',
     ];
@@ -53,11 +59,22 @@ class RiskIncident extends Model
         'occurred_at' => 'datetime',
         'detected_at' => 'datetime',
         'closed_at' => 'datetime',
+        'post_incident_reviewed_at' => 'datetime',
     ];
 
     public function risk()
     {
         return $this->belongsTo(Risk::class);
+    }
+
+    public function actions()
+    {
+        return $this->hasMany(RiskIncidentAction::class)->orderBy('due_at');
+    }
+
+    public function postIncidentReviewer()
+    {
+        return $this->belongsTo(User::class, 'post_incident_reviewed_by');
     }
 
     public function reporter()

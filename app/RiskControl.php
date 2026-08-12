@@ -42,4 +42,9 @@ class RiskControl extends Model
     {
         return $this->hasMany(RiskControlTest::class)->latest('tested_at');
     }
+
+    public function frameworkMappings()
+    {
+        return $this->hasMany(RiskControlFrameworkMapping::class)->latest('last_reviewed_at');
+    }
 }

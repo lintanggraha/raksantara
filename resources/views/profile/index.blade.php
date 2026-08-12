@@ -61,6 +61,17 @@
 
     </div>
 
+    <div class="col-md-6">
+        <div class="card card-outline card-primary">
+            <div class="card-header"><h3 class="card-title">Security</h3></div>
+            <div class="card-body">
+                <p>Two-factor authentication adds an authenticator code or recovery code after password sign-in.</p>
+                <span class="badge badge-{{ auth()->user()->hasTwoFactorEnabled() ? 'success' : 'secondary' }}">{{ auth()->user()->hasTwoFactorEnabled() ? 'MFA Enabled' : 'MFA Not Enabled' }}</span>
+            </div>
+            <div class="card-footer"><a class="btn btn-outline-primary" href="{{ route('two-factor.settings') }}">Manage Two-Factor Authentication</a></div>
+        </div>
+    </div>
+
 </div>
 
 @if(session('success'))

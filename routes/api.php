@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthenticatedUserController;
 use App\Http\Controllers\Api\RiskScoreMatrixController;
+use App\Http\Controllers\Api\KriIngestionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,3 +20,7 @@ Route::middleware('auth:api')->get('/user', AuthenticatedUserController::class);
 
 // Risk Score Matrix API
 Route::get('/risk-score-matrix', RiskScoreMatrixController::class);
+
+Route::post('/kri/ingestion', [KriIngestionController::class, 'store'])
+    ->middleware('throttle:120,1')
+    ->name('api.kri.ingestion');

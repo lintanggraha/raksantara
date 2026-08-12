@@ -13,12 +13,26 @@ class Kri extends Model
         'risk_id',
         'metric_name',
         'description',
+        'data_source',
+        'source_identifier',
+        'source_reference',
+        'expected_refresh_minutes',
+        'source_updated_at',
+        'data_quality_status',
+        'data_quality_notes',
+        'last_quality_checked_at',
+        'last_sync_error',
         'threshold_type',
         'threshold_warn',
         'threshold_critical',
         'current_value',
         'status',
         'last_updated_by',
+    ];
+
+    protected $casts = [
+        'source_updated_at' => 'datetime',
+        'last_quality_checked_at' => 'datetime',
     ];
 
     public function risk()

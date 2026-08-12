@@ -29,6 +29,14 @@ use App\Http\Controllers\RiskRcsaWorkspaceController;
 use App\Http\Controllers\ParameterManagementController;
 use App\Http\Controllers\FrameworkController;
 use App\Http\Controllers\RiskGovernanceController;
+use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\IncidentLearningController;
+use App\Http\Controllers\EnterpriseRiskProfileController;
+use App\Http\Controllers\ThirdPartyRiskController;
+use App\Http\Controllers\ControlFrameworkMappingController;
+use App\Http\Controllers\StrategicRiskReviewController;
+use App\Http\Controllers\TwoFactorAuthenticationController;
+use App\Http\Controllers\OidcSingleSignOnController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -37,14 +45,34 @@ Auth::routes([
 Route::get('/health', [HealthCheckController::class, 'live'])->name('health.live');
 Route::get('/health/ready', [HealthCheckController::class, 'ready'])->name('health.ready');
 
-Route::get('/', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
+Route::get('/', [AppEntryController::class, 'redirectToMonitoring'])->middleware(['auth', 'mfa.completed']);
 
-Route::get('/home', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
+Route::get('/home', [AppEntryController::class, 'redirectToMonitoring'])->middleware(['auth', 'mfa.completed']);
 
-Route::get('/dashboard', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
+Route::get('/dashboard', [AppEntryController::class, 'redirectToMonitoring'])->middleware(['auth', 'mfa.completed']);
 
-Route::middleware(['auth', 'password.changed'])->group(function () {
+Route::get('/sso/oidc/redirect', [OidcSingleSignOnController::class, 'redirect'])->name('sso.oidc.redirect');
+Route::get('/sso/oidc/callback', [OidcSingleSignOnController::class, 'callback'])->name('sso.oidc.callback');
+
+Route::get('/two-factor-challenge', [TwoFactorAuthenticationController::class, 'challenge'])->name('two-factor.challenge');
+Route::post('/two-factor-challenge', [TwoFactorAuthenticationController::class, 'verifyChallenge'])
+    ->middleware('throttle:10,1')
+    ->name('two-factor.challenge.verify');
+
+Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function () {
     Route::get('/account/pending-approval', [AppEntryController::class, 'pendingApproval'])->name('account.pending');
+
+    Route::get('/two-factor', [TwoFactorAuthenticationController::class, 'show'])->name('two-factor.settings');
+    Route::post('/two-factor/setup', [TwoFactorAuthenticationController::class, 'beginSetup'])->name('two-factor.setup.begin');
+    Route::post('/two-factor/confirm', [TwoFactorAuthenticationController::class, 'confirmSetup'])
+        ->middleware('throttle:10,1')
+        ->name('two-factor.setup.confirm');
+    Route::post('/two-factor/recovery-codes', [TwoFactorAuthenticationController::class, 'regenerateRecoveryCodes'])
+        ->middleware('throttle:10,1')
+        ->name('two-factor.recovery-codes.regenerate');
+    Route::delete('/two-factor', [TwoFactorAuthenticationController::class, 'disable'])
+        ->middleware('throttle:10,1')
+        ->name('two-factor.disable');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -86,6 +114,11 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             ->name('parameters.radar-groups.update');
 
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::get('/access-control', [AccessControlController::class, 'index'])->name('access-control.index');
+        Route::post('/access-control', [AccessControlController::class, 'store'])->name('access-control.store');
+        Route::delete('/access-control/{assignment}', [AccessControlController::class, 'destroy'])
+            ->whereNumber('assignment')
+            ->name('access-control.destroy');
         Route::put('/users/{user}/division', [UserManagementController::class, 'updateDivision'])
             ->whereNumber('user')
             ->name('users.updateDivision');
@@ -114,7 +147,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function () {
+Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed'])->group(function () {
     Route::get('/dashboard-preferences', [DashboardPreferenceController::class, 'show'])
         ->name('dashboard-preferences.show');
     Route::put('/dashboard-preferences', [DashboardPreferenceController::class, 'update'])
@@ -123,6 +156,25 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::get('/impact-scales/{id}', [AppEntryController::class, 'impactScales'])->whereNumber('id');
 
     Route::get('/risk-monitoring', [RiskController::class, 'monitoring'])->name('risks.monitoring');
+    Route::get('/enterprise-risk-profile', [EnterpriseRiskProfileController::class, 'index'])->name('enterprise-risk-profile.index');
+    Route::post('/enterprise-risk-profile/decisions', [EnterpriseRiskProfileController::class, 'storeDecision'])
+        ->middleware('compliance.division')
+        ->name('enterprise-risk-profile.decisions.store');
+    Route::put('/enterprise-risk-profile/decisions/{decision}', [EnterpriseRiskProfileController::class, 'updateDecision'])
+        ->middleware('compliance.division')
+        ->whereNumber('decision')
+        ->name('enterprise-risk-profile.decisions.update');
+    Route::get('/strategic-risk-reviews', [StrategicRiskReviewController::class, 'index'])->name('strategic-risk-reviews.index');
+    Route::post('/strategic-risk-reviews/scenarios', [StrategicRiskReviewController::class, 'storeScenario'])
+        ->middleware('compliance.division')
+        ->name('strategic-risk-reviews.scenarios.store');
+    Route::post('/strategic-risk-reviews/scenarios/{scenario}/impacts', [StrategicRiskReviewController::class, 'storeScenarioImpact'])
+        ->middleware('compliance.division')
+        ->whereNumber('scenario')
+        ->name('strategic-risk-reviews.scenarios.impacts.store');
+    Route::post('/strategic-risk-reviews/maturity', [StrategicRiskReviewController::class, 'storeMaturityAssessment'])
+        ->middleware('compliance.division')
+        ->name('strategic-risk-reviews.maturity.store');
     Route::get('/risk-heatmap', [RiskController::class, 'heatmap'])->name('risks.heatmap');
     Route::get('/risk-recap', [RiskController::class, 'recap'])->name('risks.recap');
     Route::get('/risk-dashboard-summary', [RiskController::class, 'dashboardSummary'])->name('risks.dashboard-summary');
@@ -148,6 +200,19 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::delete('/incident-management/{incident}', [IncidentManagementController::class, 'destroy'])
         ->whereNumber('incident')
         ->name('incidents.destroy');
+    Route::get('/incident-management/{incident}/learning', [IncidentLearningController::class, 'show'])
+        ->whereNumber('incident')
+        ->name('incidents.learning.show');
+    Route::post('/incident-management/{incident}/learning/actions', [IncidentLearningController::class, 'storeAction'])
+        ->whereNumber('incident')
+        ->name('incidents.learning.actions.store');
+    Route::put('/incident-management/{incident}/learning/actions/{action}', [IncidentLearningController::class, 'updateAction'])
+        ->whereNumber('incident')
+        ->whereNumber('action')
+        ->name('incidents.learning.actions.update');
+    Route::put('/incident-management/{incident}/learning/review', [IncidentLearningController::class, 'completeReview'])
+        ->whereNumber('incident')
+        ->name('incidents.learning.review');
     Route::get('/audit', [AuditDashboardController::class, 'index'])
         ->middleware('compliance.division')
         ->name('audit.placeholder');
@@ -307,6 +372,23 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::post('/bias/{bia}/bcp', [\App\Http\Controllers\BcpController::class, 'update'])
         ->whereNumber('bia')
         ->name('bcp.store');
+
+    Route::get('/control-framework-mappings', [ControlFrameworkMappingController::class, 'index'])->name('control-framework-mappings.index');
+    Route::post('/control-framework-mappings', [ControlFrameworkMappingController::class, 'store'])
+        ->middleware('compliance.division')
+        ->name('control-framework-mappings.store');
+    Route::get('/vendors/{vendor}/third-party-risk', [ThirdPartyRiskController::class, 'show'])
+        ->whereNumber('vendor')
+        ->name('vendors.third-party-risk.show');
+    Route::post('/vendors/{vendor}/third-party-risk/assessments', [ThirdPartyRiskController::class, 'storeAssessment'])
+        ->middleware('compliance.division')
+        ->whereNumber('vendor')
+        ->name('vendors.third-party-risk.assessments.store');
+    Route::put('/vendors/{vendor}/third-party-risk/assessments/{assessment}', [ThirdPartyRiskController::class, 'updateAssessment'])
+        ->middleware('compliance.division')
+        ->whereNumber('vendor')
+        ->whereNumber('assessment')
+        ->name('vendors.third-party-risk.assessments.update');
 
     Route::resource('vendors', \App\Http\Controllers\VendorController::class);
     Route::resource('risk-appetites', \App\Http\Controllers\RiskAppetiteController::class);
