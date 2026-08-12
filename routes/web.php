@@ -35,6 +35,8 @@ use App\Http\Controllers\EnterpriseRiskProfileController;
 use App\Http\Controllers\ThirdPartyRiskController;
 use App\Http\Controllers\ControlFrameworkMappingController;
 use App\Http\Controllers\StrategicRiskReviewController;
+use App\Http\Controllers\TwoFactorAuthenticationController;
+use App\Http\Controllers\OidcSingleSignOnController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -43,14 +45,34 @@ Auth::routes([
 Route::get('/health', [HealthCheckController::class, 'live'])->name('health.live');
 Route::get('/health/ready', [HealthCheckController::class, 'ready'])->name('health.ready');
 
-Route::get('/', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
+Route::get('/', [AppEntryController::class, 'redirectToMonitoring'])->middleware(['auth', 'mfa.completed']);
 
-Route::get('/home', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
+Route::get('/home', [AppEntryController::class, 'redirectToMonitoring'])->middleware(['auth', 'mfa.completed']);
 
-Route::get('/dashboard', [AppEntryController::class, 'redirectToMonitoring'])->middleware('auth');
+Route::get('/dashboard', [AppEntryController::class, 'redirectToMonitoring'])->middleware(['auth', 'mfa.completed']);
 
-Route::middleware(['auth', 'password.changed'])->group(function () {
+Route::get('/sso/oidc/redirect', [OidcSingleSignOnController::class, 'redirect'])->name('sso.oidc.redirect');
+Route::get('/sso/oidc/callback', [OidcSingleSignOnController::class, 'callback'])->name('sso.oidc.callback');
+
+Route::get('/two-factor-challenge', [TwoFactorAuthenticationController::class, 'challenge'])->name('two-factor.challenge');
+Route::post('/two-factor-challenge', [TwoFactorAuthenticationController::class, 'verifyChallenge'])
+    ->middleware('throttle:10,1')
+    ->name('two-factor.challenge.verify');
+
+Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function () {
     Route::get('/account/pending-approval', [AppEntryController::class, 'pendingApproval'])->name('account.pending');
+
+    Route::get('/two-factor', [TwoFactorAuthenticationController::class, 'show'])->name('two-factor.settings');
+    Route::post('/two-factor/setup', [TwoFactorAuthenticationController::class, 'beginSetup'])->name('two-factor.setup.begin');
+    Route::post('/two-factor/confirm', [TwoFactorAuthenticationController::class, 'confirmSetup'])
+        ->middleware('throttle:10,1')
+        ->name('two-factor.setup.confirm');
+    Route::post('/two-factor/recovery-codes', [TwoFactorAuthenticationController::class, 'regenerateRecoveryCodes'])
+        ->middleware('throttle:10,1')
+        ->name('two-factor.recovery-codes.regenerate');
+    Route::delete('/two-factor', [TwoFactorAuthenticationController::class, 'disable'])
+        ->middleware('throttle:10,1')
+        ->name('two-factor.disable');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -125,7 +147,7 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function () {
+Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed'])->group(function () {
     Route::get('/dashboard-preferences', [DashboardPreferenceController::class, 'show'])
         ->name('dashboard-preferences.show');
     Route::put('/dashboard-preferences', [DashboardPreferenceController::class, 'update'])

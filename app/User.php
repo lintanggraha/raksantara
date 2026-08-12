@@ -34,7 +34,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password', 'remember_token',
+        'password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes',
     ];
 
     /**
@@ -49,6 +49,8 @@ class User extends Authenticatable
         'is_superadmin' => 'boolean',
         'force_password_change' => 'boolean',
         'password_changed_at' => 'datetime',
+        'two_factor_confirmed_at' => 'datetime',
+        'two_factor_last_used_at' => 'datetime',
     ];
 
     protected static function booted()
@@ -115,6 +117,11 @@ class User extends Authenticatable
     public function mustChangePassword(): bool
     {
         return (bool) $this->force_password_change;
+    }
+
+    public function hasTwoFactorEnabled(): bool
+    {
+        return !is_null($this->two_factor_confirmed_at) && !empty($this->two_factor_secret);
     }
 
     public function dashboardPreference()

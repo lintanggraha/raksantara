@@ -63,6 +63,13 @@ class LoginController extends Controller
 
     protected function authenticated(Request $request, $user)
     {
+        if (method_exists($user, 'hasTwoFactorEnabled') && $user->hasTwoFactorEnabled()) {
+            Auth::logout();
+            $request->session()->put('mfa_user_id', $user->id);
+
+            return redirect()->route('two-factor.challenge');
+        }
+
         if (method_exists($user, 'isDivisionVerified') && !$user->isDivisionVerified()) {
             return redirect()->route('account.pending');
         }
