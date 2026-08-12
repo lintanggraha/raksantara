@@ -122,6 +122,60 @@ class User extends Authenticatable
         return $this->hasOne(UserDashboardPreference::class, 'user_id');
     }
 
+    public function organizationalUnit()
+    {
+        return $this->belongsTo(OrganizationalUnit::class);
+    }
+
+    public function roleAssignments()
+    {
+        return $this->hasMany(RoleAssignment::class);
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'role_user')
+            ->withPivot(['organizational_unit_id', 'assigned_by', 'expires_at'])
+            ->withTimestamps();
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isSuperadmin()) {
+            return true;
+        }
+
+        return $this->roleAssignments()
+            ->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereHas('role.permissions', function ($query) use ($permission) {
+                $query->where('slug', $permission);
+            })
+            ->exists();
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->roleAssignments()
+            ->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereHas('role', function ($query) use ($role) {
+                $query->where('slug', $role);
+            })
+            ->exists();
+    }
+
+    public function hasExplicitRoles(): bool
+    {
+        return $this->roleAssignments()
+            ->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+    }
+
     private function ownRiskOwnerOptions(): array
     {
         $canonicalDivision = RiskOwnerAccess::canonicalOption($this->division);

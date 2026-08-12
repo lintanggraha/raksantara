@@ -29,6 +29,9 @@ use App\Http\Controllers\RiskRcsaWorkspaceController;
 use App\Http\Controllers\ParameterManagementController;
 use App\Http\Controllers\FrameworkController;
 use App\Http\Controllers\RiskGovernanceController;
+use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\IncidentLearningController;
+use App\Http\Controllers\EnterpriseRiskProfileController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -86,6 +89,11 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
             ->name('parameters.radar-groups.update');
 
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::get('/access-control', [AccessControlController::class, 'index'])->name('access-control.index');
+        Route::post('/access-control', [AccessControlController::class, 'store'])->name('access-control.store');
+        Route::delete('/access-control/{assignment}', [AccessControlController::class, 'destroy'])
+            ->whereNumber('assignment')
+            ->name('access-control.destroy');
         Route::put('/users/{user}/division', [UserManagementController::class, 'updateDivision'])
             ->whereNumber('user')
             ->name('users.updateDivision');
@@ -123,6 +131,14 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::get('/impact-scales/{id}', [AppEntryController::class, 'impactScales'])->whereNumber('id');
 
     Route::get('/risk-monitoring', [RiskController::class, 'monitoring'])->name('risks.monitoring');
+    Route::get('/enterprise-risk-profile', [EnterpriseRiskProfileController::class, 'index'])->name('enterprise-risk-profile.index');
+    Route::post('/enterprise-risk-profile/decisions', [EnterpriseRiskProfileController::class, 'storeDecision'])
+        ->middleware('compliance.division')
+        ->name('enterprise-risk-profile.decisions.store');
+    Route::put('/enterprise-risk-profile/decisions/{decision}', [EnterpriseRiskProfileController::class, 'updateDecision'])
+        ->middleware('compliance.division')
+        ->whereNumber('decision')
+        ->name('enterprise-risk-profile.decisions.update');
     Route::get('/risk-heatmap', [RiskController::class, 'heatmap'])->name('risks.heatmap');
     Route::get('/risk-recap', [RiskController::class, 'recap'])->name('risks.recap');
     Route::get('/risk-dashboard-summary', [RiskController::class, 'dashboardSummary'])->name('risks.dashboard-summary');
@@ -148,6 +164,19 @@ Route::middleware(['auth', 'password.changed', 'approved.user'])->group(function
     Route::delete('/incident-management/{incident}', [IncidentManagementController::class, 'destroy'])
         ->whereNumber('incident')
         ->name('incidents.destroy');
+    Route::get('/incident-management/{incident}/learning', [IncidentLearningController::class, 'show'])
+        ->whereNumber('incident')
+        ->name('incidents.learning.show');
+    Route::post('/incident-management/{incident}/learning/actions', [IncidentLearningController::class, 'storeAction'])
+        ->whereNumber('incident')
+        ->name('incidents.learning.actions.store');
+    Route::put('/incident-management/{incident}/learning/actions/{action}', [IncidentLearningController::class, 'updateAction'])
+        ->whereNumber('incident')
+        ->whereNumber('action')
+        ->name('incidents.learning.actions.update');
+    Route::put('/incident-management/{incident}/learning/review', [IncidentLearningController::class, 'completeReview'])
+        ->whereNumber('incident')
+        ->name('incidents.learning.review');
     Route::get('/audit', [AuditDashboardController::class, 'index'])
         ->middleware('compliance.division')
         ->name('audit.placeholder');

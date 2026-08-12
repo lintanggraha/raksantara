@@ -353,7 +353,7 @@
                                 ];
                             @endphp
                             <tr>
-                                <td class="fw-bold">{{ $incident->incident_code }}</td>
+                                <td class="fw-bold">{{ $incident->incident_code }}<div class="mt-1"><a href="{{ route('incidents.learning.show', $incident->id) }}" class="btn btn-outline-primary btn-xs">Learning & CAPA</a></div></td>
                                 <td data-order="{{ optional($incident->occurred_at)->timestamp ?? 0 }}">
                                     {{ optional($incident->occurred_at)->format('d M Y H:i') ?? '-' }}
                                 </td>

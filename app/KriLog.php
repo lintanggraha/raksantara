@@ -12,9 +12,16 @@ class KriLog extends Model
     protected $fillable = [
         'kri_id',
         'recorded_value',
+        'source_recorded_at',
+        'source_reference',
         'status_calculated',
+        'data_quality_status',
         'notes',
         'recorded_by',
+    ];
+
+    protected $casts = [
+        'source_recorded_at' => 'datetime',
     ];
 
     public function kri()

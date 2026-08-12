@@ -7,6 +7,7 @@ use App\KriLog;
 use App\Risk;
 use App\Support\AuditLogger;
 use App\Support\RiskAccess;
+use App\Services\KriDataQualityService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +42,9 @@ class KriController extends Controller
             'green' => (clone $summaryQuery)->where('status', 'Green')->count(),
             'amber' => (clone $summaryQuery)->where('status', 'Amber')->count(),
             'red' => (clone $summaryQuery)->where('status', 'Red')->count(),
+            'quality_valid' => (clone $summaryQuery)->where('data_quality_status', 'valid')->count(),
+            'quality_stale' => (clone $summaryQuery)->where('data_quality_status', 'stale')->count(),
+            'quality_attention' => (clone $summaryQuery)->whereIn('data_quality_status', ['missing', 'invalid', 'unverified'])->count(),
         ];
 
         $kris = $query
@@ -75,6 +79,10 @@ class KriController extends Controller
         $validated = $request->validate([
             'metric_name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'data_source' => 'nullable|in:manual,risk-register-import,api,webhook,file-import',
+            'source_identifier' => 'nullable|string|max:255',
+            'source_reference' => 'nullable|string|max:500',
+            'expected_refresh_minutes' => 'nullable|integer|min:1|max:525600',
             'threshold_type' => 'required|in:lower_is_better,higher_is_better',
             'threshold_warn' => 'nullable|numeric',
             'threshold_critical' => 'nullable|numeric',
@@ -83,6 +91,7 @@ class KriController extends Controller
         $this->validateThresholdConsistency($validated);
 
         $kri = new Kri($validated);
+        $kri->data_source = $validated['data_source'] ?? 'manual';
         $kri->risk_id = $risk->id;
         $kri->last_updated_by = Auth::id();
         $kri->save();
@@ -106,6 +115,10 @@ class KriController extends Controller
         $validated = $request->validate([
             'metric_name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'data_source' => 'nullable|in:manual,risk-register-import,api,webhook,file-import',
+            'source_identifier' => 'nullable|string|max:255',
+            'source_reference' => 'nullable|string|max:500',
+            'expected_refresh_minutes' => 'nullable|integer|min:1|max:525600',
             'threshold_type' => 'required|in:lower_is_better,higher_is_better',
             'threshold_warn' => 'nullable|numeric',
             'threshold_critical' => 'nullable|numeric',
@@ -161,7 +174,9 @@ class KriController extends Controller
 
         $request->validate([
             'recorded_value' => 'required|numeric',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
+            'source_reference' => 'nullable|string|max:500',
+            'source_recorded_at' => 'nullable|date',
         ]);
 
         $value = $request->input('recorded_value');
@@ -169,19 +184,13 @@ class KriController extends Controller
 
         $beforeKri = $kri->toArray();
 
-        $log = new KriLog([
-            'kri_id' => $kri->id,
-            'recorded_value' => $value,
-            'status_calculated' => $status,
+        $log = app(KriDataQualityService::class)->recordReading($kri, (float) $value, [
+            'source_recorded_at' => $request->input('source_recorded_at'),
+            'source_reference' => $request->input('source_reference'),
             'notes' => $request->input('notes'),
-            'recorded_by' => Auth::id(),
-        ]);
-        $log->save();
+        ], Auth::id());
 
-        $kri->current_value = $value;
-        $kri->status = $status;
-        $kri->last_updated_by = Auth::id();
-        $kri->save();
+        $status = $log->status_calculated;
 
         if (class_exists(AuditLogger::class)) {
             AuditLogger::logModelEvent('kri.value_logged', $kri, $beforeKri, $kri->fresh()->toArray());

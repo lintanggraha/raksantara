@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Kri;
-use App\KriLog;
 use App\Risk;
 
 class KriAutoSyncService
@@ -40,6 +39,8 @@ class KriAutoSyncService
             ];
         }
 
+        $qualityService = app(KriDataQualityService::class);
+
         $stats = [
             'processed' => 0,
             'created' => 0,
@@ -75,13 +76,15 @@ class KriAutoSyncService
             $previousStatus = (string) ($kri->status ?? '');
 
             $kri->description = self::AUTO_DESCRIPTION;
+            $kri->data_source = 'risk-register-import';
+            $kri->source_identifier = 'risk:' . $risk->id . ':residual-score';
+            $kri->expected_refresh_minutes = 1440;
             $kri->threshold_type = 'lower_is_better';
             $kri->threshold_warn = self::WARN_THRESHOLD;
             $kri->threshold_critical = self::CRITICAL_THRESHOLD;
             $kri->current_value = $currentValue;
             $kri->status = $kri->calculateStatusForValue($currentValue);
             $kri->last_updated_by = $actorId;
-            $kri->save();
 
             if ($isNew) {
                 $stats['created']++;
@@ -95,16 +98,20 @@ class KriAutoSyncService
                 || $previousStatus !== $kri->status;
 
             if ($shouldLog) {
-                KriLog::query()->create([
-                    'kri_id' => $kri->id,
-                    'recorded_value' => $currentValue,
-                    'status_calculated' => $kri->status,
+                $qualityService->recordReading($kri, $currentValue, [
+                    'source_reference' => 'risk-register-import',
                     'notes' => 'Auto sync from Risk Register import',
-                    'recorded_by' => $actorId,
-                ]);
+                ], $actorId);
 
                 $stats['logged']++;
+                continue;
             }
+
+            $kri->source_updated_at = now();
+            $kri->source_reference = 'risk-register-import';
+            $kri->last_sync_error = null;
+            $kri->save();
+            $qualityService->evaluateAndPersist($kri);
         }
 
         return $stats;
