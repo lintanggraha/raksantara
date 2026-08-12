@@ -13,7 +13,6 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Excel as ExcelWriter;
 use Maatwebsite\Excel\Facades\Excel;
@@ -88,8 +87,8 @@ class ReportController extends Controller
             $actor instanceof User ? $actor : null
         );
 
-        if ($actor instanceof User && $this->shouldAuditExport($request, $actor, $scope, $format, $year, $filters)) {
-            AuditLogger::logModelEvent('report.export.generated', $actor, null, [
+        if ($actor instanceof User && !is_null($idempotencyKey = $this->exportAuditIdempotencyKey($request, $actor, $scope, $format, $year, $filters))) {
+            AuditLogger::logModelEventOnce($idempotencyKey, 'report.export.generated', $actor, null, [
                 'scope' => $scope,
                 'format' => $format,
                 'year' => $year,
@@ -146,16 +145,16 @@ class ReportController extends Controller
         return $actor->allowedRiskOwners($includeCurrent);
     }
 
-    private function shouldAuditExport(
+    private function exportAuditIdempotencyKey(
         Request $request,
         User $actor,
         string $scope,
         string $format,
         ?int $year,
         array $filters
-    ): bool {
+    ): ?string {
         if ($request->isMethod('head')) {
-            return false;
+            return null;
         }
 
         $signature = implode('|', [
@@ -168,11 +167,10 @@ class ReportController extends Controller
             (string) ($filters['risk_owner'] ?? '-'),
             (string) $request->ip(),
             (string) $request->userAgent(),
+            'window:' . (int) floor(now()->timestamp / self::EXPORT_AUDIT_DEDUP_SECONDS),
         ]);
 
-        $key = 'audit:report-export:generated:' . sha1($signature);
-
-        return Cache::add($key, 1, now()->addSeconds(self::EXPORT_AUDIT_DEDUP_SECONDS));
+        return hash('sha256', $signature);
     }
 
     private function downloadExcel(array $payload, string $format = 'xlsx')

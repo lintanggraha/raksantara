@@ -6,9 +6,12 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   tests:
-    name: Laravel Tests
+    name: Backend Tests and Security
     runs-on: ubuntu-latest
 
     services:
@@ -52,8 +55,14 @@ jobs:
           coverage: none
           extensions: mbstring, dom, fileinfo, intl, pdo_mysql, zip, xml, gd
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Audit backend dependencies
+        run: composer audit --no-interaction
+
+      - name: Check PHP syntax
+        run: find app bootstrap config database routes tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Prepare app key
         run: |
@@ -65,3 +74,26 @@ jobs:
 
       - name: Run test suite
         run: php artisan test
+
+  frontend:
+    name: Frontend Build and Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Audit frontend dependencies
+        run: npm audit --audit-level=high
+
+      - name: Build production assets
+        run: npm run build

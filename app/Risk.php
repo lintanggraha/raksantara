@@ -186,6 +186,16 @@ class Risk extends Model
         return $this->belongsTo(Vendor::class);
     }
 
+    public function controls()
+    {
+        return $this->hasMany(RiskControl::class);
+    }
+
+    public function acceptances()
+    {
+        return $this->hasMany(RiskAcceptance::class)->latest();
+    }
+
     public function bia()
     {
         return $this->hasOne(Bia::class);
