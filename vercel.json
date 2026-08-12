@@ -1,24 +1,12 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.php",
-      "use": "vercel-php@0.6.2"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.6.2"
     }
-  ],
+  },
   "routes": [
-    {
-      "src": "/build/(.*)",
-      "dest": "public/build/$1"
-    },
-    {
-      "src": "/(favicon\\.ico|robots\\.txt|manifest\\.json)",
-      "dest": "public/$1"
-    },
     {
       "src": "/(.*)",
       "dest": "/api/index.php"
