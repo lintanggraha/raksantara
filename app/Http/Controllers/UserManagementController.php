@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\InputValidation;
 use App\Support\RiskOwnerAccess;
 use App\User;
 use App\Support\AuditLogger;
@@ -52,6 +53,61 @@ class UserManagementController extends Controller
         $divisionOptions = RiskOwnerAccess::options();
 
         return view('users.index', compact('users', 'divisionOptions', 'status', 'search'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'regex:' . InputValidation::SAFE_TEXT_REGEX],
+            'username' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9_.-]+$/', 'unique:users,username'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'division' => ['required', 'string', 'max:255', Rule::in(RiskOwnerAccess::options())],
+            'password' => ['nullable', 'string', 'min:8', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/', 'confirmed'],
+        ], [
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, underscore, dan dash.',
+            'division.in' => 'Divisi yang dipilih tidak valid.',
+            'password.regex' => 'Password harus mengandung kombinasi huruf dan angka.',
+        ]);
+
+        $plainPassword = trim((string) ($validated['password'] ?? ''));
+        $isGeneratedPassword = $plainPassword === '';
+        if ($isGeneratedPassword) {
+            $plainPassword = $this->generateTemporaryPassword();
+        }
+
+        $division = RiskOwnerAccess::canonicalOption($validated['division']) ?? $validated['division'];
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => strtolower(trim($validated['email'])),
+            'division' => $division,
+            'pending_division' => null,
+            'division_verified_at' => now(),
+            'is_superadmin' => false,
+            'password' => Hash::make($plainPassword),
+            'force_password_change' => $isGeneratedPassword,
+            'password_changed_at' => $isGeneratedPassword ? null : now(),
+        ]);
+
+        AuditLogger::logModelEvent(
+            'user.created_by_superadmin',
+            $user,
+            null,
+            $user->fresh()->toArray()
+        );
+
+        $response = redirect()
+            ->route('users.index', ['status' => 'all'])
+            ->with('success', 'User ' . $user->username . ' berhasil dibuat.');
+
+        if ($isGeneratedPassword) {
+            $response
+                ->with('temporary_password_username', $user->username)
+                ->with('temporary_password', $plainPassword);
+        }
+
+        return $response;
     }
 
     public function updateDivision(Request $request, User $user)

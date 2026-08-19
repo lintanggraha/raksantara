@@ -49,6 +49,70 @@ class UserApprovalAndIntegrityTest extends TestCase
         $this->assertNotNull(optional(User::find($pendingUser->id))->division_verified_at);
     }
 
+    public function test_superadmin_can_create_regular_user_with_supplied_password(): void
+    {
+        $superadmin = $this->createUser('CO - COMPLIANCE', true);
+        $this->actingAs($superadmin);
+
+        $response = $this->post(route('users.store'), [
+            'name' => 'Created User',
+            'username' => 'created_user',
+            'email' => 'created@example.test',
+            'division' => 'BT - DIGITAL BANKING',
+            'password' => 'CreatedPassword123',
+            'password_confirmation' => 'CreatedPassword123',
+        ]);
+
+        $response->assertRedirect(route('users.index', ['status' => 'all']));
+        $response->assertSessionHas('success');
+
+        $createdUser = User::query()->where('username', 'created_user')->firstOrFail();
+        $this->assertFalse((bool) $createdUser->is_superadmin);
+        $this->assertSame('BT - DIGITAL BANKING', $createdUser->division);
+        $this->assertNull($createdUser->pending_division);
+        $this->assertNotNull($createdUser->division_verified_at);
+        $this->assertFalse((bool) $createdUser->force_password_change);
+        $this->assertNotNull($createdUser->password_changed_at);
+        $this->assertTrue(Hash::check('CreatedPassword123', (string) $createdUser->password));
+    }
+
+    public function test_superadmin_can_create_user_with_temporary_password(): void
+    {
+        $superadmin = $this->createUser('CO - COMPLIANCE', true);
+        $this->actingAs($superadmin);
+
+        $response = $this->post(route('users.store'), [
+            'name' => 'Temporary User',
+            'username' => 'temporary_user',
+            'email' => 'temporary@example.test',
+            'division' => 'BT - DIGITAL BANKING',
+        ]);
+
+        $response->assertRedirect(route('users.index', ['status' => 'all']));
+        $response->assertSessionHas('temporary_password');
+
+        $temporaryPassword = (string) session('temporary_password');
+        $createdUser = User::query()->where('username', 'temporary_user')->firstOrFail();
+        $this->assertTrue((bool) $createdUser->force_password_change);
+        $this->assertNull($createdUser->password_changed_at);
+        $this->assertTrue(Hash::check($temporaryPassword, (string) $createdUser->password));
+    }
+
+    public function test_non_superadmin_cannot_create_user(): void
+    {
+        $user = $this->createUser('BT - DIGITAL BANKING');
+        $this->actingAs($user);
+
+        $this->post(route('users.store'), [
+            'name' => 'Unauthorized User',
+            'username' => 'unauthorized_user',
+            'email' => 'unauthorized@example.test',
+            'division' => 'BT - DIGITAL BANKING',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['username' => 'unauthorized_user']);
+    }
+
     public function test_non_superadmin_cannot_access_user_management_page(): void
     {
         $user = $this->createUser('BT - DIGITAL BANKING');

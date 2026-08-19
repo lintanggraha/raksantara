@@ -117,6 +117,7 @@ Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function
             ->name('parameters.radar-groups.update');
 
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
         Route::get('/access-control', [AccessControlController::class, 'index'])->name('access-control.index');
         Route::post('/access-control', [AccessControlController::class, 'store'])->name('access-control.store');
         Route::delete('/access-control/{assignment}', [AccessControlController::class, 'destroy'])

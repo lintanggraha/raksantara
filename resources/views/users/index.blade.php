@@ -23,6 +23,61 @@
     </div>
 @endif
 
+<div class="card shadow mb-4">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Create User</h3>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small mb-3">
+            Buat user biasa langsung dari halaman ini. Jika password dikosongkan, sistem akan membuat temporary password dan user wajib menggantinya saat login pertama. Setelah dibuat, user dapat dipromosikan melalui action Superadmin jika diperlukan.
+        </p>
+        <form action="{{ route('users.store') }}" method="POST">
+            @csrf
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="create-user-name" class="form-label">Nama lengkap</label>
+                    <input id="create-user-name" type="text" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required>
+                    @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label for="create-user-username" class="form-label">Username</label>
+                    <input id="create-user-username" type="text" name="username" value="{{ old('username') }}" class="form-control @error('username') is-invalid @enderror" required>
+                    @error('username') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label for="create-user-email" class="form-label">Email</label>
+                    <input id="create-user-email" type="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" required>
+                    @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label for="create-user-division" class="form-label">Division</label>
+                    <select id="create-user-division" name="division" class="form-control @error('division') is-invalid @enderror" required>
+                        <option value="">Pilih division</option>
+                        @foreach($divisionOptions as $division)
+                            <option value="{{ $division }}" {{ old('division') === $division ? 'selected' : '' }}>{{ $division }}</option>
+                        @endforeach
+                    </select>
+                    @error('division') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label for="create-user-password" class="form-label">Password <span class="text-muted small">(opsional)</span></label>
+                    <input id="create-user-password" type="password" name="password" class="form-control @error('password') is-invalid @enderror" autocomplete="new-password">
+                    @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label for="create-user-password-confirmation" class="form-label">Konfirmasi password</label>
+                    <input id="create-user-password-confirmation" type="password" name="password_confirmation" class="form-control" autocomplete="new-password">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary with-icon">
+                        <i class="fas fa-user-plus"></i> Create User
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card shadow">
     <div class="card-body border-bottom">
         <form method="GET" class="row g-2 align-items-end">
