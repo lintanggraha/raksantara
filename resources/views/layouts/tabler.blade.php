@@ -486,6 +486,439 @@
         .select2-container .select2-dropdown .select2-search__field {
             min-height: 2rem;
         }
+
+        /* Application sidebar */
+        :root {
+            --app-sidebar-width: 272px;
+            --app-sidebar-collapsed-width: 76px;
+            --app-sidebar-bg: #fff;
+            --app-sidebar-border: #e5e7eb;
+            --app-accent: #0b57d0;
+        }
+        .app-sidebar {
+            position: fixed;
+            inset: 0 auto 0 0;
+            z-index: 1040;
+            display: block;
+            width: var(--app-sidebar-width);
+            height: 100vh;
+            padding: 0;
+            overflow-y: auto;
+            background: var(--app-sidebar-bg);
+            border-right: 1px solid var(--app-sidebar-border);
+            box-shadow: 2px 0 14px rgba(15, 23, 42, 0.04);
+        }
+        .app-sidebar .container-xl {
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+            padding: 1rem 0.75rem;
+        }
+        .app-sidebar .navbar-brand {
+            width: 100%;
+            margin: 0 0 1.25rem;
+            padding: 0 0.75rem;
+            font-size: 1.05rem;
+        }
+        .app-sidebar .navbar-brand a {
+            color: #182433;
+            text-decoration: none;
+        }
+        .app-brand-short {
+            display: none;
+        }
+        .sidebar-mini-fallback {
+            display: none;
+        }
+        .sidebar-mini-svg {
+            display: none;
+        }
+        .sidebar-collapse-toggle {
+            position: absolute;
+            top: 0.85rem;
+            right: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            padding: 0;
+            color: #5f6b7a;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 0.4rem;
+        }
+        .sidebar-collapse-toggle:hover,
+        .sidebar-collapse-toggle:focus {
+            color: var(--app-accent);
+            background: #eaf2ff;
+            border-color: #d7e6ff;
+        }
+        .app-sidebar .navbar-collapse {
+            display: block !important;
+            width: 100%;
+            flex: 1 1 auto;
+        }
+        .app-sidebar .navbar-nav {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 0.2rem;
+        }
+        .app-sidebar .navbar-nav > .nav-item {
+            width: 100%;
+        }
+        .app-sidebar .navbar-nav > .nav-item > .nav-link-main,
+        .app-sidebar .navbar .navbar-nav .nav-link.nav-link-main {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: flex-start !important;
+            width: 100%;
+            min-width: 0;
+            padding: 0.7rem 0.75rem !important;
+            gap: 0.75rem !important;
+            border: 0 !important;
+            border-radius: 0.45rem;
+            color: #5f6b7a;
+            text-align: left;
+        }
+        .app-sidebar .navbar-nav > .nav-item > .nav-link-main > span:not(.nav-link-icon) {
+            color: inherit;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            text-align: left;
+        }
+        .app-sidebar .navbar-nav > .nav-item > .nav-link-main .nav-link-icon {
+            width: 1.25rem !important;
+        }
+        .app-sidebar .navbar-nav > .nav-item > .nav-link-main .nav-link-icon i {
+            color: inherit;
+            font-size: 1rem !important;
+        }
+        .app-sidebar .navbar-nav > .nav-item.active > .nav-link-main,
+        .app-sidebar .navbar-nav > .nav-item.show > .nav-link-main,
+        .app-sidebar .navbar .navbar-nav .nav-link.nav-link-main:hover,
+        .app-sidebar .navbar .navbar-nav .nav-link.nav-link-main:focus {
+            background: #eaf2ff !important;
+            color: var(--app-accent) !important;
+            font-weight: 600;
+        }
+        .app-sidebar .navbar-nav > .nav-item > .nav-link-main.dropdown-toggle::after {
+            display: block !important;
+            margin-left: auto;
+        }
+        /* Keep sidebar submenus in the navigation flow (accordion), not as flyout popups. */
+        .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu {
+            position: static !important;
+            float: none;
+            width: 100%;
+            min-width: 0;
+            margin: 0.2rem 0;
+            padding: 0.2rem 0 0.35rem 2.75rem;
+            border-color: var(--app-sidebar-border);
+            border: 0;
+            box-shadow: none;
+            background: transparent;
+        }
+        .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu.show {
+            display: block !important;
+        }
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.48rem 0.65rem;
+            border-radius: 0.35rem;
+            color: #5f6b7a;
+            font-size: 0.8125rem;
+        }
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover,
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus,
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active {
+            background: #eaf2ff !important;
+            color: var(--app-accent) !important;
+        }
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item i {
+            width: 1rem;
+            color: currentColor;
+            text-align: center;
+        }
+        .app-sidebar .navbar-collapse [data-risk-menu] {
+            width: 100%;
+        }
+        .app-sidebar .risk-menu-columns {
+            display: block;
+            width: 100%;
+        }
+        .app-sidebar .risk-menu-columns::before {
+            display: none;
+        }
+        .app-sidebar .risk-menu-column {
+            width: 100%;
+            padding: 0;
+        }
+        .app-sidebar .navbar-nav.flex-row {
+            order: 3;
+            flex: 0 0 auto;
+            margin-top: auto;
+            padding: 1rem 0.75rem 0.25rem;
+            border-top: 1px solid var(--app-sidebar-border);
+        }
+        .app-sidebar .navbar-nav.flex-row .nav-item {
+            width: 100%;
+        }
+        .app-sidebar .navbar-nav.flex-row .nav-link {
+            justify-content: flex-start;
+            gap: 0.65rem;
+        }
+        .app-sidebar .navbar-toggler {
+            display: none;
+        }
+        .page-wrapper {
+            min-height: 100vh;
+            margin-left: var(--app-sidebar-width);
+            padding-top: 0 !important;
+        }
+        .page-wrapper > .page-header {
+            padding-top: 0;
+        }
+        .page-wrapper > .page-body {
+            padding-top: 0;
+        }
+        .page-wrapper .container-xl {
+            max-width: 1440px;
+        }
+        body.sidebar-collapsed .app-sidebar {
+            width: var(--app-sidebar-collapsed-width);
+            overflow-x: visible;
+        }
+        body.sidebar-collapsed .page-wrapper {
+            margin-left: var(--app-sidebar-collapsed-width);
+        }
+        body.sidebar-collapsed .app-sidebar .container-xl {
+            padding-right: 0.5rem;
+            padding-left: 0.5rem;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-brand {
+            padding: 0 !important;
+            text-align: center;
+        }
+        body.sidebar-collapsed .sidebar-collapse-toggle {
+            top: 3rem;
+            right: auto;
+            left: 50%;
+            z-index: 2;
+            width: 2rem;
+            height: 1.75rem;
+            transform: translateX(-50%);
+            background: #f8fafc;
+            border-color: var(--app-sidebar-border);
+            border-radius: 0.4rem;
+            box-shadow: none;
+        }
+        body.sidebar-collapsed .app-brand-full,
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main > span:not(.nav-link-icon),
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main.dropdown-toggle::after,
+        body.sidebar-collapsed .app-sidebar .navbar-nav.flex-row .d-xl-block {
+            display: none !important;
+        }
+        body.sidebar-collapsed .app-brand-short {
+            display: inline;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main {
+            justify-content: center !important;
+            padding-right: 0.45rem !important;
+            padding-left: 0.45rem !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse {
+            padding-top: 1.75rem;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main .nav-link-icon {
+            width: auto !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-nav.flex-row {
+            padding-right: 0;
+            padding-left: 0;
+        }
+        body.sidebar-collapsed .sidebar-collapse-toggle i {
+            transform: rotate(180deg);
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu.show {
+            display: block !important;
+            width: 100%;
+            min-width: 0;
+            margin: 0.15rem 0 0.3rem;
+            padding: 0.1rem 0;
+            border: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item {
+            display: flex !important;
+            justify-content: center;
+            min-height: 1.8rem;
+            padding: 0.35rem !important;
+            color: #9aa8b8;
+            background: transparent !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item::before {
+            display: none !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item span {
+            display: none;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item .sidebar-mini-fallback {
+            display: inline-block !important;
+            width: 1rem;
+            color: #718096;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item i {
+            display: inline-block !important;
+            width: 1rem !important;
+            font-family: "Font Awesome 5 Free" !important;
+            font-size: 0.875rem !important;
+            font-style: normal;
+            font-weight: 900 !important;
+            line-height: 1;
+            color: currentColor !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            text-align: center;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item i::before {
+            display: block !important;
+            color: #718096 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover i::before,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus i::before,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active i::before {
+            color: var(--app-accent) !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item > i {
+            display: none !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item .sidebar-mini-svg {
+            display: block !important;
+            width: 0.95rem;
+            height: 0.95rem;
+            color: #718096;
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 2;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover .sidebar-mini-fallback,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus .sidebar-mini-fallback,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active .sidebar-mini-fallback {
+            color: var(--app-accent);
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active {
+            color: var(--app-accent) !important;
+            background: #eaf2ff !important;
+            border-radius: 0.35rem;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover .sidebar-mini-svg,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus .sidebar-mini-svg,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active .sidebar-mini-svg {
+            color: var(--app-accent);
+        }
+        @media (max-width: 767.98px) {
+            body.sidebar-collapsed .app-sidebar {
+                width: 100%;
+            }
+            body.sidebar-collapsed .page-wrapper {
+                margin-left: 0;
+            }
+            body.sidebar-collapsed .app-brand-full,
+            body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main > span:not(.nav-link-icon) {
+                display: inline !important;
+            }
+            body.sidebar-collapsed .app-brand-short {
+                display: none;
+            }
+            body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main {
+                justify-content: flex-start !important;
+                padding-right: 0.75rem !important;
+                padding-left: 0.75rem !important;
+            }
+            body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu {
+                display: none;
+            }
+            body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu.show {
+                display: block !important;
+            }
+            .app-sidebar {
+                position: sticky;
+                top: 0;
+                width: 100%;
+                height: auto;
+                max-height: 100vh;
+                overflow: visible;
+                border-right: 0;
+                border-bottom: 1px solid var(--app-sidebar-border);
+            }
+            .app-sidebar .container-xl {
+                display: grid;
+                grid-template-columns: auto 1fr auto;
+                min-height: auto;
+                padding: 0.65rem 0.75rem;
+                align-items: center;
+            }
+            .app-sidebar .navbar-toggler {
+                display: inline-flex;
+                grid-column: 1;
+                grid-row: 1;
+                margin-right: 0.75rem;
+            }
+            .sidebar-collapse-toggle {
+                display: none;
+            }
+            .app-sidebar .navbar-brand {
+                grid-column: 2;
+                grid-row: 1;
+                margin: 0;
+                padding: 0;
+                font-size: 0.95rem;
+            }
+            .app-sidebar .navbar-nav.flex-row {
+                grid-column: 3;
+                grid-row: 1;
+                margin: 0;
+                padding: 0;
+                border: 0;
+            }
+            .app-sidebar .navbar-collapse {
+                display: none !important;
+                grid-column: 1 / -1;
+                grid-row: 2;
+                max-height: calc(100vh - 60px);
+                margin: 0.75rem -0.75rem -0.65rem;
+                padding: 0.5rem 0.75rem 0.75rem;
+                overflow-y: auto;
+                border-top: 1px solid var(--app-sidebar-border);
+            }
+            .app-sidebar .navbar-collapse.show {
+                display: block !important;
+            }
+            .app-sidebar .navbar-collapse .dropdown-menu,
+            .app-sidebar .navbar-collapse [data-risk-menu] {
+                width: 100%;
+                min-width: 0;
+            }
+            .page-wrapper {
+                min-height: calc(100vh - 60px);
+                margin-left: 0;
+            }
+        }
     </style>
 
     @yield('css')
@@ -493,7 +926,7 @@
 </head>
 <body>
 <div class="page">
-    <header class="navbar navbar-expand-md d-print-none">
+    <header class="navbar navbar-expand-md d-print-none app-sidebar" aria-label="Main navigation">
         <div class="container-xl">
             <button
                 class="navbar-toggler"
@@ -509,8 +942,14 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <h1 class="navbar-brand navbar-brand-autodark pe-0 pe-md-3">
-                <a href="{{ route('risks.index') }}">Risk Management System</a>
+                <a href="{{ route('risks.index') }}">
+                    <span class="app-brand-full">Enterprise RMS</span>
+                    <span class="app-brand-short">ERMS</span>
+                </a>
             </h1>
+            <button class="sidebar-collapse-toggle" type="button" data-sidebar-toggle aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
+                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            </button>
             <div class="navbar-nav flex-row order-md-last">
                 @auth
                     <div class="nav-item dropdown">
@@ -556,34 +995,40 @@
                     @auth
                         @if(auth()->user()->isSuperadmin())
                             @php($isAppManagementActive = request()->routeIs('parameters.*') || request()->routeIs('users.*') || request()->routeIs('risk-appetites.*'))
+                            <li class="nav-item {{ request()->routeIs('management.dashboard') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('management.dashboard') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-chart-line"></i></span>
+                                    <span>Dashboard Monitoring</span>
+                                </a>
+                            </li>
                             <li class="nav-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}">
                                 <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">
                                     <span class="nav-link-icon"><i class="fas fa-home"></i></span>
-                                    <span>Dashboard</span>
+                                    <span>Dashboard Summary</span>
                                 </a>
                             </li>
                             
                             {{-- Framework Explorer Menu --}}
-                            <li class="nav-item dropdown {{ request()->routeIs('frameworks.*') ? 'active' : '' }}" data-framework-nav>
-                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="false">
+                            <li class="nav-item dropdown {{ request()->routeIs('frameworks.*') ? 'active show' : '' }}" data-framework-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ request()->routeIs('frameworks.*') ? 'true' : 'false' }}">
                                     <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
                                     <span>Frameworks</span>
                                 </a>
-                                <div class="dropdown-menu">
+                                <div class="dropdown-menu {{ request()->routeIs('frameworks.*') ? 'show' : '' }}">
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
-                                        ISO 27001
+                                        <i class="fas fa-shield-alt"></i><span>ISO 27001</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.nist') ? 'active' : '' }}" href="{{ route('frameworks.nist') }}">
-                                        NIST CSF 2.0
+                                        <i class="fas fa-sitemap"></i><span>NIST CSF 2.0</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.seojk') ? 'active' : '' }}" href="{{ route('frameworks.seojk') }}">
-                                        SEOJK 29 SEOJK.03 2022
+                                        <i class="fas fa-file-contract"></i><span>SEOJK 29 SEOJK.03 2022</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.cis') ? 'active' : '' }}" href="{{ route('frameworks.cis') }}">
-                                        Panduan Resiliensi OJK
+                                        <i class="fas fa-landmark"></i><span>Panduan Resiliensi OJK</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
-                                        PBI 02/2024
+                                        <i class="fas fa-gavel"></i><span>PBI 02/2024</span>
                                     </a>
                                 </div>
                             </li>
@@ -601,7 +1046,7 @@
                                     <span class="nav-link-icon"><i class="fas fa-cogs"></i></span>
                                     <span>App Management</span>
                                 </a>
-                                <div class="dropdown-menu" data-app-management-menu>
+                                <div class="dropdown-menu {{ $isAppManagementActive ? 'show' : '' }}" data-app-management-menu>
                                     <a class="dropdown-item {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
                                         <i class="fas fa-users-cog"></i>
                                         <span>User Management</span>
@@ -641,29 +1086,38 @@
                                 </a>
                             </li>
                         @elseif(auth()->user()->isDivisionVerified())
+                            <li class="nav-item {{ request()->routeIs('management.dashboard') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('management.dashboard') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-chart-line"></i></span>
+                                    <span>Dashboard Monitoring</span>
+                                </a>
+                            </li>
+                            <li class="nav-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">
+                                    <span class="nav-link-icon"><i class="fas fa-home"></i></span>
+                                    <span>Dashboard Summary</span>
+                                </a>
+                            </li>
+                            @php($isRiskMenuActive = (request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.dashboard-summary'))
+                                || request()->routeIs('trends.analysis')
+                                || request()->routeIs('kris.*')
+                                || request()->routeIs('treatments.kanban')
+                                || request()->routeIs('owners.workload')
+                                || request()->routeIs('treatment-templates.*')
+                                || request()->routeIs('incidents.*'))
                             @php($riskMenuItems = [
-                                ['label' => 'Risk Monitoring', 'href' => route('risks.monitoring'), 'active' => request()->routeIs('risks.monitoring')],
-                                ['label' => 'Risk Register', 'href' => route('risks.index'), 'active' => request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.dashboard-summary')],
-                                ['label' => 'Risk Trend Analysis', 'href' => route('trends.analysis'), 'active' => request()->routeIs('trends.analysis')],
-                                ['label' => 'Key Risk Indicators', 'href' => route('kris.index'), 'active' => request()->routeIs('kris.*')],
-                                ['label' => 'Mitigation Kanban', 'href' => route('treatments.kanban'), 'active' => request()->routeIs('treatments.kanban')],
-                                ['label' => 'Owner Workload', 'href' => route('owners.workload'), 'active' => request()->routeIs('owners.workload')],
-                                ['label' => 'Mitigation Playbooks', 'href' => route('treatment-templates.index'), 'active' => request()->routeIs('treatment-templates.*')],
-                                ['label' => 'Incident Management', 'href' => route('incidents.index'), 'active' => request()->routeIs('incidents.*')],
-                                ['label' => 'Business Continuity (BCM)', 'href' => route('bcm.index'), 'active' => request()->routeIs('bcm.*')],
-                                ['label' => 'Corporate Risk Appetite', 'href' => route('risk-appetites.index'), 'active' => request()->routeIs('risk-appetites.*')],
+                                ['label' => 'Risk Register', 'icon' => 'fas fa-clipboard-list', 'mini' => '≡', 'href' => route('risks.index'), 'active' => request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.dashboard-summary')],
+                                ['label' => 'Risk Trend Analysis', 'icon' => 'fas fa-chart-area', 'mini' => '⌁', 'href' => route('trends.analysis'), 'active' => request()->routeIs('trends.analysis')],
+                                ['label' => 'Key Risk Indicators', 'icon' => 'fas fa-tachometer-alt', 'mini' => '◷', 'href' => route('kris.index'), 'active' => request()->routeIs('kris.*')],
+                                ['label' => 'Mitigation Kanban', 'icon' => 'fas fa-columns', 'mini' => '▦', 'href' => route('treatments.kanban'), 'active' => request()->routeIs('treatments.kanban')],
+                                ['label' => 'Owner Workload', 'icon' => 'fas fa-users', 'mini' => '♙', 'href' => route('owners.workload'), 'active' => request()->routeIs('owners.workload')],
+                                ['label' => 'Mitigation Playbooks', 'icon' => 'fas fa-book-open', 'mini' => '▤', 'href' => route('treatment-templates.index'), 'active' => request()->routeIs('treatment-templates.*')],
+                                ['label' => 'Incident Management', 'icon' => 'fas fa-exclamation-triangle', 'mini' => '!', 'href' => route('incidents.index'), 'active' => request()->routeIs('incidents.*')],
+                                ['label' => 'Business Continuity (BCM)', 'icon' => 'fas fa-life-ring', 'mini' => '⊕', 'href' => route('bcm.index'), 'active' => request()->routeIs('bcm.*')],
+                                ['label' => 'Corporate Risk Appetite', 'icon' => 'fas fa-bullseye', 'mini' => '◎', 'href' => route('risk-appetites.index'), 'active' => request()->routeIs('risk-appetites.*')],
                             ])
                                 <li
-                                class="nav-item dropdown {{
-                                    (request()->routeIs('risks.monitoring')
-                                    || (request()->routeIs('risks.*') && !request()->routeIs('risks.dashboard-summary'))
-                                    || request()->routeIs('trends.analysis')
-                                    || request()->routeIs('kris.*')
-                                    || request()->routeIs('treatments.kanban')
-                                    || request()->routeIs('owners.workload')
-                                    || request()->routeIs('treatment-templates.*')
-                                    || request()->routeIs('incidents.*')) ? 'active' : ''
-                                }}"
+                                class="nav-item dropdown {{ $isRiskMenuActive ? 'active show' : '' }}"
                                 data-risk-nav
                             >
                                 <a
@@ -673,18 +1127,18 @@
                                     data-toggle="dropdown"
                                     data-risk-toggle
                                     role="button"
-                                    aria-expanded="false"
+                                    aria-expanded="{{ $isRiskMenuActive ? 'true' : 'false' }}"
                                 >
                                     <span class="nav-link-icon"><i class="fas fa-shield-alt"></i></span>
                                     <span>Risk</span>
                                 </a>
-                                <div class="dropdown-menu" data-risk-menu>
+                                <div class="dropdown-menu {{ $isRiskMenuActive ? 'show' : '' }}" data-risk-menu>
                                     <div class="risk-menu-columns">
                                         @foreach(array_chunk($riskMenuItems, 5) as $riskMenuChunk)
                                             <div class="risk-menu-column">
                                                 @foreach($riskMenuChunk as $riskMenuItem)
-                                                    <a class="dropdown-item {{ $riskMenuItem['active'] ? 'active' : '' }}" href="{{ $riskMenuItem['href'] }}">
-                                                        {{ $riskMenuItem['label'] }}
+                                                    <a class="dropdown-item {{ $riskMenuItem['active'] ? 'active' : '' }}" href="{{ $riskMenuItem['href'] }}" data-mini-icon="{{ $riskMenuItem['mini'] }}">
+                                                        <svg class="sidebar-mini-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="m10 8 4 4-4 4"></path></svg><span class="sidebar-mini-fallback" aria-hidden="true">{{ $riskMenuItem['mini'] }}</span><i class="{{ $riskMenuItem['icon'] }}"></i><span>{{ $riskMenuItem['label'] }}</span>
                                                     </a>
                                                 @endforeach
                                             </div>
@@ -693,26 +1147,26 @@
                                 </div>
                             </li>
                             {{-- Framework Explorer Menu --}}
-                            <li class="nav-item dropdown {{ request()->routeIs('frameworks.*') ? 'active' : '' }}" data-framework-nav>
-                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="false">
+                            <li class="nav-item dropdown {{ request()->routeIs('frameworks.*') ? 'active show' : '' }}" data-framework-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ request()->routeIs('frameworks.*') ? 'true' : 'false' }}">
                                     <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
                                     <span>Frameworks</span>
                                 </a>
-                                <div class="dropdown-menu">
+                                <div class="dropdown-menu {{ request()->routeIs('frameworks.*') ? 'show' : '' }}">
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
-                                        ISO 27001
+                                        <i class="fas fa-shield-alt"></i><span>ISO 27001</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.nist') ? 'active' : '' }}" href="{{ route('frameworks.nist') }}">
-                                        NIST CSF 2.0
+                                        <i class="fas fa-sitemap"></i><span>NIST CSF 2.0</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.seojk') ? 'active' : '' }}" href="{{ route('frameworks.seojk') }}">
-                                        SEOJK 29 SEOJK.03 2022
+                                        <i class="fas fa-file-contract"></i><span>SEOJK 29 SEOJK.03 2022</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.cis') ? 'active' : '' }}" href="{{ route('frameworks.cis') }}">
-                                        Panduan Resiliensi OJK
+                                        <i class="fas fa-landmark"></i><span>Panduan Resiliensi OJK</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
-                                        PBI 02/2024
+                                        <i class="fas fa-gavel"></i><span>PBI 02/2024</span>
                                     </a>
                                 </div>
                             </li>
@@ -753,20 +1207,21 @@
                                 </a>
                             </li>
                             @if(auth()->user()->isComplianceDivision())
-                                <li class="nav-item dropdown {{ request()->routeIs('compliance.*') ? 'active' : '' }}" data-compliance-nav>
-                                    <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="false">
+                                @php($isComplianceMenuActive = request()->routeIs('compliance.*'))
+                                <li class="nav-item dropdown {{ $isComplianceMenuActive ? 'active show' : '' }}" data-compliance-nav>
+                                    <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="{{ $isComplianceMenuActive ? 'true' : 'false' }}">
                                         <span class="nav-link-icon"><i class="fas fa-balance-scale"></i></span>
                                         <span>Compliance</span>
                                     </a>
-                                    <div class="dropdown-menu" data-compliance-menu>
+                                    <div class="dropdown-menu {{ $isComplianceMenuActive ? 'show' : '' }}" data-compliance-menu>
                                         <a class="dropdown-item {{ request()->routeIs('compliance.internal-audit*') ? 'active' : '' }}" href="{{ route('compliance.internal-audit') }}">
-                                            Internal Audit
+                                            <i class="fas fa-clipboard-check"></i><span>Internal Audit</span>
                                         </a>
                                         <a class="dropdown-item {{ request()->routeIs('compliance.risk-management*') ? 'active' : '' }}" href="{{ route('compliance.risk-management') }}">
-                                            Risk Management
+                                            <i class="fas fa-shield-alt"></i><span>Risk Management</span>
                                         </a>
                                         <a class="dropdown-item {{ request()->routeIs('compliance.compliance*') ? 'active' : '' }}" href="{{ route('compliance.compliance') }}">
-                                            Governance &amp; Compliance
+                                            <i class="fas fa-balance-scale"></i><span>Governance &amp; Compliance</span>
                                         </a>
                                     </div>
                                 </li>
@@ -1024,83 +1479,87 @@
         subtree: true,
     });
 
-    // Navbar dropdown helper: reliable click + hover (desktop) using Bootstrap instance.
-    const hasBootstrapDropdown = window.bootstrap && window.bootstrap.Dropdown;
-    const hasBootstrap4Dropdown = window.jQuery && $.fn.dropdown;
+    const sidebarToggle = document.querySelector('[data-sidebar-toggle]');
+    const sidebarStorageKey = 'enterprise-rms-sidebar-collapsed';
 
-    function setupManagedNavbarDropdown(navSelector, toggleSelector) {
-        const nav = document.querySelector(navSelector);
-        const toggle = document.querySelector(toggleSelector);
-        if (!nav || !toggle || (!hasBootstrapDropdown && !hasBootstrap4Dropdown)) {
-            return;
+    function setSidebarCollapsed(collapsed) {
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
+
+        if (sidebarToggle) {
+            sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+            sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+            sidebarToggle.setAttribute('title', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
         }
+    }
 
-        const dropdownInstance = hasBootstrapDropdown
-            ? bootstrap.Dropdown.getOrCreateInstance(toggle)
-            : null;
-        const dropdownFallback = hasBootstrap4Dropdown ? $(toggle) : null;
-        let hideTimer = null;
+    try {
+        setSidebarCollapsed(window.localStorage.getItem(sidebarStorageKey) === 'true');
+    } catch (error) {
+        setSidebarCollapsed(false);
+    }
 
-        function openMenu() {
-            if (hideTimer) {
-                clearTimeout(hideTimer);
-                hideTimer = null;
-            }
-            if (dropdownInstance) {
-                dropdownInstance.show();
-            } else if (dropdownFallback) {
-                dropdownFallback.dropdown('show');
-            }
-        }
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function () {
+            const collapsed = !document.body.classList.contains('sidebar-collapsed');
+            setSidebarCollapsed(collapsed);
 
-        function closeMenu() {
-            hideTimer = setTimeout(function () {
-                if (dropdownInstance) {
-                    dropdownInstance.hide();
-                } else if (dropdownFallback) {
-                    dropdownFallback.dropdown('hide');
-                }
-                hideTimer = null;
-            }, 120);
-        }
-
-        nav.addEventListener('mouseenter', function () {
-            if (!window.matchMedia('(hover: hover)').matches) {
-                return;
-            }
-            openMenu();
-        });
-
-        nav.addEventListener('mouseleave', function () {
-            if (!window.matchMedia('(hover: hover)').matches) {
-                return;
-            }
-            closeMenu();
-        });
-
-        nav.addEventListener('focusin', function () {
-            openMenu();
-        });
-
-        nav.addEventListener('focusout', function () {
-            closeMenu();
-        });
-
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                if (dropdownInstance) {
-                    dropdownInstance.hide();
-                } else if (dropdownFallback) {
-                    dropdownFallback.dropdown('hide');
-                }
+            try {
+                window.localStorage.setItem(sidebarStorageKey, String(collapsed));
+            } catch (error) {
+                // The sidebar remains usable when browser storage is unavailable.
             }
         });
     }
 
-    setupManagedNavbarDropdown('[data-app-management-nav]', '[data-app-management-toggle]');
-    setupManagedNavbarDropdown('[data-compliance-nav]', '[data-compliance-toggle]');
-    setupManagedNavbarDropdown('[data-risk-nav]', '[data-risk-toggle]');
-    setupManagedNavbarDropdown('[data-framework-nav]', '[data-framework-toggle]');
+    // Sidebar submenu accordion. Capture the click before Bootstrap tries to create a flyout.
+    document.addEventListener('click', function (event) {
+        const toggle = event.target.closest(
+            '.app-sidebar .navbar-collapse [data-risk-toggle], ' +
+            '.app-sidebar .navbar-collapse [data-framework-toggle], ' +
+            '.app-sidebar .navbar-collapse [data-compliance-toggle], ' +
+            '.app-sidebar .navbar-collapse [data-app-management-toggle]'
+        );
+
+        if (!toggle) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        if (document.body.classList.contains('sidebar-collapsed')) {
+            setSidebarCollapsed(false);
+            try {
+                window.localStorage.setItem(sidebarStorageKey, 'false');
+            } catch (error) {
+                // The sidebar still expands without persistent browser storage.
+            }
+            return;
+        }
+
+        const item = toggle.closest('.nav-item.dropdown');
+        const menu = item ? item.querySelector(':scope > .dropdown-menu') : null;
+        if (!item || !menu) {
+            return;
+        }
+
+        const willOpen = !menu.classList.contains('show');
+
+        item.parentElement.querySelectorAll(':scope > .nav-item.dropdown > .dropdown-menu.show').forEach(function (openMenu) {
+            openMenu.classList.remove('show');
+            openMenu.parentElement.classList.remove('show');
+            const openToggle = openMenu.parentElement.querySelector(':scope > [data-bs-toggle="dropdown"]');
+            if (openToggle) {
+                openToggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        if (willOpen) {
+            menu.classList.add('show');
+            item.classList.add('show');
+            toggle.setAttribute('aria-expanded', 'true');
+        }
+    }, true);
 </script>
 
 @yield('js')

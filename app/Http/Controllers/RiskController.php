@@ -1115,6 +1115,20 @@ class RiskController extends Controller
         ));
     }
 
+    public function managementDashboard(Request $request)
+    {
+        $request->validate([
+            'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
+        ]);
+
+        $trendGranularity = $this->resolvePreferredTrendGranularity($request);
+        $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
+
+        return view('risks.management-dashboard', compact(
+            'dashboardSummary'
+        ));
+    }
+
     public function dashboardSummary(Request $request)
     {
         $request->validate([

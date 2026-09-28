@@ -160,6 +160,7 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
     Route::get('/impact-scales/{id}', [AppEntryController::class, 'impactScales'])->whereNumber('id');
 
     Route::get('/risk-monitoring', [RiskController::class, 'monitoring'])->name('risks.monitoring');
+    Route::get('/dashboard-monitoring', [RiskController::class, 'managementDashboard'])->name('management.dashboard');
     Route::get('/enterprise-risk-profile', [EnterpriseRiskProfileController::class, 'index'])->name('enterprise-risk-profile.index');
     Route::get('/operational-resilience', [OperationalResilienceController::class, 'index'])->name('operational-resilience.index');
     Route::get('/operational-resilience/evidence-pack.xlsx', [OperationalResilienceEvidenceExportController::class, 'download'])
