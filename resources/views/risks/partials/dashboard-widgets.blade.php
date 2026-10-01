@@ -119,15 +119,24 @@
     </div>
 
     <div id="dashboardWidgetGrid" class="dashboard-widget-grid">
-        <div class="dashboard-tab-nav mb-3" role="tablist" aria-label="Monitoring Dashboard Tabs">
+        <div class="dashboard-tab-nav mb-3" role="tablist" aria-label="Operational View Tabs">
+            <button
+                type="button"
+                class="dashboard-tab-btn active"
+                data-dashboard-tab="all"
+                aria-selected="true"
+            >
+                <span class="tab-title">All Operational Widgets</span>
+                <span class="tab-subtitle">Complete Operational View</span>
+            </button>
             <button
                 type="button"
                 class="dashboard-tab-btn"
                 data-dashboard-tab="ops_control"
-                aria-selected="true"
+                aria-selected="false"
             >
-                <span class="tab-title">Dashboard 1</span>
-                <span class="tab-subtitle">Risk Overview</span>
+                <span class="tab-title">Operations &amp; SLA</span>
+                <span class="tab-subtitle">Mitigations &amp; Department Performance</span>
             </button>
             <button
                 type="button"
@@ -135,8 +144,8 @@
                 data-dashboard-tab="exec_snapshot"
                 aria-selected="false"
             >
-                <span class="tab-title">Dashboard 2</span>
-                <span class="tab-subtitle">Risk Status &amp; Core Matrix</span>
+                <span class="tab-title">Portfolio Breakdown</span>
+                <span class="tab-subtitle">Status &amp; Risk Command Center</span>
             </button>
             <button
                 type="button"
@@ -144,8 +153,8 @@
                 data-dashboard-tab="risk_intelligence"
                 aria-selected="false"
             >
-                <span class="tab-title">Dashboard 3</span>
-                <span class="tab-subtitle">Risk Root Cause Analysis</span>
+                <span class="tab-title">Risk Intelligence</span>
+                <span class="tab-subtitle">Root Cause &amp; Variance Analysis</span>
             </button>
         </div>
 

@@ -20,8 +20,8 @@
         Closed: '#16a34a',
         Unknown: '#64748b',
     };
-    const availableDashboardTabs = ['exec_snapshot', 'ops_control', 'risk_intelligence'];
-    const defaultDashboardTab = 'ops_control';
+    const availableDashboardTabs = ['all', 'ops_control', 'exec_snapshot', 'risk_intelligence'];
+    const defaultDashboardTab = 'all';
     const defaultChartColors = ['#2563eb', '#14b8a6', '#8b5cf6', '#f97316', '#0ea5e9', '#94a3b8'];
     let latestDashboardSummary = null;
     let preferenceSyncTimer = null;
@@ -504,8 +504,9 @@
         legend.innerHTML = rows.map(function (row) {
             const labelEsc = escapeHtml(row.label);
             const countFormatted = formatNumber(row.count, 0);
+            const percentFormatted = total > 0 ? ((row.count / total) * 100).toFixed(0) + '%' : '0%';
             return [
-                '<div class="portfolio-mini-legend-item" title="', labelEsc, ': ', countFormatted, '">',
+                '<div class="portfolio-mini-legend-item" title="', labelEsc, ': ', countFormatted, ' (', percentFormatted, ')">',
                 '<div class="portfolio-mini-legend-left">',
                 '<span class="portfolio-mini-legend-dot" style="background:', row.__color, '"></span>',
                 '<span class="portfolio-mini-legend-text">', labelEsc, '</span>',
@@ -699,13 +700,18 @@
 
         if (widgetGrid) {
             widgetGrid.querySelectorAll('.dashboard-widget').forEach(function (widget) {
-                const widgetTab = normalizeDashboardTab(widget.dataset.widgetTab || defaultDashboardTab);
-                widget.classList.toggle('dashboard-widget-tab-hidden', widgetTab !== safeTab);
+                if (safeTab === 'all') {
+                    widget.classList.remove('dashboard-widget-tab-hidden');
+                } else {
+                    const widgetTab = normalizeDashboardTab(widget.dataset.widgetTab || 'ops_control');
+                    widget.classList.toggle('dashboard-widget-tab-hidden', widgetTab !== safeTab);
+                }
             });
         }
 
         document.querySelectorAll('[data-dashboard-tab]').forEach(function (button) {
-            const isActive = normalizeDashboardTab(button.dataset.dashboardTab) === safeTab;
+            const btnTab = normalizeDashboardTab(button.dataset.dashboardTab);
+            const isActive = btnTab === safeTab;
             button.classList.toggle('active', isActive);
             button.setAttribute('aria-selected', isActive ? 'true' : 'false');
         });

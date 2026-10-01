@@ -995,12 +995,12 @@
                     @auth
                         @if(auth()->user()->isSuperadmin())
                             @php($isAppManagementActive = request()->routeIs('parameters.*') || request()->routeIs('users.*') || request()->routeIs('risk-appetites.*'))
-                            <li class="nav-item dropdown {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main dropdown-toggle" href="{{ route('dashboard') }}" data-bs-toggle="dropdown" data-toggle="dropdown" role="button" aria-expanded="false">
+                            <li class="nav-item dropdown {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'active show' : '' }}" data-dashboard-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-dashboard-toggle role="button" aria-expanded="{{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'true' : 'false' }}">
                                     <span class="nav-link-icon"><i class="fas fa-chart-pie"></i></span>
                                     <span>Dashboard</span>
                                 </a>
-                                <div class="dropdown-menu">
+                                <div class="dropdown-menu {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'show' : '' }}" data-dashboard-menu">
                                     <a class="dropdown-item {{ (request()->routeIs('management.dashboard') || request()->query('view') === 'summary') ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'summary']) }}">
                                         <i class="fas fa-chart-line me-2"></i>
                                         <span>Executive Summary</span>
@@ -1090,12 +1090,12 @@
                                 </a>
                             </li>
                         @elseif(auth()->user()->isDivisionVerified())
-                            <li class="nav-item dropdown {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main dropdown-toggle" href="{{ route('dashboard') }}" data-bs-toggle="dropdown" data-toggle="dropdown" role="button" aria-expanded="false">
+                            <li class="nav-item dropdown {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'active show' : '' }}" data-dashboard-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-dashboard-toggle role="button" aria-expanded="{{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'true' : 'false' }}">
                                     <span class="nav-link-icon"><i class="fas fa-chart-pie"></i></span>
                                     <span>Dashboard</span>
                                 </a>
-                                <div class="dropdown-menu">
+                                <div class="dropdown-menu {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'show' : '' }}" data-dashboard-menu">
                                     <a class="dropdown-item {{ (request()->routeIs('management.dashboard') || request()->query('view') === 'summary') ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'summary']) }}">
                                         <i class="fas fa-chart-line me-2"></i>
                                         <span>Executive Summary</span>
@@ -1522,6 +1522,7 @@
     // Sidebar submenu accordion. Capture the click before Bootstrap tries to create a flyout.
     document.addEventListener('click', function (event) {
         const toggle = event.target.closest(
+            '.app-sidebar .navbar-collapse [data-dashboard-toggle], ' +
             '.app-sidebar .navbar-collapse [data-risk-toggle], ' +
             '.app-sidebar .navbar-collapse [data-framework-toggle], ' +
             '.app-sidebar .navbar-collapse [data-compliance-toggle], ' +
