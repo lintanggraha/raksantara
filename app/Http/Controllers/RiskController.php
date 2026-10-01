@@ -1111,9 +1111,27 @@ class RiskController extends Controller
         $trendGranularity = $this->resolvePreferredTrendGranularity($request);
         $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
 
-        return view('risks.monitoring', compact(
-            'dashboardSummary'
-        ));
+        return view('risks.unified-dashboard', [
+            'dashboardSummary' => $dashboardSummary,
+            'defaultView' => 'monitoring',
+        ]);
+    }
+
+    public function dashboard(Request $request)
+    {
+        $request->validate([
+            'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
+            'view' => 'nullable|in:summary,monitoring',
+        ]);
+
+        $trendGranularity = $this->resolvePreferredTrendGranularity($request);
+        $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
+        $defaultView = $request->query('view', 'summary');
+
+        return view('risks.unified-dashboard', [
+            'dashboardSummary' => $dashboardSummary,
+            'defaultView' => $defaultView,
+        ]);
     }
 
     public function managementDashboard(Request $request)
@@ -1125,9 +1143,10 @@ class RiskController extends Controller
         $trendGranularity = $this->resolvePreferredTrendGranularity($request);
         $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
 
-        return view('risks.management-dashboard', compact(
-            'dashboardSummary'
-        ));
+        return view('risks.unified-dashboard', [
+            'dashboardSummary' => $dashboardSummary,
+            'defaultView' => 'summary',
+        ]);
     }
 
     public function dashboardSummary(Request $request)

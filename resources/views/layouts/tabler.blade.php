@@ -995,17 +995,21 @@
                     @auth
                         @if(auth()->user()->isSuperadmin())
                             @php($isAppManagementActive = request()->routeIs('parameters.*') || request()->routeIs('users.*') || request()->routeIs('risk-appetites.*'))
-                            <li class="nav-item {{ request()->routeIs('management.dashboard') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('management.dashboard') }}">
-                                    <span class="nav-link-icon"><i class="fas fa-chart-line"></i></span>
-                                    <span>Dashboard Monitoring</span>
+                            <li class="nav-item dropdown {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main dropdown-toggle" href="{{ route('dashboard') }}" data-bs-toggle="dropdown" data-toggle="dropdown" role="button" aria-expanded="false">
+                                    <span class="nav-link-icon"><i class="fas fa-chart-pie"></i></span>
+                                    <span>Dashboard</span>
                                 </a>
-                            </li>
-                            <li class="nav-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">
-                                    <span class="nav-link-icon"><i class="fas fa-home"></i></span>
-                                    <span>Dashboard Summary</span>
-                                </a>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item {{ (request()->routeIs('management.dashboard') || request()->query('view') === 'summary') ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'summary']) }}">
+                                        <i class="fas fa-chart-line me-2"></i>
+                                        <span>Executive Summary</span>
+                                    </a>
+                                    <a class="dropdown-item {{ (request()->routeIs('risks.monitoring') || request()->query('view') === 'monitoring' || (!request()->query('view') && !request()->routeIs('management.dashboard'))) ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'monitoring']) }}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>
+                                        <span>Operational Monitoring</span>
+                                    </a>
+                                </div>
                             </li>
                             
                             {{-- Framework Explorer Menu --}}
@@ -1086,17 +1090,21 @@
                                 </a>
                             </li>
                         @elseif(auth()->user()->isDivisionVerified())
-                            <li class="nav-item {{ request()->routeIs('management.dashboard') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('management.dashboard') }}">
-                                    <span class="nav-link-icon"><i class="fas fa-chart-line"></i></span>
-                                    <span>Dashboard Monitoring</span>
+                            <li class="nav-item dropdown {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'active' : '' }}">
+                                <a class="nav-link nav-link-main dropdown-toggle" href="{{ route('dashboard') }}" data-bs-toggle="dropdown" data-toggle="dropdown" role="button" aria-expanded="false">
+                                    <span class="nav-link-icon"><i class="fas fa-chart-pie"></i></span>
+                                    <span>Dashboard</span>
                                 </a>
-                            </li>
-                            <li class="nav-item {{ request()->routeIs('risks.monitoring') ? 'active' : '' }}">
-                                <a class="nav-link nav-link-main" href="{{ route('risks.monitoring') }}">
-                                    <span class="nav-link-icon"><i class="fas fa-home"></i></span>
-                                    <span>Dashboard Summary</span>
-                                </a>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item {{ (request()->routeIs('management.dashboard') || request()->query('view') === 'summary') ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'summary']) }}">
+                                        <i class="fas fa-chart-line me-2"></i>
+                                        <span>Executive Summary</span>
+                                    </a>
+                                    <a class="dropdown-item {{ (request()->routeIs('risks.monitoring') || request()->query('view') === 'monitoring' || (!request()->query('view') && !request()->routeIs('management.dashboard'))) ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'monitoring']) }}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>
+                                        <span>Operational Monitoring</span>
+                                    </a>
+                                </div>
                             </li>
                             @php($isRiskMenuActive = (request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.dashboard-summary'))
                                 || request()->routeIs('trends.analysis')

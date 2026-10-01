@@ -11,8 +11,9 @@ class AppEntryController extends Controller
 {
     public function redirectToMonitoring(): RedirectResponse
     {
-        return redirect()->route('management.dashboard');
+        return redirect()->route('dashboard');
     }
+
 
     public function pendingApproval(): View
     {

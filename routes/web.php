@@ -52,8 +52,6 @@ Route::get('/', [AppEntryController::class, 'redirectToMonitoring'])->middleware
 
 Route::get('/home', [AppEntryController::class, 'redirectToMonitoring'])->middleware(['auth', 'mfa.completed']);
 
-Route::get('/dashboard', [AppEntryController::class, 'redirectToMonitoring'])->middleware(['auth', 'mfa.completed']);
-
 Route::get('/sso/oidc/redirect', [OidcSingleSignOnController::class, 'redirect'])->name('sso.oidc.redirect');
 Route::get('/sso/oidc/callback', [OidcSingleSignOnController::class, 'callback'])->name('sso.oidc.callback');
 
@@ -159,6 +157,7 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
 
     Route::get('/impact-scales/{id}', [AppEntryController::class, 'impactScales'])->whereNumber('id');
 
+    Route::get('/dashboard', [RiskController::class, 'dashboard'])->name('dashboard');
     Route::get('/risk-monitoring', [RiskController::class, 'monitoring'])->name('risks.monitoring');
     Route::get('/dashboard-monitoring', [RiskController::class, 'managementDashboard'])->name('management.dashboard');
     Route::get('/enterprise-risk-profile', [EnterpriseRiskProfileController::class, 'index'])->name('enterprise-risk-profile.index');
