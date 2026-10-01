@@ -85,6 +85,22 @@ class PromoteSuperadminCommand extends Command
         $user->division_verified_at = $user->division_verified_at ?: now();
         $user->save();
 
+        if (\Illuminate\Support\Facades\Schema::hasTable('roles') && \Illuminate\Support\Facades\Schema::hasTable('role_user')) {
+            $adminRoleId = \Illuminate\Support\Facades\DB::table('roles')->where('slug', 'system-administrator')->value('id');
+            if ($adminRoleId) {
+                \Illuminate\Support\Facades\DB::table('role_user')->updateOrInsert(
+                    [
+                        'role_id' => $adminRoleId,
+                        'user_id' => $user->id,
+                    ],
+                    [
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
+        }
+
         AuditLogger::logModelEvent(
             'user.promoted_to_superadmin.via_cli',
             $user,

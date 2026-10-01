@@ -73,5 +73,17 @@ class LoginController extends Controller
         if (method_exists($user, 'isDivisionVerified') && !$user->isDivisionVerified()) {
             return redirect()->route('account.pending');
         }
+
+        $intended = $request->session()->pull('url.intended');
+        if ($intended) {
+            $path = parse_url($intended, PHP_URL_PATH);
+            if (in_array($path, ['/', '/home', '/dashboard', '/risk-monitoring', '/login', null], true)) {
+                return redirect()->route('management.dashboard');
+            }
+
+            return redirect()->to($intended);
+        }
+
+        return redirect()->route('management.dashboard');
     }
 }

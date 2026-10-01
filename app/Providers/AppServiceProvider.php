@@ -36,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
         RiskInherentAnalysis::observe(RiskAnalyticsObserver::class);
         RiskResidualAnalysis::observe(RiskAnalyticsObserver::class);
 
-        if (app()->environment('production')) {
+        if (app()->environment('production') || str_contains((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
 

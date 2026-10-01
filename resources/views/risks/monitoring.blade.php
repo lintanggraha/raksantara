@@ -329,31 +329,42 @@
 
 .portfolio-donut-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 0.65rem;
+}
+
+@media (min-width: 1200px) {
+    .portfolio-donut-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
 }
 
 .portfolio-donut-card {
     border: 1px solid #dde7f4;
     border-radius: 0.65rem;
     background: linear-gradient(150deg, #f8fbff 0%, #ffffff 100%);
-    padding: 0.55rem 0.6rem;
+    padding: 0.5rem 0.55rem;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .portfolio-donut-title {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     color: #334155;
-    margin-bottom: 0.32rem;
+    margin-bottom: 0.3rem;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .portfolio-donut-shell {
     position: relative;
-    width: 102px;
-    height: 102px;
-    margin: 0 auto 0.4rem;
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 0.35rem;
 }
 
 .portfolio-mini-donut {
@@ -368,8 +379,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 55px;
-    height: 55px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     border: 1px solid #e2e8f0;
     background: #ffffff;
@@ -377,47 +388,63 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.86rem;
+    font-size: 0.82rem;
     font-weight: 700;
 }
 
 .portfolio-mini-legend {
     display: grid;
-    gap: 0.2rem;
+    gap: 0.18rem;
+    min-width: 0;
+    width: 100%;
 }
 
 .portfolio-mini-legend-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.4rem;
-    font-size: 0.68rem;
+    gap: 0.3rem;
+    font-size: 0.60rem;
+    line-height: 1.25;
     color: #334155;
+    min-width: 0;
+    width: 100%;
 }
 
 .portfolio-mini-legend-left {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 0.32rem;
+    gap: 0.28rem;
     min-width: 0;
+    flex: 1 1 0;
+    overflow: hidden;
 }
 
-.portfolio-mini-legend-left span {
+.portfolio-mini-legend-text,
+.portfolio-mini-legend-left span:not(.portfolio-mini-legend-dot) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
+    flex: 1 1 auto;
+    font-size: 0.60rem;
 }
 
 .portfolio-mini-legend-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 999px;
-    flex: 0 0 auto;
+    flex: 0 0 6px;
 }
 
 .portfolio-mini-legend-value {
     color: #0f172a;
     font-weight: 700;
+    font-size: 0.62rem;
+    flex: 0 0 auto;
+    text-align: right;
+    margin-left: auto;
+    white-space: nowrap;
 }
 
 .portfolio-risk-table th {
@@ -1157,13 +1184,15 @@
         donut.style.background = 'conic-gradient(' + gradientSegments.join(', ') + ')';
         center.textContent = formatNumber(total, 0);
         legend.innerHTML = rows.map(function (row) {
+            const labelEsc = escapeHtml(row.label);
+            const countFormatted = formatNumber(row.count, 0);
             return [
-                '<div class="portfolio-mini-legend-item">',
-                '<span class="portfolio-mini-legend-left">',
+                '<div class="portfolio-mini-legend-item" title="', labelEsc, ': ', countFormatted, '">',
+                '<div class="portfolio-mini-legend-left">',
                 '<span class="portfolio-mini-legend-dot" style="background:', row.__color, '"></span>',
-                '<span>', escapeHtml(row.label), '</span>',
-                '</span>',
-                '<span class="portfolio-mini-legend-value">', formatNumber(row.count, 0), '</span>',
+                '<span class="portfolio-mini-legend-text">', labelEsc, '</span>',
+                '</div>',
+                '<span class="portfolio-mini-legend-value">', countFormatted, '</span>',
                 '</div>'
             ].join('');
         }).join('');
