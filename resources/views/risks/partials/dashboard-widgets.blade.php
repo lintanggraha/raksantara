@@ -649,87 +649,94 @@
                 <span class="widget-drag-handle" title="Drag widget"><i class="fas fa-grip-vertical"></i></span>
             </div>
             <div class="card-body">
-                <div class="row g-2 mb-2">
-                    <div class="col-md-7">
-                        <h6 class="mb-2">Top Cause Categories</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered mb-0">
-                                <thead>
+                <div class="mb-4">
+                    <h6 class="mb-2 fw-bold text-dark"><i class="fas fa-layer-group text-primary me-2"></i>Distribusi Kategori Akar Penyebab (Cause Categories)</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Kategori Akar Penyebab</th>
+                                    <th class="text-end">Jumlah Risiko</th>
+                                    <th class="text-end" style="width: 25%;">Porsi Portofolio (% Share)</th>
+                                    <th class="text-end">Rata-Rata Skor Residual</th>
+                                    <th class="text-center">Tingkat Pengendalian</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rootCauseCategoryBody">
+                                @forelse($rootCauseCategoryRows as $row)
+                                    @php
+                                        $catName = (string) ($row['category'] ?? $row['name'] ?? '-');
+                                        $count = (int) ($row['count'] ?? 0);
+                                        $share = (float) ($row['share_percent'] ?? $row['percentage'] ?? 0);
+                                        $avgScore = (float) ($row['avg_residual_score'] ?? $row['average_residual_score'] ?? 0);
+                                        $statusClass = $avgScore > 2.05 ? 'bg-danger-lt text-danger' : 'bg-success-lt text-success';
+                                        $statusLabel = $avgScore > 2.05 ? 'Perlu Pengawasan' : 'Terkendali';
+                                    @endphp
                                     <tr>
-                                        <th>Category</th>
-                                        <th class="text-end">Count</th>
-                                        <th class="text-end">Share</th>
-                                        <th class="text-end">Avg Residual</th>
+                                        <td>
+                                            <span class="badge bg-blue-lt me-1">{{ $catName }}</span>
+                                        </td>
+                                        <td class="text-end fw-bold">{{ number_format($count) }}</td>
+                                        <td class="text-end">
+                                            <div class="d-flex align-items-center justify-content-end gap-2">
+                                                <div class="progress progress-sm flex-grow-1" style="height: 6px;">
+                                                    <div class="progress-bar bg-primary" style="width: {{ $share }}%"></div>
+                                                </div>
+                                                <span class="fw-bold small">{{ number_format($share, 2) }}%</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-end fw-bold">{{ number_format($avgScore, 2) }}</td>
+                                        <td class="text-center">
+                                            <span class="badge {{ $statusClass }}">{{ $statusLabel }}</span>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody id="rootCauseCategoryBody">
-                                    @forelse($rootCauseCategoryRows as $row)
-                                        <tr>
-                                            <td>{{ (string) ($row['category'] ?? '-') }}</td>
-                                            <td class="text-end">{{ (int) ($row['count'] ?? 0) }}</td>
-                                            <td class="text-end">{{ number_format((float) ($row['share_percent'] ?? 0), 2) }}%</td>
-                                            <td class="text-end">{{ number_format((float) ($row['avg_residual_score'] ?? 0), 2) }}</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="4" class="text-center text-muted">No cause category data</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <h6 class="mb-2">Recurring Keywords</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered mb-0">
-                                <thead>
+                                @empty
                                     <tr>
-                                        <th>Keyword</th>
-                                        <th class="text-end">Count</th>
+                                        <td colspan="5" class="text-center text-muted">Tidak ada data kategori penyebab</td>
                                     </tr>
-                                </thead>
-                                <tbody id="rootCauseKeywordBody">
-                                    @forelse($rootCauseKeywordRows as $row)
-                                        <tr>
-                                            <td>{{ (string) ($row['keyword'] ?? '-') }}</td>
-                                            <td class="text-end">{{ (int) ($row['count'] ?? 0) }}</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="2" class="text-center text-muted">No recurring keyword</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <h6 class="mb-2">Pattern Insights</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered mb-0">
-                        <thead>
-                            <tr>
-                                <th>Pattern</th>
-                                <th>Evidence</th>
-                                <th>Recommendation</th>
-                            </tr>
-                        </thead>
-                        <tbody id="rootCausePatternBody">
-                            @forelse($rootCausePatternRows as $row)
+                <div>
+                    <h6 class="mb-2 fw-bold text-dark"><i class="fas fa-lightbulb text-warning me-2"></i>Pattern Insights &amp; Rekomendasi Mitigasi</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <td>{{ (string) ($row['pattern'] ?? '-') }}</td>
-                                    <td>{{ (string) ($row['evidence'] ?? '-') }}</td>
-                                    <td>{{ (string) ($row['recommendation'] ?? '-') }}</td>
+                                    <th style="width: 25%;">Pola Akar Penyebab</th>
+                                    <th class="text-center" style="width: 12%;">Tingkat Dampak</th>
+                                    <th style="width: 33%;">Konteks &amp; Bukti Analisis</th>
+                                    <th style="width: 30%;">Rekomendasi Tindakan Operasional</th>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted">No pattern insights available</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody id="rootCausePatternBody">
+                                @forelse($rootCausePatternRows as $row)
+                                    @php
+                                        $patternText = (string) ($row['pattern'] ?? '-');
+                                        $severity = (string) ($row['severity'] ?? 'Standard');
+                                        $severityClass = $severity === 'High Impact' ? 'bg-danger text-white' : 'bg-secondary text-white';
+                                        $evidenceText = (string) ($row['evidence'] ?? $row['description'] ?? '-');
+                                        $recText = (string) ($row['recommendation'] ?? '-');
+                                    @endphp
+                                    <tr>
+                                        <td class="fw-semibold text-dark">{{ $patternText }}</td>
+                                        <td class="text-center">
+                                            <span class="badge {{ $severityClass }}">{{ $severity }}</span>
+                                        </td>
+                                        <td class="small text-muted">{{ $evidenceText }}</td>
+                                        <td class="small text-dark">{{ $recText }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Tidak ada insight pola yang tersedia</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

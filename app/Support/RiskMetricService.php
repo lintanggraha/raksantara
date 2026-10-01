@@ -681,9 +681,12 @@ class RiskMetricService
             });
 
             return [
+                'category' => (string) $categoryName,
                 'name' => (string) $categoryName,
                 'count' => $count,
+                'share_percent' => $percentage,
                 'percentage' => $percentage,
+                'avg_residual_score' => $avgResidualScore,
                 'average_residual_score' => $avgResidualScore,
             ];
         })->sortByDesc('count')->values()->all();
@@ -758,10 +761,11 @@ class RiskMetricService
             ->all();
 
         $patterns = [];
-        foreach (array_slice($topCategories, 0, 3) as $categoryRow) {
-            $categoryName = (string) ($categoryRow['name'] ?? '-');
-            $categoryPercentage = (float) ($categoryRow['percentage'] ?? 0.0);
-            $categoryAvgScore = (float) ($categoryRow['average_residual_score'] ?? 0.0);
+        foreach (array_slice($topCategories, 0, 4) as $categoryRow) {
+            $categoryName = (string) ($categoryRow['category'] ?? $categoryRow['name'] ?? '-');
+            $categoryPercentage = (float) ($categoryRow['share_percent'] ?? $categoryRow['percentage'] ?? 0.0);
+            $categoryAvgScore = (float) ($categoryRow['avg_residual_score'] ?? $categoryRow['average_residual_score'] ?? 0.0);
+            $count = (int) ($categoryRow['count'] ?? 0);
 
             $relatedKeywords = collect($topKeywords)
                 ->filter(function ($kw) use ($categoryName) {
@@ -770,11 +774,23 @@ class RiskMetricService
                 ->pluck('keyword')
                 ->all();
 
+            $evidence = "{$count} risiko teridentifikasi; skor residual rata-rata {$categoryAvgScore} (vs rata-rata global {$overallAverage}).";
+            $recommendation = match (strtolower($categoryName)) {
+                'product' => 'Perketat QA testing, automated regression, dan review arsitektur aplikasi perbankan sebelum go-live.',
+                'process' => 'Standardisasi SOP operasional, digitalisasi alur persetujuan, dan penguatan rekonsiliasi berkala.',
+                'people' => 'Laksanakan pelatihan mitigasi risiko secara berkala, rotasi peran kunci, dan penegakan kepatuhan internal.',
+                'nature' => 'Lakukan uji berkala Disaster Recovery Plan (DRP), redundansi data center, dan kesiapan fasilitas BCM.',
+                default => 'Lakukan evaluasi berkala terhadap efektivitas kontrol mitigasi yang sedang berjalan.'
+            };
+
             $patterns[] = [
-                'pattern' => "Konsentrasi akar penyebab pada '{$categoryName}' ({$categoryPercentage}% dari total risiko).",
+                'pattern' => "Konsentrasi akar penyebab pada '{$categoryName}' ({$categoryPercentage}% portofolio)",
+                'category' => $categoryName,
                 'severity' => $categoryAvgScore > $overallAverage ? 'High Impact' : 'Standard',
                 'severity_class' => $categoryAvgScore > $overallAverage ? 'badge-danger' : 'badge-secondary',
                 'description' => "Rata-rata skor residual kategori ini adalah {$categoryAvgScore}, dibanding rata-rata global {$overallAverage}.",
+                'evidence' => $evidence,
+                'recommendation' => $recommendation,
                 'related_keywords' => $relatedKeywords,
             ];
         }

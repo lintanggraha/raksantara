@@ -299,37 +299,34 @@
     function renderRootCauseAnalysis(rootCauseAnalysis) {
         const payload = rootCauseAnalysis && typeof rootCauseAnalysis === 'object' ? rootCauseAnalysis : {};
         const categoryRows = Array.isArray(payload.top_categories) ? payload.top_categories : [];
-        const keywordRows = Array.isArray(payload.top_keywords) ? payload.top_keywords : [];
         const patternRows = Array.isArray(payload.patterns) ? payload.patterns : [];
 
         const categoryBody = document.getElementById('rootCauseCategoryBody');
         if (categoryBody) {
             if (categoryRows.length === 0) {
-                categoryBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No cause category data</td></tr>';
+                categoryBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Tidak ada data kategori penyebab</td></tr>';
             } else {
                 categoryBody.innerHTML = categoryRows.map(function (row) {
-                    return [
-                        '<tr>',
-                        '<td>', escapeHtml(row && row.category ? row.category : '-'), '</td>',
-                        '<td class="text-end">', formatNumber(row && row.count ? row.count : 0, 0), '</td>',
-                        '<td class="text-end">', formatNumber(row && row.share_percent ? row.share_percent : 0, 2), '%</td>',
-                        '<td class="text-end">', formatNumber(row && row.avg_residual_score ? row.avg_residual_score : 0, 2), '</td>',
-                        '</tr>'
-                    ].join('');
-                }).join('');
-            }
-        }
+                    const catName = escapeHtml(row && (row.category || row.name) ? (row.category || row.name) : '-');
+                    const count = Number(row && row.count ? row.count : 0);
+                    const share = Number(row && (row.share_percent || row.percentage) ? (row.share_percent || row.percentage) : 0);
+                    const avgScore = Number(row && (row.avg_residual_score || row.average_residual_score) ? (row.avg_residual_score || row.average_residual_score) : 0);
+                    const statusClass = avgScore > 2.05 ? 'bg-danger-lt text-danger' : 'bg-success-lt text-success';
+                    const statusLabel = avgScore > 2.05 ? 'Perlu Pengawasan' : 'Terkendali';
 
-        const keywordBody = document.getElementById('rootCauseKeywordBody');
-        if (keywordBody) {
-            if (keywordRows.length === 0) {
-                keywordBody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No recurring keyword</td></tr>';
-            } else {
-                keywordBody.innerHTML = keywordRows.map(function (row) {
                     return [
                         '<tr>',
-                        '<td>', escapeHtml(row && row.keyword ? row.keyword : '-'), '</td>',
-                        '<td class="text-end">', formatNumber(row && row.count ? row.count : 0, 0), '</td>',
+                        '<td><span class="badge bg-blue-lt me-1">', catName, '</span></td>',
+                        '<td class="text-end fw-bold">', formatNumber(count, 0), '</td>',
+                        '<td class="text-end">',
+                        '<div class="d-flex align-items-center justify-content-end gap-2">',
+                        '<div class="progress progress-sm flex-grow-1" style="height: 6px;">',
+                        '<div class="progress-bar bg-primary" style="width: ', share.toFixed(2), '%"></div>',
+                        '</div>',
+                        '<span class="fw-bold small">', share.toFixed(2), '%</span>',
+                        '</div></td>',
+                        '<td class="text-end fw-bold">', avgScore.toFixed(2), '</td>',
+                        '<td class="text-center"><span class="badge ', statusClass, '">', statusLabel, '</span></td>',
                         '</tr>'
                     ].join('');
                 }).join('');
@@ -339,14 +336,21 @@
         const patternBody = document.getElementById('rootCausePatternBody');
         if (patternBody) {
             if (patternRows.length === 0) {
-                patternBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No pattern insights available</td></tr>';
+                patternBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Tidak ada insight pola yang tersedia</td></tr>';
             } else {
                 patternBody.innerHTML = patternRows.map(function (row) {
+                    const patternText = escapeHtml(row && row.pattern ? row.pattern : '-');
+                    const severity = escapeHtml(row && row.severity ? row.severity : 'Standard');
+                    const severityClass = severity === 'High Impact' ? 'bg-danger text-white' : 'bg-secondary text-white';
+                    const evidenceText = escapeHtml(row && (row.evidence || row.description) ? (row.evidence || row.description) : '-');
+                    const recText = escapeHtml(row && row.recommendation ? row.recommendation : '-');
+
                     return [
                         '<tr>',
-                        '<td>', escapeHtml(row && row.pattern ? row.pattern : '-'), '</td>',
-                        '<td>', escapeHtml(row && row.evidence ? row.evidence : '-'), '</td>',
-                        '<td>', escapeHtml(row && row.recommendation ? row.recommendation : '-'), '</td>',
+                        '<td class="fw-semibold text-dark">', patternText, '</td>',
+                        '<td class="text-center"><span class="badge ', severityClass, '">', severity, '</span></td>',
+                        '<td class="small text-muted">', evidenceText, '</td>',
+                        '<td class="small text-dark">', recText, '</td>',
                         '</tr>'
                     ].join('');
                 }).join('');
@@ -621,6 +625,8 @@
 
         renderPortfolioTopRisks(payload.top_risks || []);
     }
+
+
 
     function renderDashboardSummary(summary) {
         if (!summary || typeof summary !== 'object') {
