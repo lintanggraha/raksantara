@@ -99,16 +99,15 @@ class RiskMetricService
      * When $strict is false, covers High and Extreme (score >= 11).
      * When $strict is true, covers Extreme only (score >= 16, legacy threshold).
      */
-    public static function isHighRisk($score, bool $strict = false): bool
+    public static function isHighRisk($scoreOrRisk, bool $strict = false): bool
     {
-        if (!is_numeric($score)) {
-            return false;
-        }
+        $score = is_numeric($scoreOrRisk)
+            ? (float) $scoreOrRisk
+            : self::resolveDisplayScore($scoreOrRisk);
 
-        $numeric = (float) $score;
-
-        return $strict ? $numeric >= 16.0 : $numeric > self::THRESHOLD_MODERATE_MAX;
+        return $strict ? $score >= 16.0 : $score > self::THRESHOLD_MODERATE_MAX;
     }
+
 
     /**
      * Standard color map for priority buckets.
@@ -122,6 +121,18 @@ class RiskMetricService
             self::PRIORITY_EXTREME => self::COLOR_EXTREME,
         ];
     }
+
+    /**
+     * Resolves hex color code for a priority bucket.
+     */
+    public static function resolvePriorityColor(?string $bucket): string
+    {
+        $map = self::priorityColorMap();
+        $normalized = strtolower(trim((string) $bucket));
+
+        return $map[$normalized] ?? '#94a3b8';
+    }
+
 
     /**
      * Builds standard priority distribution summary rows.
@@ -759,37 +770,58 @@ class RiskMetricService
     }
 
     /**
-     * Builds inherent vs residual variance rows.
+     * Builds inherent vs residual variance rows grouped by category.
      */
     public static function buildVarianceRows($risks): array
     {
-        return collect($risks)
-            ->map(function ($risk) {
-                $inherent = optional($risk->inherentAnalysis)->inherent_risk_score;
-                $residual = optional($risk->residualAnalysis)->residual_risk_score;
-                if (!is_numeric($inherent) || !is_numeric($residual)) {
-                    return null;
-                }
+        return collect($risks)->groupBy(function ($risk) {
+            $category = trim((string) (optional($risk->category)->name ?? '-'));
 
-                $variance = round((float) $inherent - (float) $residual, 2);
+            return $category !== '' ? $category : '-';
+        })->map(function ($items, $category) {
+            $inherent = collect($items)
+                ->map(function ($risk) {
+                    return optional($risk->inherentAnalysis)->inherent_risk_score;
+                })
+                ->filter(function ($value) {
+                    return is_numeric($value);
+                })
+                ->map(function ($value) {
+                    return (float) $value;
+                })
+                ->values();
 
-                return [
-                    'id' => (int) ($risk->id ?? 0),
-                    'risk_id' => (string) ($risk->risk_id ?? '-'),
-                    'risk_title' => (string) ($risk->risk_title ?? '-'),
-                    'inherent_score' => round((float) $inherent, 2),
-                    'residual_score' => round((float) $residual, 2),
-                    'variance' => $variance,
-                    'variance_percent' => (float) $inherent > 0
-                        ? round(($variance / (float) $inherent) * 100, 2)
-                        : 0.0,
-                ];
+            $residual = collect($items)
+                ->map(function ($risk) {
+                    return optional($risk->residualAnalysis)->residual_risk_score;
+                })
+                ->filter(function ($value) {
+                    return is_numeric($value);
+                })
+                ->map(function ($value) {
+                    return (float) $value;
+                })
+                ->values();
+
+            $inherentAvg = $inherent->isEmpty() ? 0.0 : (float) $inherent->avg();
+            $residualAvg = $residual->isEmpty() ? 0.0 : (float) $residual->avg();
+            $variance = $inherentAvg - $residualAvg;
+
+            return [
+                'category' => (string) $category,
+                'risk_count' => (int) collect($items)->count(),
+                'avg_inherent' => round($inherentAvg, 2),
+                'avg_residual' => round($residualAvg, 2),
+                'variance' => round($variance, 2),
+            ];
+        })
+            ->sortByDesc(function ($row) {
+                return abs((float) $row['variance']);
             })
-            ->filter()
-            ->sortByDesc('variance')
             ->values()
             ->all();
     }
+
 
     /**
      * Helper to group a collection and return sorted count rows.
@@ -821,6 +853,26 @@ class RiskMetricService
     ): array {
         $risksCollection = collect($risks)->values();
         $totalRisks = (int) $risksCollection->count();
+        $trendGranularity = self::normalizeTrendGranularity($trendGranularity);
+
+        if (empty($trendMonthlyRows)) {
+            $trendMonthlyRows = self::buildTrendRows($risksCollection, 'monthly');
+        }
+        if (empty($trendQuarterlyRows)) {
+            $trendQuarterlyRows = self::buildTrendRows($risksCollection, 'quarterly');
+        }
+        if (empty($trendYearlyRows)) {
+            $trendYearlyRows = self::buildTrendRows($risksCollection, 'yearly');
+        }
+        if (empty($activeTrendRows)) {
+            $trendMap = [
+                'monthly' => $trendMonthlyRows,
+                'quarterly' => $trendQuarterlyRows,
+                'yearly' => $trendYearlyRows,
+            ];
+            $activeTrendRows = $trendMap[$trendGranularity] ?? $trendQuarterlyRows;
+        }
+
         $responseTimeByRiskId = self::buildResponseTimeByRiskId($risksCollection);
 
         $statusSummary = self::buildGroupedCountRows($risksCollection->groupBy(function ($risk) {
@@ -828,6 +880,7 @@ class RiskMetricService
 
             return $status !== '' ? $status : 'Unknown';
         }));
+
 
         $categorySummary = self::buildGroupedCountRows($risksCollection->groupBy(function ($risk) {
             $category = trim((string) (optional($risk->category)->name ?? '-'));
@@ -947,6 +1000,123 @@ class RiskMetricService
         ];
     }
 
+    /**
+     * Builds temporal trend rows for inherent, residual, and overall risk scores.
+     */
+    public static function buildTrendRows($risks, string $granularity = 'monthly'): array
+    {
+        $granularity = self::normalizeTrendGranularity($granularity);
+
+        $periodCount = [
+            'monthly' => 6,
+            'quarterly' => 8,
+            'yearly' => 5,
+        ][$granularity];
+
+        $trendMap = [];
+        $start = Carbon::now();
+        for ($i = $periodCount - 1; $i >= 0; $i--) {
+            if ($granularity === 'monthly') {
+                $period = (clone $start)->startOfMonth()->subMonths($i);
+                $key = $period->format('Y-m');
+            } elseif ($granularity === 'quarterly') {
+                $period = (clone $start)->firstOfQuarter()->subQuarters($i);
+                $key = $period->format('Y') . '-Q' . $period->quarter;
+            } else {
+                $period = (clone $start)->startOfYear()->subYears($i);
+                $key = $period->format('Y');
+            }
+
+            $trendMap[$key] = [
+                'period' => $key,
+                'label' => self::buildTrendLabel($period, $granularity),
+                'inherent_scores' => [],
+                'residual_scores' => [],
+                'overall_scores' => [],
+            ];
+        }
+
+        foreach ($risks as $risk) {
+            $createdAt = optional($risk->created_at);
+            if (is_null($createdAt)) {
+                continue;
+            }
+
+            if ($granularity === 'monthly') {
+                $key = $createdAt->format('Y-m');
+            } elseif ($granularity === 'quarterly') {
+                $key = $createdAt->format('Y') . '-Q' . $createdAt->quarter;
+            } else {
+                $key = $createdAt->format('Y');
+            }
+
+            if (!isset($trendMap[$key])) {
+                continue;
+            }
+
+            $inherent = optional($risk->inherentAnalysis)->inherent_risk_score;
+            $residual = optional($risk->residualAnalysis)->residual_risk_score;
+            $overall = is_numeric($residual)
+                ? (float) $residual
+                : (is_numeric($inherent) ? (float) $inherent : null);
+
+            if (is_numeric($inherent)) {
+                $trendMap[$key]['inherent_scores'][] = (float) $inherent;
+            }
+
+            if (is_numeric($residual)) {
+                $trendMap[$key]['residual_scores'][] = (float) $residual;
+            }
+
+            if (is_numeric($overall)) {
+                $trendMap[$key]['overall_scores'][] = (float) $overall;
+            }
+        }
+
+        return collect($trendMap)->map(function ($row) {
+            $inherentAvg = !empty($row['inherent_scores'])
+                ? round(array_sum($row['inherent_scores']) / count($row['inherent_scores']), 2)
+                : 0.0;
+            $residualAvg = !empty($row['residual_scores'])
+                ? round(array_sum($row['residual_scores']) / count($row['residual_scores']), 2)
+                : 0.0;
+            $overallAvg = !empty($row['overall_scores'])
+                ? round(array_sum($row['overall_scores']) / count($row['overall_scores']), 2)
+                : 0.0;
+
+            return [
+                'period' => (string) $row['period'],
+                'label' => (string) $row['label'],
+                'inherent' => $inherentAvg,
+                'residual' => $residualAvg,
+                'overall' => $overallAvg,
+            ];
+        })->values()->all();
+    }
+
+    public static function normalizeTrendGranularity(string $granularity): string
+    {
+        $normalized = strtolower(trim($granularity));
+        if (!in_array($normalized, ['monthly', 'quarterly', 'yearly'], true)) {
+            return 'quarterly';
+        }
+
+        return $normalized;
+    }
+
+    public static function buildTrendLabel(Carbon $period, string $granularity): string
+    {
+        if ($granularity === 'monthly') {
+            return $period->format('M Y');
+        }
+
+        if ($granularity === 'quarterly') {
+            return 'Q' . $period->quarter . ' ' . $period->format('Y');
+        }
+
+        return $period->format('Y');
+    }
+
     private static function averageFromCollection(Collection $items, callable $resolver): float
     {
         $values = $items->map($resolver)->filter(function ($value) {
@@ -962,3 +1132,4 @@ class RiskMetricService
         return round((float) $values->avg(), 2);
     }
 }
+

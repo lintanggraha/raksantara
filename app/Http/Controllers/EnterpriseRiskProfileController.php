@@ -7,6 +7,7 @@ use App\RiskCommitteeDecision;
 use App\Support\AuditLogger;
 use App\Support\InputValidation;
 use App\Support\RiskAccess;
+use App\Support\RiskMetricService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,16 +19,17 @@ class EnterpriseRiskProfileController extends Controller
         $user = auth()->user();
         abort_if(is_null($user), 403, 'Unauthorized.');
 
-        $riskQuery = Risk::query()->with(['category', 'residualAnalysis']);
+        $riskQuery = Risk::query()->with(['category', 'inherentAnalysis', 'residualAnalysis']);
         RiskAccess::applyVisibilityScope($riskQuery, $user);
         $risks = $riskQuery->get();
 
         $topRisks = $risks
             ->sortByDesc(function (Risk $risk) {
-                return (float) (optional($risk->residualAnalysis)->residual_risk_score ?? $risk->risk_score ?? 0);
+                return RiskMetricService::resolveDisplayScore($risk);
             })
             ->take(10)
             ->values();
+
 
         $concentrationByOwner = $risks
             ->groupBy('risk_owner')
@@ -124,9 +126,8 @@ class EnterpriseRiskProfileController extends Controller
     private function highRiskCount($risks): int
     {
         return (int) $risks->filter(function (Risk $risk) {
-            $score = (float) (optional($risk->residualAnalysis)->residual_risk_score ?? $risk->risk_score ?? 0);
-
-            return $score >= 16;
+            return RiskMetricService::isHighRisk($risk, true);
         })->count();
     }
 }
+
