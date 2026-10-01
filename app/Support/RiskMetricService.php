@@ -363,35 +363,53 @@ class RiskMetricService
     /**
      * Calculates benchmark scoring against national/industry references.
      */
-    public static function buildBenchmarkScoring(float $overallAverage): array
+    public static function buildBenchmarkScoring(float $internalAverageScore): array
     {
-        $targetScore = (float) config('risk_benchmark.target_score', 8.5);
-        $toleranceRange = (float) config('risk_benchmark.tolerance_range', 1.0);
-        $sourceReference = (string) config('risk_benchmark.source_reference', 'OJK & ISO 31000 Risk Governance Guidelines');
-        $minTarget = max(1.0, $targetScore - $toleranceRange);
-        $maxTarget = $targetScore + $toleranceRange;
-        $gap = round($overallAverage - $targetScore, 2);
+        $industryBaseline = (float) config('risk_benchmark.industry_baseline_score', 12.0);
+        $targetScore = (float) config('risk_benchmark.target_score', 9.0);
+        $sourceName = (string) config(
+            'risk_benchmark.industry_source_name',
+            'NHSCFA Risk Management Guidance (public-sector 5x5 governance benchmark)'
+        );
+        $sourceReference = (string) config(
+            'risk_benchmark.industry_source_reference',
+            'https://cfa.nhs.uk/about-nhscfa/information-hub/corporate-information-governance/risk-management-guidance (score 9+ discussion trigger; 12+ escalation threshold)'
+        );
+        $sourceYear = (int) config('risk_benchmark.industry_source_year', 2022);
+        $scaleMin = 1;
+        $scaleMax = 25;
 
-        if ($overallAverage < $minTarget) {
-            $status = 'Below Target';
-            $statusClass = 'text-success';
-        } elseif ($overallAverage > $maxTarget) {
-            $status = 'Above Tolerance';
-            $statusClass = 'text-danger';
-        } else {
-            $status = 'Within Tolerance';
-            $statusClass = 'text-warning';
+        $position = 'above_industry_risk';
+        $label = 'Above Industry Risk';
+        $positionReason = 'Internal average is above industry baseline (' . round($internalAverageScore, 2) . ' > ' . round($industryBaseline, 2) . ').';
+        if ($internalAverageScore <= $targetScore) {
+            $position = 'ahead_of_target';
+            $label = 'Ahead of Target';
+            $positionReason = 'Internal average is at or below target (' . round($internalAverageScore, 2) . ' <= ' . round($targetScore, 2) . ').';
+        } elseif ($internalAverageScore <= $industryBaseline) {
+            $position = 'better_than_industry';
+            $label = 'Better Than Industry';
+            $positionReason = 'Internal average is below industry baseline but still above target (' . round($internalAverageScore, 2) . ' <= ' . round($industryBaseline, 2) . ').';
         }
 
         return [
+            'industry_baseline_score' => round($industryBaseline, 2),
             'target_score' => round($targetScore, 2),
-            'current_score' => round($overallAverage, 2),
-            'gap' => $gap,
-            'status' => $status,
-            'status_class' => $statusClass,
+            'internal_average_score' => round($internalAverageScore, 2),
+            'gap_vs_industry' => round($internalAverageScore - $industryBaseline, 2),
+            'gap_vs_target' => round($internalAverageScore - $targetScore, 2),
+            'position' => $position,
+            'position_label' => $label,
+            'source_name' => $sourceName,
             'source_reference' => $sourceReference,
+            'source_year' => $sourceYear,
+            'score_scale_min' => $scaleMin,
+            'score_scale_max' => $scaleMax,
+            'methodology' => 'Internal Avg = average of overall risk score (Residual if available, fallback Inherent) on the active filter. Baseline 12 and target 9 follow NHSCFA 5x5 governance thresholds (12+ escalated risk, 9+ discussion trigger). Lower score indicates lower risk exposure on a ' . $scaleMin . '-' . $scaleMax . ' scale.',
+            'position_reason' => $positionReason,
         ];
     }
+
 
     /**
      * Computes the operational KPI metrics dashboard.
