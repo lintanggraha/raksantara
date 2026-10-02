@@ -922,6 +922,7 @@
     </style>
 
     @yield('css')
+    @yield('styles')
     @stack('styles')
 </head>
 <body>
@@ -1606,6 +1607,7 @@
 </script>
 
 @yield('js')
+@yield('scripts')
 @stack('scripts')
 @stack('scripts_body')
 @stack('script_ckeditor')

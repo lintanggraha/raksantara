@@ -488,6 +488,7 @@ thead th {
         'Moderate' => 0,
         'Moderate to High' => 0,
         'High' => 0,
+        'Extreme' => 0,
     ];
 
     $kriSummary = [
@@ -531,58 +532,64 @@ thead th {
     <small class="text-muted">Last refresh: {{ now()->format('Y-m-d H:i:s') }}</small>
 </div>
 
-<div class="row mb-0">
-    <div class="col-md-2">
-        <div class="small-box bg-info">
-            <div class="inner">
-                <h3>{{ $risks->count() }}</h3>
-                <p>Total Risks</p>
-            </div>
-            <div class="icon"><i class="fas fa-layer-group"></i></div>
-        </div>
-    </div>
-
-    <div class="col-md-2">
-        <div class="small-box bg-success">
-            <div class="inner">
-                <h3>{{ $levelCounts['Low'] }}</h3>
-                <p>Low Risk</p>
+<div class="row g-2 mb-3">
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card card-sm border-0 shadow-sm" style="border-left: 3px solid #206bc4 !important;">
+            <div class="card-body p-2 px-3">
+                <div class="d-flex align-items-center">
+                    <div class="subheader text-muted">Total Risks</div>
+                </div>
+                <div class="h2 mb-0 fw-bold text-primary">{{ $risks->count() }}</div>
             </div>
         </div>
     </div>
-
-    <div class="col-md-2">
-        <div class="small-box" style="background:#17a2b8;color:white;">
-            <div class="inner">
-                <h3>{{ $levelCounts['Low to Moderate'] }}</h3>
-                <p>Low to Moderate</p>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card card-sm border-0 shadow-sm" style="border-left: 3px solid #2fb344 !important;">
+            <div class="card-body p-2 px-3">
+                <div class="d-flex align-items-center">
+                    <div class="subheader text-success">Low</div>
+                </div>
+                <div class="h2 mb-0 fw-bold text-success">{{ $levelCounts['Low'] ?? 0 }}</div>
             </div>
         </div>
     </div>
-
-    <div class="col-md-2">
-        <div class="small-box bg-warning">
-            <div class="inner">
-                <h3>{{ $levelCounts['Moderate'] }}</h3>
-                <p>Moderate Risk</p>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card card-sm border-0 shadow-sm" style="border-left: 3px solid #17a2b8 !important;">
+            <div class="card-body p-2 px-3">
+                <div class="d-flex align-items-center">
+                    <div class="subheader text-info">Low-Mod</div>
+                </div>
+                <div class="h2 mb-0 fw-bold text-info">{{ $levelCounts['Low to Moderate'] ?? 0 }}</div>
             </div>
         </div>
     </div>
-
-    <div class="col-md-2">
-        <div class="small-box" style="background:#fd7e14;color:white;">
-            <div class="inner">
-                <h3>{{ $levelCounts['Moderate to High'] }}</h3>
-                <p>Moderate to High</p>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card card-sm border-0 shadow-sm" style="border-left: 3px solid #f59f00 !important;">
+            <div class="card-body p-2 px-3">
+                <div class="d-flex align-items-center">
+                    <div class="subheader text-warning">Moderate</div>
+                </div>
+                <div class="h2 mb-0 fw-bold text-warning">{{ $levelCounts['Moderate'] ?? 0 }}</div>
             </div>
         </div>
     </div>
-
-    <div class="col-md-2">
-        <div class="small-box bg-danger">
-            <div class="inner">
-                <h3>{{ $levelCounts['High'] }}</h3>
-                <p>High Risk</p>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card card-sm border-0 shadow-sm" style="border-left: 3px solid #fd7e14 !important;">
+            <div class="card-body p-2 px-3">
+                <div class="d-flex align-items-center">
+                    <div class="subheader" style="color: #fd7e14;">Mod-High</div>
+                </div>
+                <div class="h2 mb-0 fw-bold" style="color: #fd7e14;">{{ $levelCounts['Moderate to High'] ?? 0 }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-md-2">
+        <div class="card card-sm border-0 shadow-sm" style="border-left: 3px solid #d63939 !important;">
+            <div class="card-body p-2 px-3">
+                <div class="d-flex align-items-center">
+                    <div class="subheader text-danger">High / Extreme</div>
+                </div>
+                <div class="h2 mb-0 fw-bold text-danger">{{ ($levelCounts['High'] ?? 0) + ($levelCounts['Extreme'] ?? 0) }}</div>
             </div>
         </div>
     </div>
@@ -809,7 +816,7 @@ thead th {
         <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-warning btn-xs" title="Edit" data-toggle="tooltip">
         <i class="fas fa-edit"></i>
         </a>
-        <button type="button" class="btn btn-danger btn-xs" onclick="if(confirm('Delete?')) { document.getElementById('form-delete-{{ $risk->id }}').submit(); }" title="Delete" data-toggle="tooltip">
+        <button type="button" class="btn btn-danger btn-xs" onclick="if(confirm('Are you sure you want to permanently delete risk [{{ $risk->risk_id }}] - {{ addslashes($risk->risk_title) }}?\n\nWarning: Associated treatments, KRI links, and historical analyses will be removed.')) { document.getElementById('form-delete-{{ $risk->id }}').submit(); }" title="Delete Risk {{ $risk->risk_id }}" aria-label="Delete Risk {{ $risk->risk_id }}" data-toggle="tooltip">
         <i class="fas fa-trash"></i>
         </button>
     @endif

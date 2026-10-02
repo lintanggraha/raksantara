@@ -258,7 +258,7 @@
 @endif
 @stop
 
-@section('scripts')
+@section('js')
 @parent
 @if($canManage && $availableRisks->isNotEmpty())
 <script>

@@ -24,6 +24,11 @@
         transition: all 0.3s ease;
     }
 
+    .risk-step-tabs .nav-link.has-error {
+        border-bottom: 2px solid #dc3545 !important;
+        color: #dc3545 !important;
+        font-weight: 600;
+    }
     .risk-step-tabs .nav-link {
         display: inline-flex;
         align-items: center;
@@ -78,37 +83,83 @@
     $probabilityOptions = collect($probabilityScales ?? []);
     $selectedInherentProbability = (string) old('inherent_probability_score', optional($inherent)->probability_score);
     $selectedResidualProbability = (string) old('residual_probability_score', optional($residual)->probability_score);
+    // Validation error detection across tabs
+    $basicFields = ['risk_title', 'sasaran_target', 'risk_description', 'risk_category_id', 'risk_appetite_id', 'risk_cause_category_id', 'vendor_id', 'cause', 'existing_control', 'risk_owner', 'status', 'status_change_reason'];
+    $inherentFields = ['inherent_probability_score', 'inherent_probability_description', 'inherent_impact_scale_id', 'inherent_impact_score', 'inherent_impact_description', 'inherent_impact_amount', 'inherent_probability_percent', 'inherent_potential_loss'];
+    $residualFields = ['residual_probability_score', 'residual_probability_description', 'residual_impact_scale_id', 'residual_impact_score', 'residual_impact_description', 'residual_impact_amount', 'residual_probability_percent', 'residual_potential_loss'];
+    $radarFields = ['radar_group_id', 'radar_description', 'radar_code'];
+    
+    $basicErrors = $errors->hasAny($basicFields);
+    $inherentErrors = $errors->hasAny($inherentFields);
+    $treatmentErrors = $errors->has('treatment_*') || $errors->hasAny([
+        'treatment_id', 'treatment_template_id', 'treatment_option', 'treatment_description', 
+        'treatment_pic', 'treatment_deadline', 'treatment_cost', 'treatment_status', 
+        'treatment_realization', 'treatment_residual_target_score', 'treatment_preventive_action', 
+        'treatment_recovery_action'
+    ]);
+    $residualErrors = $errors->hasAny($residualFields);
+    $radarErrors = $errors->hasAny($radarFields);
+
+    $activeTab = 'basic';
+    if ($errors->any()) {
+        if ($basicErrors) {
+            $activeTab = 'basic';
+        } elseif ($inherentErrors) {
+            $activeTab = 'inherent';
+        } elseif ($treatmentErrors) {
+            $activeTab = 'treatment';
+        } elseif ($residualErrors) {
+            $activeTab = 'residual';
+        } elseif ($radarErrors) {
+            $activeTab = 'group-radar';
+        }
+    }
 @endphp
 
 <!-- Nav tabs -->
 <ul class="nav nav-tabs risk-step-tabs" role="tablist">
     <li class="nav-item">
-        <a class="nav-link active" href="#basic" role="tab" data-toggle="tab">
+        <a class="nav-link {{ $activeTab === 'basic' ? 'active' : '' }} {{ $basicErrors ? 'has-error' : '' }}" href="#basic" role="tab" data-toggle="tab" data-bs-toggle="tab" data-bs-target="#basic">
             <i class="fas fa-info-circle"></i> 1. Risk
+            @if($basicErrors)
+                <span class="badge bg-danger ms-1" title="Errors in this section"><i class="fas fa-exclamation-circle"></i></span>
+            @endif
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#inherent" role="tab" data-toggle="tab">
+        <a class="nav-link {{ $activeTab === 'inherent' ? 'active' : '' }} {{ $inherentErrors ? 'has-error' : '' }}" href="#inherent" role="tab" data-toggle="tab" data-bs-toggle="tab" data-bs-target="#inherent">
             <i class="fas fa-chart-bar"></i> 2. Inherent Analysis
+            @if($inherentErrors)
+                <span class="badge bg-danger ms-1" title="Errors in this section"><i class="fas fa-exclamation-circle"></i></span>
+            @endif
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#treatment" role="tab" data-toggle="tab">
+        <a class="nav-link {{ $activeTab === 'treatment' ? 'active' : '' }} {{ $treatmentErrors ? 'has-error' : '' }}" href="#treatment" role="tab" data-toggle="tab" data-bs-toggle="tab" data-bs-target="#treatment">
             <i class="fas fa-stethoscope"></i> 3. Risk Treatment
+            @if($treatmentErrors)
+                <span class="badge bg-danger ms-1" title="Errors in this section"><i class="fas fa-exclamation-circle"></i></span>
+            @endif
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#residual" role="tab" data-toggle="tab">
+        <a class="nav-link {{ $activeTab === 'residual' ? 'active' : '' }} {{ $residualErrors ? 'has-error' : '' }}" href="#residual" role="tab" data-toggle="tab" data-bs-toggle="tab" data-bs-target="#residual">
             <i class="fas fa-chart-line"></i> 4. Residual Analysis
+            @if($residualErrors)
+                <span class="badge bg-danger ms-1" title="Errors in this section"><i class="fas fa-exclamation-circle"></i></span>
+            @endif
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#group-radar" role="tab" data-toggle="tab">
+        <a class="nav-link {{ $activeTab === 'group-radar' ? 'active' : '' }} {{ $radarErrors ? 'has-error' : '' }}" href="#group-radar" role="tab" data-toggle="tab" data-bs-toggle="tab" data-bs-target="#group-radar">
             <i class="fas fa-bullseye"></i> 5. Group Radar
+            @if($radarErrors)
+                <span class="badge bg-danger ms-1" title="Errors in this section"><i class="fas fa-exclamation-circle"></i></span>
+            @endif
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#quantitative" role="tab" data-toggle="tab">
+        <a class="nav-link {{ $activeTab === 'quantitative' ? 'active' : '' }}" href="#quantitative" role="tab" data-toggle="tab" data-bs-toggle="tab" data-bs-target="#quantitative">
             <i class="fas fa-calculator"></i> 6. Quantitative Result
         </a>
     </li>
@@ -120,9 +171,28 @@
     <form id="riskForm" action="{{ route('risks.update', $risk->id) }}" method="POST">
         @csrf
         @method('PUT')
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible mb-3 shadow-sm border-danger" role="alert">
+                <div class="d-flex align-items-start">
+                    <div class="me-3 fs-2 text-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h4 class="alert-title fw-bold text-danger mb-1">Form Validation Failed ({{ $errors->count() }} {{ Str::plural('issue', $errors->count()) }} found)</h4>
+                        <div class="text-secondary small mb-2">The form could not be submitted. Please inspect the highlighted section(s) above and correct the errors:</div>
+                        <ul class="mb-0 ps-3 small text-danger">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        @endif
+
 
         {{-- ==================== TAB 1: BASIC INFO ==================== --}}
-        <div role="tabpanel" class="tab-pane active" id="basic">
+        <div role="tabpanel" class="tab-pane {{ $activeTab === 'basic' ? 'active' : '' }}" id="basic">
             <div class="card">
                 <div class="card-header bg-primary">
                     <h5 class="mb-0 text-white"><i class="fas fa-info-circle"></i> Risk</h5>
@@ -311,7 +381,7 @@
         </div>
 
         {{-- ==================== TAB 2: INHERENT ANALYSIS ==================== --}}
-        <div role="tabpanel" class="tab-pane" id="inherent">
+        <div role="tabpanel" class="tab-pane {{ $activeTab === 'inherent' ? 'active' : '' }}" id="inherent">
             <!-- BASIC INFO SUMMARY (GREYED OUT) -->
             <div class="card mb-3">
                 <div class="card-header bg-light">
@@ -436,7 +506,7 @@
         </div>
 
         {{-- ==================== TAB 3: TREATMENT ==================== --}}
-        <div role="tabpanel" class="tab-pane" id="treatment">
+        <div role="tabpanel" class="tab-pane {{ $activeTab === 'treatment' ? 'active' : '' }}" id="treatment">
             <!-- BASIC INFO SUMMARY (GREYED OUT) -->
             <div class="card mb-3">
                 <div class="card-header bg-light">
@@ -628,7 +698,7 @@
         </div>
 
         {{-- ==================== TAB 4: RESIDUAL ANALYSIS ==================== --}}
-        <div role="tabpanel" class="tab-pane" id="residual">
+        <div role="tabpanel" class="tab-pane {{ $activeTab === 'residual' ? 'active' : '' }}" id="residual">
             <!-- BASIC INFO SUMMARY (GREYED OUT) -->
             <div class="card mb-3">
                 <div class="card-header bg-light">
@@ -768,7 +838,7 @@
         </div>
 
         {{-- ==================== TAB 5: GROUP RADAR ==================== --}}
-        <div role="tabpanel" class="tab-pane" id="group-radar">
+        <div role="tabpanel" class="tab-pane {{ $activeTab === 'group-radar' ? 'active' : '' }}" id="group-radar">
             <div class="card">
                 <div class="card-header bg-secondary">
                     <h5 class="mb-0 text-white"><i class="fas fa-bullseye"></i> Group Radar</h5>
@@ -824,7 +894,7 @@
         </div>
 
         {{-- ==================== TAB 6: QUANTITATIVE RESULT ==================== --}}
-        <div role="tabpanel" class="tab-pane" id="quantitative">
+        <div role="tabpanel" class="tab-pane {{ $activeTab === 'quantitative' ? 'active' : '' }}" id="quantitative">
             <div class="card">
                 <div class="card-header bg-dark">
                     <h5 class="mb-0 text-white"><i class="fas fa-calculator"></i> Quantitative Result</h5>
@@ -1413,6 +1483,14 @@ $('#residual_impact_amount, #residual_probability_percent').on('input', function
         $('#residual_potential_loss').data('manual', false);
     }
     syncPotentialLoss('residual');
+// Double submit prevention
+$('#riskForm').on('submit', function() {
+    var $submitBtns = $(this).find('button[type="submit"]');
+    setTimeout(function() {
+        $submitBtns.prop('disabled', true).addClass('disabled');
+    }, 50);
+});
+
 });
 
 $('#inherent_potential_loss').on('input', function(){
