@@ -527,12 +527,6 @@
         .app-brand-short {
             display: none;
         }
-        .sidebar-mini-fallback {
-            display: none;
-        }
-        .sidebar-mini-svg {
-            display: none;
-        }
         .sidebar-collapse-toggle {
             position: absolute;
             top: 0.85rem;
@@ -665,11 +659,44 @@
             border-top: 1px solid var(--app-sidebar-border);
         }
         .app-sidebar .navbar-nav.flex-row .nav-item {
+            position: relative;
             width: 100%;
         }
         .app-sidebar .navbar-nav.flex-row .nav-link {
             justify-content: flex-start;
             gap: 0.65rem;
+        }
+        .app-sidebar .navbar-nav.flex-row .dropup,
+        .app-sidebar .navbar-nav.flex-row .nav-item.dropup {
+            position: relative;
+        }
+        .app-sidebar .navbar-nav.flex-row .dropup .dropdown-menu,
+        .app-sidebar .navbar-nav.flex-row [data-user-menu] {
+            top: auto !important;
+            bottom: calc(100% + 0.5rem) !important;
+            left: 0.5rem !important;
+            right: 0.5rem !important;
+            width: calc(100% - 1rem) !important;
+            min-width: 13.5rem !important;
+            transform: none !important;
+            margin: 0 !important;
+            border-radius: 0.5rem !important;
+            border: 1px solid var(--app-sidebar-border, #e5e7eb) !important;
+            box-shadow: 0 -10px 25px -5px rgba(15, 23, 42, 0.12), 0 -4px 6px -4px rgba(15, 23, 42, 0.08) !important;
+            background-color: #ffffff !important;
+            z-index: 1060 !important;
+        }
+        .app-sidebar .navbar-nav.flex-row [data-user-menu].dropdown-menu-arrow::before {
+            top: auto !important;
+            bottom: -6px !important;
+            right: 1.5rem !important;
+            left: auto !important;
+            border-top: 0 !important;
+            border-left: 0 !important;
+            border-right: 1px solid var(--app-sidebar-border, #e5e7eb) !important;
+            border-bottom: 1px solid var(--app-sidebar-border, #e5e7eb) !important;
+            background: #ffffff !important;
+            transform: rotate(45deg) !important;
         }
         .app-sidebar .navbar-toggler {
             display: none;
@@ -743,93 +770,113 @@
         body.sidebar-collapsed .sidebar-collapse-toggle i {
             transform: rotate(180deg);
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu.show {
-            display: block !important;
-            width: 100%;
-            min-width: 0;
-            margin: 0.15rem 0 0.3rem;
-            padding: 0.1rem 0;
-            border: 0;
-            background: transparent;
-            box-shadow: none;
+        /* Collapsed Sidebar: Active top-level nav items (e.g. Risk, Dashboard) */
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item.active > .nav-link-main,
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item.show > .nav-link-main {
+            background: #eaf2ff !important;
+            color: var(--app-accent, #0b57d0) !important;
+            border-radius: 0.45rem;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item {
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item.active > .nav-link-main .nav-link-icon,
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item.show > .nav-link-main .nav-link-icon {
+            color: var(--app-accent, #0b57d0) !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main:hover {
+            background: #f1f5f9 !important;
+            border-radius: 0.45rem;
+        }
+
+        /* Collapsed Sidebar: Hide in-flow dropdown accordion menus to prevent invisible item gaps and layout breaks */
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu {
+            display: none !important;
+        }
+
+        /* Collapsed Sidebar: Hover Flyout Popup on the right */
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown {
+            position: relative;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu {
+            display: block !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: calc(var(--app-sidebar-collapsed-width) + 0.25rem) !important;
+            width: auto !important;
+            min-width: 17rem !important;
+            max-width: 32rem !important;
+            margin: 0 !important;
+            padding: 0.65rem 0.5rem !important;
+            background: #ffffff !important;
+            border: 1px solid var(--app-sidebar-border, #e5e7eb) !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1) !important;
+            z-index: 1050 !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu [data-risk-menu],
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > [data-risk-menu] {
+            width: auto !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .risk-menu-columns {
+            display: grid !important;
+            grid-template-columns: repeat(2, 14.5rem) !important;
+            width: 29rem !important;
+            column-gap: 0.5rem !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .risk-menu-column {
             display: flex !important;
-            justify-content: center;
-            min-height: 1.8rem;
-            padding: 0.35rem !important;
-            color: #9aa8b8;
+            flex-direction: column !important;
+            width: 100% !important;
+            padding: 0 0.25rem !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 0.6rem !important;
+            padding: 0.45rem 0.65rem !important;
+            border-radius: 0.35rem !important;
+            color: #334155 !important;
+            font-size: 0.8125rem !important;
+            white-space: nowrap !important;
             background: transparent !important;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item::before {
-            display: none !important;
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item span {
+            display: inline !important;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item span {
-            display: none;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item .sidebar-mini-fallback {
-            display: inline-block !important;
-            width: 1rem;
-            color: #718096;
-            font-size: 0.95rem;
-            font-weight: 700;
-            line-height: 1;
-            text-align: center;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item i {
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item i {
             display: inline-block !important;
             width: 1rem !important;
-            font-family: "Font Awesome 5 Free" !important;
-            font-size: 0.875rem !important;
-            font-style: normal;
-            font-weight: 900 !important;
-            line-height: 1;
-            color: currentColor !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            text-align: center;
+            color: #64748b !important;
+            text-align: center !important;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item i::before {
-            display: block !important;
-            color: #718096 !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover i::before,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus i::before,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active i::before {
-            color: var(--app-accent) !important;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item > i {
-            display: none !important;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item .sidebar-mini-svg {
-            display: block !important;
-            width: 0.95rem;
-            height: 0.95rem;
-            color: #718096;
-            fill: none;
-            stroke: currentColor;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            stroke-width: 2;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover .sidebar-mini-fallback,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus .sidebar-mini-fallback,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active .sidebar-mini-fallback {
-            color: var(--app-accent);
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active {
-            color: var(--app-accent) !important;
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item:hover,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item:focus,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item.active {
             background: #eaf2ff !important;
-            border-radius: 0.35rem;
+            color: var(--app-accent, #0b57d0) !important;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover .sidebar-mini-svg,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus .sidebar-mini-svg,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active .sidebar-mini-svg {
-            color: var(--app-accent);
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item:hover i,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item.active i {
+            color: var(--app-accent, #0b57d0) !important;
+        }
+
+        /* Collapsed Sidebar: User dropup to the side */
+        body.sidebar-collapsed .app-sidebar .navbar-nav.flex-row [data-user-menu] {
+            left: calc(var(--app-sidebar-collapsed-width) + 0.25rem) !important;
+            right: auto !important;
+            bottom: 0.5rem !important;
+            width: 13.5rem !important;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1) !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-nav.flex-row [data-user-menu].dropdown-menu-arrow::before {
+            top: auto !important;
+            bottom: 0.75rem !important;
+            left: -6px !important;
+            right: auto !important;
+            border-right: 0 !important;
+            border-bottom: 0 !important;
+            border-left: 1px solid var(--app-sidebar-border, #e5e7eb) !important;
+            border-top: 1px solid var(--app-sidebar-border, #e5e7eb) !important;
+            transform: rotate(-45deg) !important;
         }
         @media (max-width: 767.98px) {
             body.sidebar-collapsed .app-sidebar {
@@ -953,7 +1000,7 @@
             </button>
             <div class="navbar-nav flex-row order-md-last">
                 @auth
-                    <div class="nav-item dropdown">
+                    <div class="nav-item dropup">
                         @php($viewer = auth()->user())
                         @php($viewerDisplayName = $viewer->username ?: $viewer->name)
                         @php($viewerSubtitle = $viewer->isSuperadmin() ? 'superadmin' : ($viewer->isComplianceDivision() ? 'Compliance' : \App\Support\RiskOwnerAccess::displayLabel($viewer->division, 'User')))
@@ -964,6 +1011,7 @@
                             data-bs-toggle="dropdown"
                             data-toggle="dropdown"
                             data-user-menu-toggle
+                            data-bs-display="static"
                             role="button"
                             aria-expanded="false"
                             aria-label="Open user menu"
@@ -1138,6 +1186,8 @@
                                 || request()->routeIs('owners.workload')
                                 || request()->routeIs('treatment-templates.*')
                                 || request()->routeIs('incidents.*')
+                                || request()->routeIs('bcm.*')
+                                || request()->routeIs('risk-appetites.*')
                                 || request()->routeIs('enterprise-risk-profile.*')
                                 || request()->routeIs('strategic-risk-reviews.*')
                                 || request()->routeIs('operational-resilience.*'))
@@ -1177,7 +1227,7 @@
                                             <div class="risk-menu-column">
                                                 @foreach($riskMenuChunk as $riskMenuItem)
                                                     <a class="dropdown-item {{ $riskMenuItem['active'] ? 'active' : '' }}" href="{{ $riskMenuItem['href'] }}" data-mini-icon="{{ $riskMenuItem['mini'] }}">
-                                                        <svg class="sidebar-mini-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="m10 8 4 4-4 4"></path></svg><span class="sidebar-mini-fallback" aria-hidden="true">{{ $riskMenuItem['mini'] }}</span><i class="{{ $riskMenuItem['icon'] }}"></i><span>{{ $riskMenuItem['label'] }}</span>
+                                                        <i class="{{ $riskMenuItem['icon'] }} me-2"></i><span>{{ $riskMenuItem['label'] }}</span>
                                                     </a>
                                                 @endforeach
                                             </div>
