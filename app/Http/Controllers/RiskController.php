@@ -1106,47 +1106,139 @@ class RiskController extends Controller
             'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
             'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
             'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
+            'view' => 'nullable|in:strategic,operational,analytical,summary,monitoring',
         ]);
 
         $trendGranularity = $this->resolvePreferredTrendGranularity($request);
         $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
+        $context = $this->buildUnifiedDashboardContext($request, $dashboardSummary);
+        $context['defaultView'] = 'operational';
 
-        return view('risks.unified-dashboard', [
-            'dashboardSummary' => $dashboardSummary,
-            'defaultView' => 'monitoring',
-        ]);
+        return view('risks.unified-dashboard', $context);
     }
 
     public function dashboard(Request $request)
     {
         $request->validate([
+            'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
+            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
             'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
-            'view' => 'nullable|in:summary,monitoring',
+            'view' => 'nullable|in:strategic,operational,analytical,summary,monitoring',
         ]);
 
         $trendGranularity = $this->resolvePreferredTrendGranularity($request);
         $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
-        $defaultView = $request->query('view', 'summary');
+        $rawView = strtolower((string) $request->query('view', 'strategic'));
+        $defaultView = match ($rawView) {
+            'operational', 'monitoring' => 'operational',
+            'analytical' => 'analytical',
+            default => 'strategic',
+        };
 
-        return view('risks.unified-dashboard', [
-            'dashboardSummary' => $dashboardSummary,
-            'defaultView' => $defaultView,
-        ]);
+        $context = $this->buildUnifiedDashboardContext($request, $dashboardSummary);
+        $context['defaultView'] = $defaultView;
+
+        return view('risks.unified-dashboard', $context);
     }
 
     public function managementDashboard(Request $request)
     {
         $request->validate([
+            'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
+            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
             'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
+            'view' => 'nullable|in:strategic,operational,analytical,summary,monitoring',
         ]);
 
         $trendGranularity = $this->resolvePreferredTrendGranularity($request);
         $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
+        $rawView = strtolower((string) $request->query('view', 'strategic'));
+        $defaultView = match ($rawView) {
+            'operational', 'monitoring' => 'operational',
+            'analytical' => 'analytical',
+            default => 'strategic',
+        };
 
-        return view('risks.unified-dashboard', [
+        $context = $this->buildUnifiedDashboardContext($request, $dashboardSummary);
+        $context['defaultView'] = $defaultView;
+
+        return view('risks.unified-dashboard', $context);
+    }
+
+    private function buildUnifiedDashboardContext(Request $request, array $dashboardSummary): array
+    {
+        $risksQuery = $this->buildDashboardSummaryQuery($request);
+        $risks = $risksQuery->get();
+
+        $matrixResidual = array_fill(1, 5, array_fill(1, 5, 0));
+        $matrixInherent = array_fill(1, 5, array_fill(1, 5, 0));
+
+        foreach ($risks as $risk) {
+            $rProb = (int) (optional($risk->residualAnalysis)->probability_score ?: $risk->probability_score ?: 0);
+            $rImp = (int) (optional($risk->residualAnalysis)->impact_score ?: $risk->impact_score ?: 0);
+            if ($rProb >= 1 && $rProb <= 5 && $rImp >= 1 && $rImp <= 5) {
+                $matrixResidual[$rProb][$rImp]++;
+            }
+
+            $iProb = (int) (optional($risk->inherentAnalysis)->probability_score ?: $risk->probability_score ?: 0);
+            $iImp = (int) (optional($risk->inherentAnalysis)->impact_score ?: $risk->impact_score ?: 0);
+            if ($iProb >= 1 && $iProb <= 5 && $iImp >= 1 && $iImp <= 5) {
+                $matrixInherent[$iProb][$iImp]++;
+            }
+        }
+
+        try {
+            $strategicDecisions = \App\RiskCommitteeDecision::with(['risk:id,risk_id,risk_title', 'creator:id,name'])
+                ->orderBy('meeting_date', 'desc')
+                ->take(5)
+                ->get();
+        } catch (\Throwable $e) {
+            $strategicDecisions = collect([]);
+        }
+
+        try {
+            $operationalKriAlerts = \App\Kri::with(['risk:id,risk_id,risk_title'])
+                ->whereIn('status', ['red', 'amber'])
+                ->orWhere('current_value', '>', 0)
+                ->orderBy('status', 'desc')
+                ->take(6)
+                ->get();
+        } catch (\Throwable $e) {
+            $operationalKriAlerts = collect([]);
+        }
+
+        try {
+            $operationalIncidents = \App\RiskIncident::with(['risk:id,risk_id,risk_title'])
+                ->whereIn('status', ['Open', 'Investigating'])
+                ->orderBy('created_at', 'desc')
+                ->take(6)
+                ->get();
+        } catch (\Throwable $e) {
+            $operationalIncidents = collect([]);
+        }
+
+        try {
+            $riskAppetites = \App\RiskAppetite::where('is_active', true)->orderBy('name')->get();
+        } catch (\Throwable $e) {
+            $riskAppetites = collect([]);
+        }
+
+        $categories = RiskCategory::orderBy('name')->get();
+        $causeCategories = RiskCauseCategory::orderBy('name')->get();
+
+        return [
             'dashboardSummary' => $dashboardSummary,
-            'defaultView' => 'summary',
-        ]);
+            'heatmapMatrix' => [
+                'residual' => $matrixResidual,
+                'inherent' => $matrixInherent,
+            ],
+            'strategicDecisions' => $strategicDecisions,
+            'operationalKriAlerts' => $operationalKriAlerts,
+            'operationalIncidents' => $operationalIncidents,
+            'riskAppetites' => $riskAppetites,
+            'categories' => $categories,
+            'causeCategories' => $causeCategories,
+        ];
     }
 
     public function dashboardSummary(Request $request)

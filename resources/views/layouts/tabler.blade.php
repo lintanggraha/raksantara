@@ -994,31 +994,35 @@
                 <ul class="navbar-nav">
                     @auth
                         @if(auth()->user()->isSuperadmin())
-                            @php($isAppManagementActive = request()->routeIs('parameters.*') || request()->routeIs('users.*') || request()->routeIs('risk-appetites.*'))
+                            @php($isAppManagementActive = request()->routeIs('parameters.*') || request()->routeIs('users.*') || request()->routeIs('risk-appetites.*') || request()->routeIs('access-control.*') || request()->routeIs('data-retention.*') || request()->routeIs('reports.scheduled.*'))
                             <li class="nav-item dropdown {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'active show' : '' }}" data-dashboard-nav>
                                 <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-dashboard-toggle role="button" aria-expanded="{{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'true' : 'false' }}">
                                     <span class="nav-link-icon"><i class="fas fa-chart-pie"></i></span>
                                     <span>Dashboard</span>
                                 </a>
-                                <div class="dropdown-menu {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'show' : '' }}" data-dashboard-menu">
-                                    <a class="dropdown-item {{ (request()->routeIs('management.dashboard') || request()->query('view') === 'summary') ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'summary']) }}">
-                                        <i class="fas fa-chart-line me-2"></i>
-                                        <span>Executive Summary</span>
+                                <div class="dropdown-menu {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'show' : '' }}" data-dashboard-menu>
+                                    <a class="dropdown-item {{ (request()->query('view') === 'strategic' || (request()->routeIs('dashboard') && !request()->query('view'))) ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'strategic']) }}">
+                                        <i class="fas fa-chart-line me-2 text-primary"></i>
+                                        <span>1. Strategic (Board View)</span>
                                     </a>
-                                    <a class="dropdown-item {{ (request()->routeIs('risks.monitoring') || request()->query('view') === 'monitoring' || (!request()->query('view') && !request()->routeIs('management.dashboard'))) ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'monitoring']) }}">
-                                        <i class="fas fa-tachometer-alt me-2"></i>
-                                        <span>Operational Monitoring</span>
+                                    <a class="dropdown-item {{ (request()->routeIs('risks.monitoring') || request()->routeIs('management.dashboard') || request()->query('view') === 'operational' || request()->query('view') === 'monitoring') ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'operational']) }}">
+                                        <i class="fas fa-tachometer-alt me-2 text-success"></i>
+                                        <span>2. Operational (Action View)</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->query('view') === 'analytical' ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'analytical']) }}">
+                                        <i class="fas fa-th-large me-2 text-warning"></i>
+                                        <span>3. Analytical (Matrix &amp; Intelligence)</span>
                                     </a>
                                 </div>
                             </li>
                             
                             {{-- Framework Explorer Menu --}}
-                            <li class="nav-item dropdown {{ request()->routeIs('frameworks.*') ? 'active show' : '' }}" data-framework-nav>
-                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ request()->routeIs('frameworks.*') ? 'true' : 'false' }}">
+                            <li class="nav-item dropdown {{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'active show' : '' }}" data-framework-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'true' : 'false' }}">
                                     <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
                                     <span>Frameworks</span>
                                 </a>
-                                <div class="dropdown-menu {{ request()->routeIs('frameworks.*') ? 'show' : '' }}">
+                                <div class="dropdown-menu {{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'show' : '' }}">
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
                                         <i class="fas fa-shield-alt"></i><span>ISO 27001</span>
                                     </a>
@@ -1033,6 +1037,10 @@
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
                                         <i class="fas fa-gavel"></i><span>PBI 02/2024</span>
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item {{ request()->routeIs('control-framework-mappings.*') ? 'active' : '' }}" href="{{ route('control-framework-mappings.index') }}">
+                                        <i class="fas fa-project-diagram"></i><span>Control Framework Mappings</span>
                                     </a>
                                 </div>
                             </li>
@@ -1062,6 +1070,18 @@
                                     <a class="dropdown-item {{ request()->routeIs('risk-appetites.*') ? 'active' : '' }}" href="{{ route('risk-appetites.index') }}">
                                         <i class="fas fa-shield-alt"></i>
                                         <span>Corporate Risk Appetite</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('access-control.*') ? 'active' : '' }}" href="{{ route('access-control.index') }}">
+                                        <i class="fas fa-user-shield"></i>
+                                        <span>Role &amp; Access Control</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('data-retention.*') ? 'active' : '' }}" href="{{ route('data-retention.index') }}">
+                                        <i class="fas fa-trash-restore"></i>
+                                        <span>Data Retention &amp; Purge</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('reports.scheduled.*') ? 'active' : '' }}" href="{{ route('reports.scheduled.index') }}">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Scheduled Report Engine</span>
                                     </a>
                                 </div>
                             </li>
@@ -1095,14 +1115,18 @@
                                     <span class="nav-link-icon"><i class="fas fa-chart-pie"></i></span>
                                     <span>Dashboard</span>
                                 </a>
-                                <div class="dropdown-menu {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'show' : '' }}" data-dashboard-menu">
-                                    <a class="dropdown-item {{ (request()->routeIs('management.dashboard') || request()->query('view') === 'summary') ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'summary']) }}">
-                                        <i class="fas fa-chart-line me-2"></i>
-                                        <span>Executive Summary</span>
+                                <div class="dropdown-menu {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'show' : '' }}" data-dashboard-menu>
+                                    <a class="dropdown-item {{ (request()->query('view') === 'strategic' || (request()->routeIs('dashboard') && !request()->query('view'))) ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'strategic']) }}">
+                                        <i class="fas fa-chart-line me-2 text-primary"></i>
+                                        <span>1. Strategic (Board View)</span>
                                     </a>
-                                    <a class="dropdown-item {{ (request()->routeIs('risks.monitoring') || request()->query('view') === 'monitoring' || (!request()->query('view') && !request()->routeIs('management.dashboard'))) ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'monitoring']) }}">
-                                        <i class="fas fa-tachometer-alt me-2"></i>
-                                        <span>Operational Monitoring</span>
+                                    <a class="dropdown-item {{ (request()->routeIs('risks.monitoring') || request()->routeIs('management.dashboard') || request()->query('view') === 'operational' || request()->query('view') === 'monitoring') ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'operational']) }}">
+                                        <i class="fas fa-tachometer-alt me-2 text-success"></i>
+                                        <span>2. Operational (Action View)</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->query('view') === 'analytical' ? 'active' : '' }}" href="{{ route('dashboard', ['view' => 'analytical']) }}">
+                                        <i class="fas fa-th-large me-2 text-warning"></i>
+                                        <span>3. Analytical (Matrix &amp; Intelligence)</span>
                                     </a>
                                 </div>
                             </li>
@@ -1112,7 +1136,10 @@
                                 || request()->routeIs('treatments.kanban')
                                 || request()->routeIs('owners.workload')
                                 || request()->routeIs('treatment-templates.*')
-                                || request()->routeIs('incidents.*'))
+                                || request()->routeIs('incidents.*')
+                                || request()->routeIs('enterprise-risk-profile.*')
+                                || request()->routeIs('strategic-risk-reviews.*')
+                                || request()->routeIs('operational-resilience.*'))
                             @php($riskMenuItems = [
                                 ['label' => 'Risk Register', 'icon' => 'fas fa-clipboard-list', 'mini' => '≡', 'href' => route('risks.index'), 'active' => request()->routeIs('risks.*') && !request()->routeIs('risks.monitoring') && !request()->routeIs('risks.dashboard-summary')],
                                 ['label' => 'Risk Trend Analysis', 'icon' => 'fas fa-chart-area', 'mini' => '⌁', 'href' => route('trends.analysis'), 'active' => request()->routeIs('trends.analysis')],
@@ -1123,6 +1150,9 @@
                                 ['label' => 'Incident Management', 'icon' => 'fas fa-exclamation-triangle', 'mini' => '!', 'href' => route('incidents.index'), 'active' => request()->routeIs('incidents.*')],
                                 ['label' => 'Business Continuity (BCM)', 'icon' => 'fas fa-life-ring', 'mini' => '⊕', 'href' => route('bcm.index'), 'active' => request()->routeIs('bcm.*')],
                                 ['label' => 'Corporate Risk Appetite', 'icon' => 'fas fa-bullseye', 'mini' => '◎', 'href' => route('risk-appetites.index'), 'active' => request()->routeIs('risk-appetites.*')],
+                                ['label' => 'Risk Profile & Decisions', 'icon' => 'fas fa-gavel', 'mini' => '⚖', 'href' => route('enterprise-risk-profile.index'), 'active' => request()->routeIs('enterprise-risk-profile.*')],
+                                ['label' => 'Strategic Reviews & Scenarios', 'icon' => 'fas fa-chess', 'mini' => '♟', 'href' => route('strategic-risk-reviews.index'), 'active' => request()->routeIs('strategic-risk-reviews.*')],
+                                ['label' => 'Operational Resilience (DR)', 'icon' => 'fas fa-database', 'mini' => '⛁', 'href' => route('operational-resilience.index'), 'active' => request()->routeIs('operational-resilience.*')],
                             ])
                                 <li
                                 class="nav-item dropdown {{ $isRiskMenuActive ? 'active show' : '' }}"
@@ -1142,7 +1172,7 @@
                                 </a>
                                 <div class="dropdown-menu {{ $isRiskMenuActive ? 'show' : '' }}" data-risk-menu>
                                     <div class="risk-menu-columns">
-                                        @foreach(array_chunk($riskMenuItems, 5) as $riskMenuChunk)
+                                        @foreach(array_chunk($riskMenuItems, 6) as $riskMenuChunk)
                                             <div class="risk-menu-column">
                                                 @foreach($riskMenuChunk as $riskMenuItem)
                                                     <a class="dropdown-item {{ $riskMenuItem['active'] ? 'active' : '' }}" href="{{ $riskMenuItem['href'] }}" data-mini-icon="{{ $riskMenuItem['mini'] }}">
@@ -1155,12 +1185,12 @@
                                 </div>
                             </li>
                             {{-- Framework Explorer Menu --}}
-                            <li class="nav-item dropdown {{ request()->routeIs('frameworks.*') ? 'active show' : '' }}" data-framework-nav>
-                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ request()->routeIs('frameworks.*') ? 'true' : 'false' }}">
+                            <li class="nav-item dropdown {{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'active show' : '' }}" data-framework-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'true' : 'false' }}">
                                     <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
                                     <span>Frameworks</span>
                                 </a>
-                                <div class="dropdown-menu {{ request()->routeIs('frameworks.*') ? 'show' : '' }}">
+                                <div class="dropdown-menu {{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'show' : '' }}">
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
                                         <i class="fas fa-shield-alt"></i><span>ISO 27001</span>
                                     </a>
@@ -1175,6 +1205,10 @@
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
                                         <i class="fas fa-gavel"></i><span>PBI 02/2024</span>
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item {{ request()->routeIs('control-framework-mappings.*') ? 'active' : '' }}" href="{{ route('control-framework-mappings.index') }}">
+                                        <i class="fas fa-project-diagram"></i><span>Control Framework Mappings</span>
                                     </a>
                                 </div>
                             </li>

@@ -1,17 +1,25 @@
 @extends('layouts.tabler')
 
 @php
-    $requestedView = strtolower((string) request()->query('view', $defaultView ?? 'summary'));
-    if (!in_array($requestedView, ['summary', 'monitoring'], true)) {
-        $requestedView = 'summary';
-    }
+    $rawView = strtolower((string) request()->query('view', $defaultView ?? 'strategic'));
+    $requestedView = match ($rawView) {
+        'operational', 'monitoring' => 'operational',
+        'analytical' => 'analytical',
+        default => 'strategic',
+    };
+
+    $pageTitle = match ($requestedView) {
+        'operational' => 'Operational Risk Command Center',
+        'analytical' => 'Analytical Risk Intelligence Center',
+        default => 'Strategic Risk Command Center',
+    };
 @endphp
 
-@section('title', $requestedView === 'summary' ? 'Executive Risk Summary' : 'Operational Risk Monitoring')
+@section('title', $pageTitle)
 
 @section('css')
 <style>
-    /* Management / Executive View Tokens */
+    /* Command Center Design Tokens */
     .management-dashboard {
         --ink: #12243a;
         --muted: #64748b;
@@ -123,22 +131,21 @@
     .trend-track { position: relative; height: 10px; overflow: hidden; border-radius: 999px; background: #edf2f7; }
     .trend-bar { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #4ab8ae, #1877b9); }
 
-    /* Mode Navigation Tabs Bar */
+    /* 3-Tier Command Center Mode Switcher */
     .dashboard-mode-selector {
-        background: #ffffff;
-        border: 1px solid #d8e2ed;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
         border-radius: 0.75rem;
-        padding: 0.4rem;
-        box-shadow: 0 2px 8px rgba(18, 36, 58, 0.04);
+        padding: 0.3rem;
         display: inline-flex;
-        gap: 0.35rem;
+        gap: 0.25rem;
     }
 
     .dashboard-mode-btn {
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
+        gap: 0.45rem;
+        padding: 0.45rem 0.95rem;
         border-radius: 0.55rem;
         font-size: 0.82rem;
         font-weight: 650;
@@ -149,315 +156,28 @@
     }
 
     .dashboard-mode-btn:hover {
-        background: #f1f5f9;
+        background: #ffffff;
         color: #0f172a;
     }
 
     .dashboard-mode-btn.active {
-        background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+        background: #1e3a8a;
         color: #ffffff;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        box-shadow: 0 4px 12px rgba(30, 58, 138, 0.25);
     }
 
-    /* Operational Monitoring Widget Styles */
-    .dashboard-section {
-        background: linear-gradient(160deg, #f8fafc 0%, #ffffff 48%, #f1f5f9 100%);
-        border: 1px solid #d6e1ee;
-        border-radius: 0.8rem;
-        padding: 1rem;
-    }
-
-    .dashboard-title {
-        font-size: 1.14rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .dashboard-widget-grid {
-        display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
-        gap: 0.8rem;
-    }
-
-    .dashboard-tab-nav {
-        grid-column: span 12;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-
-    .dashboard-tab-btn {
-        border: 1px solid #d1d9e6;
-        border-radius: 0.6rem;
-        background: #ffffff;
-        color: #334155;
-        padding: 0.45rem 0.75rem;
-        min-width: 190px;
-        text-align: left;
-        transition: all 0.2s ease;
-    }
-
-    .dashboard-tab-btn .tab-title {
-        display: block;
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-    }
-
-    .dashboard-tab-btn .tab-subtitle {
-        display: block;
-        font-size: 0.86rem;
-        font-weight: 600;
-    }
-
-    .dashboard-tab-btn.active {
-        border-color: #90a7c5;
-        background: linear-gradient(145deg, #ecf3ff 0%, #f8fbff 100%);
-        color: #0f172a;
-        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.12);
-    }
-
-    .dashboard-tab-btn:hover {
-        border-color: #b9c7da;
-    }
-
-    .dashboard-widget {
-        grid-column: span 12;
-        border: 1px solid #dbe4ef;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
-        transition: box-shadow 0.2s ease, border-color 0.2s ease;
-    }
-
-    .dashboard-widget:hover {
-        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
-        border-color: #cdd9e8;
-    }
-
-    .dashboard-widget-hidden {
-        display: none !important;
-    }
-
-    .dashboard-widget-tab-hidden {
-        display: none !important;
-    }
-
-    /* Modernized Portfolio Donut Cards and Charts */
-    .portfolio-donut-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 0.85rem;
-    }
-
-    @media (min-width: 1200px) {
-        .portfolio-donut-grid {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-        }
-    }
-
-    .portfolio-donut-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        background: #ffffff;
-        padding: 0.85rem 0.75rem;
-        min-width: 0;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    }
-
-    .portfolio-donut-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-        border-color: #cbd5e1;
-    }
-
-    .portfolio-donut-title {
-        font-size: 0.76rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: #1e293b;
-        margin-bottom: 0.6rem;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        width: 100%;
-        padding-bottom: 0.35rem;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .portfolio-donut-shell {
-        position: relative;
-        width: 110px;
-        height: 110px;
-        margin: 0.35rem auto 0.75rem;
-        flex-shrink: 0;
-    }
-
-    .portfolio-mini-donut {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background: #e2e8f0;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
-        transition: background 0.3s ease;
-    }
-
-    .portfolio-mini-center {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 58px;
-        height: 58px;
-        border-radius: 50%;
-        border: 2px solid #ffffff;
-        background: #ffffff;
-        color: #0f172a;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.95rem;
-        font-weight: 800;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
-        line-height: 1;
-        pointer-events: none;
-    }
-
-    .portfolio-mini-center::after {
-        content: 'TOTAL';
-        display: block;
-        font-size: 0.52rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        color: #64748b;
-        margin-top: 2px;
-    }
-
-    .portfolio-mini-legend {
-        display: flex;
-        flex-direction: column;
-        gap: 0.28rem;
-        min-width: 0;
-        width: 100%;
-        margin-top: auto;
-        padding-top: 0.4rem;
-        border-top: 1px solid #f8fafc;
-    }
-
-    .portfolio-mini-legend-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.45rem;
-        font-size: 0.72rem;
-        line-height: 1.3;
-        color: #334155;
-        min-width: 0;
-        width: 100%;
-        padding: 0.2rem 0.35rem;
-        border-radius: 0.35rem;
-        transition: background 0.15s ease;
-    }
-
-    .portfolio-mini-legend-item:hover {
-        background: #f1f5f9;
-    }
-
-    .portfolio-mini-legend-left {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        min-width: 0;
-        flex: 1 1 0;
-        overflow: hidden;
-    }
-
-    .portfolio-mini-legend-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        min-width: 0;
-        flex: 1 1 auto;
-        font-size: 0.72rem;
-        font-weight: 500;
-        color: #334155;
-    }
-
-    .portfolio-mini-legend-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        flex: 0 0 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    }
-
-    .portfolio-mini-legend-value {
-        color: #0f172a;
-        font-weight: 700;
-        font-size: 0.72rem;
-        flex: 0 0 auto;
-        text-align: right;
-        margin-left: auto;
-        white-space: nowrap;
-        background: #f1f5f9;
-        padding: 0.1rem 0.45rem;
+    .risk-priority-dot {
+        width: 9px;
+        height: 9px;
         border-radius: 999px;
-        border: 1px solid #e2e8f0;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 0.35rem;
     }
-
-    .metric-inline {
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
-        padding: 0.5rem 0.62rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.4rem;
-    }
-
-    .metric-inline-label { font-size: 0.79rem; color: #475569; }
-    .metric-inline-value { font-weight: 700; color: #0f172a; }
-
-    .summary-chart-panel {
-        border: 1px solid #e2e8f0;
-        border-radius: 0.6rem;
-        background: #ffffff;
-        padding: 0.65rem;
-        min-height: 220px;
-    }
-
-    .status-pie-shell {
-        position: relative;
-        width: 178px;
-        height: 178px;
-        margin: 0 auto 0.7rem;
-    }
-
-    .status-pie-chart {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-    }
-
-    .status-pie-center {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-    }
-
-    .status-pie-total { font-size: 1.45rem; font-weight: 800; color: #0f172a; }
-    .status-pie-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; }
-
-
+    .risk-priority-dot.low { background: #4caf50; }
+    .risk-priority-dot.moderate { background: #f8d14b; }
+    .risk-priority-dot.high { background: #fb8c00; }
+    .risk-priority-dot.extreme { background: #ef4444; }
 
     .portfolio-priority-pill {
         border-radius: 999px;
@@ -474,75 +194,6 @@
     .portfolio-priority-pill.priority-high { background: #fff1e4; border-color: #ffcfa4; color: #9a3412; }
     .portfolio-priority-pill.priority-extreme { background: #fee2e2; border-color: #fecaca; color: #991b1b; }
 
-    .division-risk-board {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 0.7rem;
-    }
-
-    .division-risk-card {
-        border: 1px solid #d9e5f3;
-        border-radius: 0.7rem;
-        background: #ffffff;
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
-        overflow: hidden;
-    }
-
-    .division-risk-card-head {
-        background: linear-gradient(140deg, #0d64c9 0%, #2e8fed 100%);
-        color: #ffffff;
-        padding: 0.55rem 0.7rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .division-risk-count { font-size: 1.35rem; font-weight: 800; line-height: 1.1; }
-    .division-risk-count span { font-size: 0.72rem; font-weight: 600; opacity: 0.92; }
-    .division-risk-name { margin-top: 0.15rem; font-size: 0.8rem; font-weight: 700; line-height: 1.2; }
-    .division-risk-rank {
-        border: 1px solid rgba(255, 255, 255, 0.45);
-        border-radius: 999px;
-        padding: 0.15rem 0.52rem;
-        font-size: 0.72rem;
-        font-weight: 700;
-    }
-
-    .division-treatment-stats {
-        border-top: 1px solid #ebf1f9;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .division-treatment-item {
-        padding: 0.35rem 0.48rem;
-        border-right: 1px solid #ebf1f9;
-        border-bottom: 1px solid #ebf1f9;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.45rem;
-    }
-
-    .division-treatment-item:nth-child(2n) { border-right: none; }
-    .division-treatment-item .label { font-size: 0.72rem; color: #64748b; }
-    .division-treatment-item .value { font-size: 0.76rem; font-weight: 700; color: #0f172a; }
-    .division-treatment-item.score { background: #f8fbff; }
-
-    .risk-priority-dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 999px;
-        display: inline-block;
-        vertical-align: middle;
-        margin-right: 0.35rem;
-    }
-    .risk-priority-dot.low { background: #4caf50; }
-    .risk-priority-dot.moderate { background: #f8d14b; }
-    .risk-priority-dot.high { background: #fb8c00; }
-    .risk-priority-dot.extreme { background: #ef4444; }
-
     @media (max-width: 767.98px) {
         .management-hero-score { margin-top: 1.1rem; text-align: left; }
         .management-hero-score .score { font-size: 2.3rem; }
@@ -553,41 +204,82 @@
 
 @section('content')
 <div class="management-dashboard">
-    {{-- Unified Dashboard Navigation Bar --}}
+    {{-- Top Action & Filter Header Bar --}}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
         <div>
-            <div class="dashboard-mode-selector" role="tablist" aria-label="Risk Dashboard View Modes">
+            <div class="dashboard-mode-selector" role="tablist" aria-label="Risk Command Center Tiers">
                 <a
-                    href="?view=summary"
-                    class="dashboard-mode-btn {{ $requestedView === 'summary' ? 'active' : '' }}"
-                    id="btnViewSummary"
+                    href="?view=strategic"
+                    class="dashboard-mode-btn {{ $requestedView === 'strategic' ? 'active' : '' }}"
+                    id="btnViewStrategic"
                     role="tab"
-                    aria-selected="{{ $requestedView === 'summary' ? 'true' : 'false' }}"
+                    aria-selected="{{ $requestedView === 'strategic' ? 'true' : 'false' }}"
+                    title="Executive Board Posture, Risk Appetite & Strategic Governance"
                 >
                     <i class="fas fa-chart-line"></i>
-                    <span>Executive Summary</span>
+                    <span>1. Strategic (Board)</span>
                 </a>
                 <a
-                    href="?view=monitoring"
-                    class="dashboard-mode-btn {{ $requestedView === 'monitoring' ? 'active' : '' }}"
-                    id="btnViewMonitoring"
+                    href="?view=operational"
+                    class="dashboard-mode-btn {{ $requestedView === 'operational' ? 'active' : '' }}"
+                    id="btnViewOperational"
                     role="tab"
-                    aria-selected="{{ $requestedView === 'monitoring' ? 'true' : 'false' }}"
+                    aria-selected="{{ $requestedView === 'operational' ? 'true' : 'false' }}"
+                    title="Daily/Weekly Operator Health, KRIs, Overdue SLAs & Incidents"
                 >
                     <i class="fas fa-tachometer-alt"></i>
-                    <span>Operational Monitoring</span>
+                    <span>2. Operational (Action)</span>
+                </a>
+                <a
+                    href="?view=analytical"
+                    class="dashboard-mode-btn {{ $requestedView === 'analytical' ? 'active' : '' }}"
+                    id="btnViewAnalytical"
+                    role="tab"
+                    aria-selected="{{ $requestedView === 'analytical' ? 'true' : 'false' }}"
+                    title="Deep Analytical 5x5 Heatmap Matrix, Efficacy Variance & Root Causes"
+                >
+                    <i class="fas fa-th-large"></i>
+                    <span>3. Analytical (Matrix)</span>
                 </a>
             </div>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-light text-secondary border">
-                <i class="far fa-clock me-1"></i> {{ $dashboardSummary['generated_at'] ?? now()->format('Y-m-d H:i:s') }}
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            {{-- Quick Filter Form --}}
+            <form method="GET" action="{{ url()->current() }}" class="d-flex align-items-center gap-1" id="dashboardFilterForm">
+                <input type="hidden" name="view" value="{{ $requestedView }}" id="filterFormViewInput">
+                <select name="risk_category_id" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width: 170px;">
+                    <option value="">All Risk Categories</option>
+                    @foreach($categories ?? [] as $category)
+                        <option value="{{ $category->id }}" {{ (string) request('risk_category_id') === (string) $category->id ? 'selected' : '' }}>
+                            {{ $category->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <select name="risk_cause_category_id" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width: 160px;">
+                    <option value="">All Cause Categories</option>
+                    @foreach($causeCategories ?? [] as $causeCat)
+                        <option value="{{ $causeCat->id }}" {{ (string) request('risk_cause_category_id') === (string) $causeCat->id ? 'selected' : '' }}>
+                            {{ $causeCat->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @if(request('risk_category_id') || request('risk_cause_category_id'))
+                    <a href="?view={{ $requestedView }}" class="btn btn-outline-secondary btn-sm" title="Clear Filters">
+                        <i class="fas fa-times"></i>
+                    </a>
+                @endif
+            </form>
+
+            <span class="badge bg-light text-secondary border d-none d-md-inline-block">
+                <i class="far fa-clock me-1"></i> {{ $dashboardSummary['generated_at'] ?? now()->format('Y-m-d H:i') }}
             </span>
+
             @include('reports.export-buttons', [
                 'scope' => 'monitoring',
-                'scopeLabel' => 'Monitoring Report',
+                'scopeLabel' => 'Executive Report',
             ])
+
             @if(!auth()->user()->isSuperadmin())
                 <a href="{{ route('risks.create') }}" class="btn btn-success btn-sm with-icon">
                     <i class="fas fa-plus"></i> Add Risk
@@ -596,22 +288,30 @@
         </div>
     </div>
 
-    {{-- Mode 1: Executive Summary View --}}
-    <div id="executiveViewContainer" style="{{ $requestedView === 'summary' ? '' : 'display: none;' }}">
-        @include('risks.partials.executive-summary', ['dashboardSummary' => $dashboardSummary])
+    {{-- Tier 1: Strategic Command Center (Board & Executive View) --}}
+    <div id="strategicViewContainer" style="{{ $requestedView === 'strategic' ? '' : 'display: none;' }}">
+        @include('risks.partials.strategic-dashboard', [
+            'dashboardSummary' => $dashboardSummary,
+            'strategicDecisions' => $strategicDecisions ?? [],
+            'riskAppetites' => $riskAppetites ?? [],
+        ])
     </div>
 
-    {{-- Mode 2: Operational Monitoring View --}}
-    <div id="monitoringViewContainer" style="{{ $requestedView === 'monitoring' ? '' : 'display: none;' }}">
-        <div
-            id="riskDashboardRoot"
-            data-summary-url="{{ route('risks.dashboard-summary') }}"
-            data-pref-get-url="{{ route('dashboard-preferences.show') }}"
-            data-pref-save-url="{{ route('dashboard-preferences.update') }}"
-            data-refresh-ms="30000"
-        >
-            @include('risks.partials.dashboard-widgets', ['dashboardSummary' => $dashboardSummary])
-        </div>
+    {{-- Tier 2: Operational Command Center (Risk Operators & Department Heads) --}}
+    <div id="operationalViewContainer" style="{{ $requestedView === 'operational' ? '' : 'display: none;' }}">
+        @include('risks.partials.operational-dashboard', [
+            'dashboardSummary' => $dashboardSummary,
+            'operationalKriAlerts' => $operationalKriAlerts ?? [],
+            'operationalIncidents' => $operationalIncidents ?? [],
+        ])
+    </div>
+
+    {{-- Tier 3: Analytical Intelligence Center (5x5 Heatmap Matrix & Deep Analytics) --}}
+    <div id="analyticalViewContainer" style="{{ $requestedView === 'analytical' ? '' : 'display: none;' }}">
+        @include('risks.partials.analytical-dashboard', [
+            'dashboardSummary' => $dashboardSummary,
+            'heatmapMatrix' => $heatmapMatrix ?? [],
+        ])
     </div>
 </div>
 
@@ -621,33 +321,43 @@
 @section('js')
 <script>
 window.switchDashboardView = function (targetView) {
-    const summaryContainer = document.getElementById('executiveViewContainer');
-    const monitoringContainer = document.getElementById('monitoringViewContainer');
-    const btnSummary = document.getElementById('btnViewSummary');
-    const btnMonitoring = document.getElementById('btnViewMonitoring');
+    const strategicContainer = document.getElementById('strategicViewContainer');
+    const operationalContainer = document.getElementById('operationalViewContainer');
+    const analyticalContainer = document.getElementById('analyticalViewContainer');
 
-    if (targetView === 'monitoring') {
-        if (summaryContainer) summaryContainer.style.display = 'none';
-        if (monitoringContainer) monitoringContainer.style.display = '';
-        if (btnSummary) {
-            btnSummary.classList.remove('active');
-            btnSummary.setAttribute('aria-selected', 'false');
+    const btnStrategic = document.getElementById('btnViewStrategic');
+    const btnOperational = document.getElementById('btnViewOperational');
+    const btnAnalytical = document.getElementById('btnViewAnalytical');
+    const filterViewInput = document.getElementById('filterFormViewInput');
+
+    // Normalize target view name
+    if (targetView === 'summary') targetView = 'strategic';
+    if (targetView === 'monitoring') targetView = 'operational';
+
+    // Update containers
+    if (strategicContainer) strategicContainer.style.display = (targetView === 'strategic') ? '' : 'none';
+    if (operationalContainer) operationalContainer.style.display = (targetView === 'operational') ? '' : 'none';
+    if (analyticalContainer) analyticalContainer.style.display = (targetView === 'analytical') ? '' : 'none';
+
+    // Update buttons
+    [
+        { btn: btnStrategic, view: 'strategic' },
+        { btn: btnOperational, view: 'operational' },
+        { btn: btnAnalytical, view: 'analytical' }
+    ].forEach(item => {
+        if (item.btn) {
+            if (item.view === targetView) {
+                item.btn.classList.add('active');
+                item.btn.setAttribute('aria-selected', 'true');
+            } else {
+                item.btn.classList.remove('active');
+                item.btn.setAttribute('aria-selected', 'false');
+            }
         }
-        if (btnMonitoring) {
-            btnMonitoring.classList.add('active');
-            btnMonitoring.setAttribute('aria-selected', 'true');
-        }
-    } else {
-        if (monitoringContainer) monitoringContainer.style.display = 'none';
-        if (summaryContainer) summaryContainer.style.display = '';
-        if (btnMonitoring) {
-            btnMonitoring.classList.remove('active');
-            btnMonitoring.setAttribute('aria-selected', 'false');
-        }
-        if (btnSummary) {
-            btnSummary.classList.add('active');
-            btnSummary.setAttribute('aria-selected', 'true');
-        }
+    });
+
+    if (filterViewInput) {
+        filterViewInput.value = targetView;
     }
 
     try {
@@ -659,17 +369,19 @@ window.switchDashboardView = function (targetView) {
 };
 
 // Wire client-side tab switching without page reload
-document.getElementById('btnViewSummary')?.addEventListener('click', function(e) {
+document.getElementById('btnViewStrategic')?.addEventListener('click', function(e) {
     e.preventDefault();
-    window.switchDashboardView('summary');
+    window.switchDashboardView('strategic');
 });
 
-document.getElementById('btnViewMonitoring')?.addEventListener('click', function(e) {
+document.getElementById('btnViewOperational')?.addEventListener('click', function(e) {
     e.preventDefault();
-    window.switchDashboardView('monitoring');
+    window.switchDashboardView('operational');
+});
+
+document.getElementById('btnViewAnalytical')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    window.switchDashboardView('analytical');
 });
 </script>
-
-{{-- Include operational widget scripts for live refresh & interactivity --}}
-@include('risks.partials.dashboard-widgets-scripts')
 @endsection
