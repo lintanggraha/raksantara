@@ -49,7 +49,7 @@
 
         {{-- Overdue Mitigations SLA --}}
         <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm border-start border-4 {{ ($overdueTreatments > 0) ? 'border-danger' : 'border-success') }} h-100">
+            <div class="card border-0 shadow-sm border-start border-4 {{ ($overdueTreatments > 0) ? 'border-danger' : 'border-success' }} h-100">
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -72,7 +72,7 @@
 
         {{-- Open Operational Incidents --}}
         <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm border-start border-4 {{ ($openIncidentsCount > 0) ? 'border-warning' : 'border-success') }} h-100">
+            <div class="card border-0 shadow-sm border-start border-4 {{ ($openIncidentsCount > 0) ? 'border-warning' : 'border-success' }} h-100">
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -182,7 +182,7 @@
                                         <td colspan="4" class="text-center py-4 text-muted">
                                             <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
                                             <p class="mb-1">All Key Risk Indicators are operating within normal green thresholds.</p>
-                                            <a href="{{ route('kris.create') }}" class="btn btn-sm btn-outline-primary mt-1">Configure New KRI</a>
+                                            <a href="{{ route('kris.index') }}" class="btn btn-sm btn-outline-primary mt-1">Configure New KRI</a>
                                         </td>
                                     </tr>
                                 @endforelse
@@ -215,7 +215,7 @@
                         @endphp
                         <div class="p-2 mb-2 border rounded bg-white">
                             <div class="d-flex justify-content-between align-items-start gap-1">
-                                <a href="{{ route('incidents.show', $incident->id) }}" class="fw-bold small text-dark text-decoration-none text-truncate" style="max-width: 240px;">
+                                <a href="{{ route('incidents.index') }}" class="fw-bold small text-dark text-decoration-none text-truncate" style="max-width: 240px;">
                                     [{{ $incident->incident_code }}] {{ $incident->title }}
                                 </a>
                                 <span class="badge {{ $sevClass }}">{{ $incident->severity }}</span>
@@ -229,7 +229,7 @@
                         <div class="text-center py-4 text-muted">
                             <i class="fas fa-shield-alt text-success fa-2x mb-2 opacity-50"></i>
                             <p class="small mb-1">No open or investigating incidents recorded.</p>
-                            <a href="{{ route('incidents.create') }}" class="btn btn-sm btn-outline-primary">Log New Incident</a>
+                            <a href="{{ route('incidents.index') }}" class="btn btn-sm btn-outline-primary">Log New Incident</a>
                         </div>
                     @endforelse
                 </div>

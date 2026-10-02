@@ -280,7 +280,7 @@
                 'scopeLabel' => 'Executive Report',
             ])
 
-            @if(!auth()->user()->isSuperadmin())
+            @if(auth()->check() && !auth()->user()->isSuperadmin())
                 <a href="{{ route('risks.create') }}" class="btn btn-success btn-sm with-icon">
                     <i class="fas fa-plus"></i> Add Risk
                 </a>
