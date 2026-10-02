@@ -11,17 +11,6 @@ use Tests\TestCase;
 
 class RiskMetricServiceTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        $_SERVER['DB_CONNECTION'] = 'sqlite';
-        $_SERVER['DB_DATABASE'] = ':memory:';
-        $_ENV['DB_CONNECTION'] = 'sqlite';
-        $_ENV['DB_DATABASE'] = ':memory:';
-        putenv('DB_CONNECTION=sqlite');
-        putenv('DB_DATABASE=:memory:');
-
-        parent::setUp();
-    }
 
 
     public function test_resolve_priority_bucket_thresholds()

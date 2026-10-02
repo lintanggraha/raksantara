@@ -328,11 +328,15 @@ class OjkMitigationSpreadsheetImportService
         }
 
         if (empty($dates)) {
-            try {
-                return Carbon::parse($text)->startOfDay();
-            } catch (\Throwable $e) {
-                return null;
+            if (preg_match('/\d/', $text)) {
+                try {
+                    return Carbon::parse($text)->startOfDay();
+                } catch (\Throwable $e) {
+                    return null;
+                }
             }
+
+            return null;
         }
 
         usort($dates, function (Carbon $a, Carbon $b) {

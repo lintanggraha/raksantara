@@ -54,7 +54,7 @@ class TwoFactorAuthenticationWorkflowTest extends TestCase
 
         $this->withSession(['mfa_user_id' => $user->id])
             ->post(route('two-factor.challenge.verify'), ['code' => $this->currentCode($service, $secret)])
-            ->assertRedirect('/risks');
+            ->assertRedirect(\App\Providers\RouteServiceProvider::HOME);
 
         $this->assertAuthenticatedAs($user);
         $this->assertSame($user->id, session('mfa_authenticated_user'));
@@ -74,7 +74,7 @@ class TwoFactorAuthenticationWorkflowTest extends TestCase
 
         $this->withSession(['mfa_user_id' => $user->id])
             ->post(route('two-factor.challenge.verify'), ['code' => $recoveryCode])
-            ->assertRedirect('/risks');
+            ->assertRedirect(\App\Providers\RouteServiceProvider::HOME);
 
         $this->assertSame([], json_decode(Crypt::decryptString($user->fresh()->two_factor_recovery_codes), true));
     }

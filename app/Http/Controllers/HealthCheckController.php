@@ -86,6 +86,14 @@ class HealthCheckController extends Controller
     {
         $writable = is_writable(storage_path());
 
+        if (!$writable) {
+            $testFile = storage_path('framework/health_' . bin2hex(random_bytes(4)) . '.tmp');
+            $writable = (@file_put_contents($testFile, '1') !== false);
+            if ($writable) {
+                @unlink($testFile);
+            }
+        }
+
         return [
             'ok' => $writable,
             'message' => $writable ? 'storage writable' : 'storage not writable',
