@@ -13,3 +13,7 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+
+# Local investigation spreadsheets dropped at the repo root (may contain real data)
+/*.xlsx
+/*.xls
