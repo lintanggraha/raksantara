@@ -317,6 +317,11 @@ class SumutMonitoringController extends Controller
      */
     public function syncFromExcel()
     {
+        // The monitoring seeder holds sensitive data and is kept out of version control.
+        if (!class_exists(\Database\Seeders\SumutChecklistSeeder::class)) {
+            return redirect()->back()->with('error', 'Seeder data Sumut tidak tersedia di server ini (database/seeders/SumutChecklistSeeder.php).');
+        }
+
         try {
             Artisan::call('db:seed', [
                 '--class' => 'SumutChecklistSeeder',

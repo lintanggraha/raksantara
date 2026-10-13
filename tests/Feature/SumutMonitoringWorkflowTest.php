@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\User;
 use App\SumutChecklistItem;
 use App\SumutChecklistEvidence;
-use Database\Seeders\SumutChecklistSeeder;
+use Tests\Fixtures\SumutChecklistFixtureSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -18,7 +18,9 @@ class SumutMonitoringWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(SumutChecklistSeeder::class);
+        // Keep fixture evidence out of any real evidence folder on the developer machine.
+        config()->set('regional_assessment.sumut.evidence_path', '');
+        $this->seed(SumutChecklistFixtureSeeder::class);
         $this->user = $this->createApprovedUser();
         $this->actingAs($this->user);
     }
@@ -81,19 +83,17 @@ class SumutMonitoringWorkflowTest extends TestCase
     {
         $response = $this->get(route('sumut.items', ['progress_status' => 'on_progress']));
 
+        // The fixture leaves every third point on progress.
         $response->assertOk();
-        $response->assertSee('Point #08');
-        $response->assertSee('Point #11');
-        $response->assertSee('Point #17');
-        $response->assertSee('Point #19');
-        $response->assertSee('Point #24');
+        $response->assertSee('Point #03');
+        $response->assertSee('Point #06');
         $response->assertSee('Point #27');
         $response->assertDontSee('Point #01'); // Point 01 is 100% Done
     }
 
     public function test_user_can_search_items_by_keyword(): void
     {
-        $response = $this->get(route('sumut.items', ['search' => 'ManageEngine']));
+        $response = $this->get(route('sumut.items', ['search' => 'Endpoint Detection']));
 
         $response->assertOk();
         $response->assertSee('Point #09');

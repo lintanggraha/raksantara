@@ -477,6 +477,11 @@ class SultengInvestigationController extends Controller
             abort(403, 'Hanya superadmin yang berhak melakukan sinkronisasi data dari file Excel.');
         }
 
+        // The investigation seeder holds sensitive data and is kept out of version control.
+        if (!class_exists(\Database\Seeders\SultengChecklistSeeder::class)) {
+            return redirect()->back()->with('error', 'Seeder data Sulteng tidak tersedia di server ini (database/seeders/SultengChecklistSeeder.php).');
+        }
+
         $excelPath = (string) config('regional_assessment.sulteng.sync_excel_path');
         if (!file_exists($excelPath)) {
             return redirect()->back()->with('error', "File {$excelPath} tidak ditemukan di disk lokal.");

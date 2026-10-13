@@ -17,3 +17,7 @@ yarn-error.log
 # Local investigation spreadsheets dropped at the repo root (may contain real data)
 /*.xlsx
 /*.xls
+
+# Regional investigation seeders contain sensitive incident data; keep them on local machines only
+/database/seeders/SultengChecklistSeeder.php
+/database/seeders/SumutChecklistSeeder.php

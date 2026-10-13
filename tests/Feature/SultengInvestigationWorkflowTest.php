@@ -21,7 +21,9 @@ class SultengInvestigationWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\SultengChecklistSeeder::class);
+        // Keep uploads out of any real evidence folder on the developer machine.
+        config()->set('regional_assessment.sulteng.source_root', '');
+        $this->seed(\Tests\Fixtures\SultengChecklistFixtureSeeder::class);
         $this->user = $this->createApprovedUser();
         $this->actingAs($this->user);
     }

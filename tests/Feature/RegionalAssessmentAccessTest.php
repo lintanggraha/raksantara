@@ -6,7 +6,7 @@ use App\Services\SumutEvidenceService;
 use App\SumutChecklistEvidence;
 use App\SumutChecklistItem;
 use App\User;
-use Database\Seeders\SumutChecklistSeeder;
+use Tests\Fixtures\SumutChecklistFixtureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
@@ -36,7 +36,7 @@ class RegionalAssessmentAccessTest extends TestCase
 
     public function test_non_compliance_user_is_denied_regional_assessment_routes(): void
     {
-        $this->seed(SumutChecklistSeeder::class);
+        $this->seed(SumutChecklistFixtureSeeder::class);
         $user = $this->createUser('BT - BANKING APPLICATIONS');
 
         foreach ([
@@ -121,7 +121,7 @@ class RegionalAssessmentAccessTest extends TestCase
 
     private function createSumutEvidence(string $fileName, string $contents, string $mimeType): SumutChecklistEvidence
     {
-        $this->seed(SumutChecklistSeeder::class);
+        $this->seed(SumutChecklistFixtureSeeder::class);
         $item = SumutChecklistItem::query()->firstOrFail();
         $path = $this->evidenceDir . DIRECTORY_SEPARATOR . $fileName;
         file_put_contents($path, $contents);
