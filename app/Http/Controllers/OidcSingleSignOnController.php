@@ -3,20 +3,37 @@
 namespace App\Http\Controllers;
 
 use App\Support\AuditLogger;
+use App\Support\RiskOwnerAccess;
 use App\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+/**
+ * OpenID Connect sign-in. Disabled unless SSO_OIDC_ENABLED=true; whenever the
+ * provider is misconfigured, unreachable or rejects the identity, the user is
+ * sent back to the local username/password login (the fallback path).
+ */
 class OidcSingleSignOnController extends Controller
 {
+    private const FALLBACK_MESSAGE = 'Login SSO sedang tidak tersedia. Silakan masuk dengan username dan password.';
+
     public function redirect(Request $request): RedirectResponse
     {
         $config = $this->enabledConfig();
+        if (!$this->isConfigComplete($config)) {
+            return $this->fallback('config_incomplete');
+        }
+
         $metadata = $this->metadata($config);
+        if (is_null($metadata)) {
+            return $this->fallback('metadata_unavailable');
+        }
+
         $state = Str::random(64);
         $nonce = Str::random(64);
         $request->session()->put('oidc_state', $state);
@@ -39,40 +56,53 @@ class OidcSingleSignOnController extends Controller
         $config = $this->enabledConfig();
         $state = (string) $request->session()->pull('oidc_state');
         abort_unless(!empty($state) && hash_equals($state, (string) $request->input('state')), 403, 'Invalid SSO state.');
+
+        if ($request->filled('error')) {
+            return $this->fallback('provider_error', 'Login SSO dibatalkan atau ditolak oleh penyedia identitas.');
+        }
         $request->validate(['code' => ['required', 'string', 'max:4096']]);
 
+        if (!$this->isConfigComplete($config)) {
+            return $this->fallback('config_incomplete');
+        }
+
         $metadata = $this->metadata($config);
-        abort_unless(!empty($metadata['token_endpoint']) && !empty($metadata['userinfo_endpoint']), 503, 'SSO provider metadata is incomplete.');
+        if (is_null($metadata) || empty($metadata['token_endpoint']) || empty($metadata['userinfo_endpoint'])) {
+            return $this->fallback('metadata_unavailable');
+        }
 
-        $tokenResponse = Http::asForm()->timeout(10)->post($metadata['token_endpoint'], [
-            'grant_type' => 'authorization_code',
-            'code' => $request->input('code'),
-            'redirect_uri' => $config['redirect_uri'],
-            'client_id' => $config['client_id'],
-            'client_secret' => $config['client_secret'],
-        ]);
-        abort_unless($tokenResponse->successful() && !empty($tokenResponse->json('access_token')), 401, 'SSO code exchange failed.');
-
-        $profileResponse = Http::withToken((string) $tokenResponse->json('access_token'))->timeout(10)->get($metadata['userinfo_endpoint']);
-        abort_unless($profileResponse->successful(), 401, 'SSO user profile retrieval failed.');
-        $claims = $profileResponse->json();
+        $claims = $this->fetchClaims($request, $config, $metadata);
+        if (is_null($claims)) {
+            return $this->fallback('provider_unavailable');
+        }
 
         $email = $this->claim($claims, $config['claim_map']['email']);
         $subject = $this->claim($claims, $config['claim_map']['subject']);
-        abort_unless(!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL) && !empty($subject), 403, 'SSO provider did not supply the required identity claims.');
-        $this->assertAllowedDomain($email, $config['allowed_email_domains']);
-
-        $user = User::query()->where('email', $email)->first();
-        if (is_null($user) && $config['auto_provision']) {
-            $user = $this->provisionUser($claims, $config, $email);
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL) || empty($subject)) {
+            return $this->fallback('missing_claims', 'Penyedia SSO tidak mengirim identitas yang dibutuhkan (email dan subject).');
         }
-        abort_unless(!is_null($user), 403, 'No approved local account is linked to this SSO identity.');
+        if (!$this->isAllowedDomain($email, $config['allowed_email_domains'])) {
+            return $this->fallback('domain_not_allowed', 'Domain email ini tidak diizinkan untuk login SSO.');
+        }
+        if (($config['require_verified_email'] ?? true) && !$this->isTruthy(data_get($claims, $config['email_verified_claim'] ?? 'email_verified'))) {
+            return $this->fallback('email_unverified', 'Email akun SSO belum diverifikasi oleh penyedia identitas.');
+        }
+
+        $user = $this->resolveUser($claims, $config, $email, $subject);
+        if (is_null($user)) {
+            return $this->fallback('no_linked_account', 'Akun SSO ini belum terhubung ke akun aplikasi. Hubungi administrator atau masuk dengan username dan password.');
+        }
+
+        if (empty($user->oidc_subject)) {
+            $user->forceFill(['oidc_subject' => $subject])->save();
+            AuditLogger::logModelEvent('security.sso.linked', $user, null, ['subject' => hash('sha256', $subject)]);
+        }
 
         Auth::login($user);
         $request->session()->regenerate();
         AuditLogger::logModelEvent('security.sso.login', $user, null, ['subject' => hash('sha256', $subject)]);
 
-        if ($user->hasTwoFactorEnabled()) {
+        if ($user->requiresMfaChallenge()) {
             Auth::logout();
             $request->session()->put('mfa_user_id', $user->id);
 
@@ -82,29 +112,112 @@ class OidcSingleSignOnController extends Controller
         return redirect()->intended(\App\Providers\RouteServiceProvider::HOME);
     }
 
+    /**
+     * The subject claim is the stable identity. Email is only used to link an
+     * existing account on its first SSO login, and never to re-link an account
+     * already bound to a different subject.
+     */
+    private function resolveUser(array $claims, array $config, string $email, string $subject): ?User
+    {
+        $user = User::query()->where('oidc_subject', $subject)->first();
+        if ($user) {
+            return $user;
+        }
+
+        $user = User::query()->where('email', $email)->first();
+        if ($user) {
+            if (!empty($user->oidc_subject) && !hash_equals((string) $user->oidc_subject, $subject)) {
+                Log::warning('OIDC login rejected: account is bound to a different subject.', ['user_id' => $user->id]);
+
+                return null;
+            }
+
+            return $user;
+        }
+
+        return $config['auto_provision'] ? $this->provisionUser($claims, $config, $email) : null;
+    }
+
+    private function fetchClaims(Request $request, array $config, array $metadata): ?array
+    {
+        try {
+            $tokenResponse = Http::asForm()->timeout(10)->post($metadata['token_endpoint'], [
+                'grant_type' => 'authorization_code',
+                'code' => $request->input('code'),
+                'redirect_uri' => $config['redirect_uri'],
+                'client_id' => $config['client_id'],
+                'client_secret' => $config['client_secret'],
+            ]);
+            if (!$tokenResponse->successful() || empty($tokenResponse->json('access_token'))) {
+                return null;
+            }
+
+            $profileResponse = Http::withToken((string) $tokenResponse->json('access_token'))->timeout(10)->get($metadata['userinfo_endpoint']);
+            $claims = $profileResponse->successful() ? $profileResponse->json() : null;
+
+            return is_array($claims) ? $claims : null;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+    }
+
     private function enabledConfig(): array
     {
         $config = config('sso.oidc');
         abort_unless((bool) ($config['enabled'] ?? false), 404);
-        abort_unless(!empty($config['discovery_url']) && !empty($config['client_id']) && !empty($config['client_secret']) && !empty($config['redirect_uri']), 503, 'SSO is enabled but incomplete.');
-
-        foreach (['discovery_url', 'redirect_uri'] as $key) {
-            abort_unless(Str::startsWith((string) $config[$key], 'https://') || app()->environment('local', 'testing'), 503, 'SSO requires HTTPS endpoints outside local or test environments.');
-        }
 
         return $config;
     }
 
-    private function metadata(array $config): array
+    private function isConfigComplete(array $config): bool
     {
-        return Cache::remember('sso:oidc:metadata:' . sha1((string) $config['discovery_url']), now()->addHour(), function () use ($config) {
-            $response = Http::timeout(10)->acceptJson()->get($config['discovery_url']);
-            abort_unless($response->successful(), 503, 'Unable to retrieve SSO provider metadata.');
-            $metadata = $response->json();
-            abort_unless(is_array($metadata) && !empty($metadata['authorization_endpoint']), 503, 'Invalid SSO provider metadata.');
+        if (empty($config['discovery_url']) || empty($config['client_id']) || empty($config['client_secret']) || empty($config['redirect_uri'])) {
+            return false;
+        }
 
-            return $metadata;
-        });
+        foreach (['discovery_url', 'redirect_uri'] as $key) {
+            if (!Str::startsWith((string) $config[$key], 'https://') && !app()->environment('local', 'testing')) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function metadata(array $config): ?array
+    {
+        $cacheKey = 'sso:oidc:metadata:' . sha1((string) $config['discovery_url']);
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        try {
+            $response = Http::timeout(10)->acceptJson()->get($config['discovery_url']);
+            $metadata = $response->successful() ? $response->json() : null;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+
+        if (!is_array($metadata) || empty($metadata['authorization_endpoint'])) {
+            return null;
+        }
+
+        // Only a valid document is cached, so an outage is retried on the next attempt.
+        Cache::put($cacheKey, $metadata, now()->addHour());
+
+        return $metadata;
+    }
+
+    private function fallback(string $reason, string $message = self::FALLBACK_MESSAGE): RedirectResponse
+    {
+        Log::warning('OIDC sign-in fell back to local login.', ['reason' => $reason]);
+
+        return redirect()->route('login')->withErrors(['sso' => $message]);
     }
 
     private function claim(array $claims, string $key): ?string
@@ -114,32 +227,48 @@ class OidcSingleSignOnController extends Controller
         return is_scalar($value) ? trim((string) $value) : null;
     }
 
-    private function assertAllowedDomain(string $email, array $domains): void
+    private function isTruthy(mixed $value): bool
+    {
+        return $value === true || (is_string($value) && strtolower($value) === 'true') || $value === 1 || $value === '1';
+    }
+
+    private function isAllowedDomain(string $email, array $domains): bool
     {
         if (empty($domains)) {
-            return;
+            return true;
         }
 
         $domain = strtolower((string) substr(strrchr($email, '@') ?: '', 1));
-        $allowed = array_map('strtolower', $domains);
-        abort_unless(in_array($domain, $allowed, true), 403, 'This SSO email domain is not allowed.');
+
+        return in_array($domain, array_map('strtolower', $domains), true);
     }
 
+    /**
+     * New SSO users start unapproved: the division claim is only a request and
+     * a superadmin still has to verify it, exactly like self-registration.
+     */
     private function provisionUser(array $claims, array $config, string $email): User
     {
         $username = $this->claim($claims, $config['claim_map']['username']) ?: Str::before($email, '@');
         $username = Str::limit(preg_replace('/[^A-Za-z0-9_.-]/', '_', $username) ?? 'sso_user', 50, '');
         $division = $this->claim($claims, $config['claim_map']['division']);
+        if (!in_array($division, RiskOwnerAccess::options(), true)) {
+            $division = null;
+        }
 
-        return User::create([
+        $user = User::create([
             'name' => $this->claim($claims, $config['claim_map']['name']) ?: $username,
             'username' => $this->uniqueUsername($username),
             'email' => $email,
             'password' => bcrypt(Str::random(64)),
-            'division' => $division,
-            'division_verified_at' => empty($division) ? null : now(),
+            'division' => null,
+            'pending_division' => $division ?: null,
+            'division_verified_at' => null,
             'force_password_change' => false,
         ]);
+        AuditLogger::logModelEvent('security.sso.provisioned', $user, null, ['requested_division' => $division]);
+
+        return $user;
     }
 
     private function uniqueUsername(string $base): string

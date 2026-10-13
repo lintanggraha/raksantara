@@ -63,7 +63,7 @@ class LoginController extends Controller
 
     protected function authenticated(Request $request, $user)
     {
-        if (method_exists($user, 'hasTwoFactorEnabled') && $user->hasTwoFactorEnabled()) {
+        if (method_exists($user, 'requiresMfaChallenge') && $user->requiresMfaChallenge()) {
             Auth::logout();
             $request->session()->put('mfa_user_id', $user->id);
 

@@ -7,6 +7,10 @@
 @stop
 
 @section('auth_body')
+    @error('sso')
+        <div class="alert alert-warning">{{ $message }}</div>
+    @enderror
+
     <form action="{{ route('login') }}" method="POST" autocomplete="off">
         @csrf
 
@@ -35,6 +39,13 @@
 
         <button type="submit" class="btn btn-primary w-100">Sign In</button>
     </form>
+
+    @if(config('sso.oidc.enabled'))
+        <div class="hr-text">atau</div>
+        <a href="{{ route('sso.oidc.redirect') }}" class="btn btn-outline-secondary w-100" data-sso-login>
+            {{ config('sso.oidc.button_label', 'Sign in with SSO') }}
+        </a>
+    @endif
 @stop
 
 @section('auth_footer')

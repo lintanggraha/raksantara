@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\EmailOtpService;
 use App\Services\TwoFactorAuthenticationService;
 use App\Support\AuditLogger;
 use App\User;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Crypt;
 
 class TwoFactorAuthenticationController extends Controller
 {
-    public function show(Request $request, TwoFactorAuthenticationService $service): View
+    public function show(Request $request, TwoFactorAuthenticationService $service, EmailOtpService $emailOtp): View
     {
         $user = $request->user();
         $pendingSecret = $request->session()->get('two_factor_pending_secret');
@@ -24,6 +25,11 @@ class TwoFactorAuthenticationController extends Controller
             'pendingSecret' => $pendingSecret,
             'provisioningUri' => $pendingSecret ? $service->provisioningUri($pendingSecret, $user->username) : null,
             'recoveryCodes' => $recoveryCodes,
+            'emailOtpAvailable' => $this->emailOtpAvailableFor($user),
+            'emailOtpEnforced' => (bool) config('mfa.email_otp.enforced'),
+            'emailOtpActive' => $user->usesEmailOtp(),
+            'emailOtpCodeSent' => $emailOtp->hasActiveCode($user),
+            'maskedEmail' => $emailOtp->maskEmail((string) $user->email),
         ]);
     }
 
@@ -92,22 +98,91 @@ class TwoFactorAuthenticationController extends Controller
             'two_factor_recovery_codes' => null,
             'two_factor_last_used_at' => null,
         ])->save();
-        $request->session()->forget('mfa_authenticated_user');
+        // The user just proved a second factor, so keep the session verified
+        // when email OTP still applies instead of challenging them right away.
+        if (!$user->requiresMfaChallenge()) {
+            $request->session()->forget('mfa_authenticated_user');
+        }
         AuditLogger::logModelEvent('security.mfa.disabled', $user, null, []);
 
         return redirect()->route('two-factor.settings')->with('success', 'Two-factor authentication has been disabled.');
     }
 
-    public function challenge(Request $request): View|RedirectResponse
+    public function sendEmailOtp(Request $request, EmailOtpService $emailOtp): RedirectResponse
     {
-        if (!$request->session()->has('mfa_user_id')) {
+        $user = $request->user();
+        abort_unless($this->emailOtpAvailableFor($user), 422, 'Email OTP is not available for this account.');
+
+        return $this->sendResult(redirect()->route('two-factor.settings'), $emailOtp->send($user), $emailOtp->maskEmail((string) $user->email));
+    }
+
+    public function enableEmailOtp(Request $request, EmailOtpService $emailOtp): RedirectResponse
+    {
+        $request->validate(['code' => ['required', 'string', 'max:20']]);
+        $user = $request->user();
+        abort_unless($this->emailOtpAvailableFor($user), 422, 'Email OTP is not available for this account.');
+
+        if (!$emailOtp->verify($user, (string) $request->input('code'))) {
+            return redirect()->route('two-factor.settings')->withErrors(['email_otp_code' => 'Kode email tidak valid atau sudah kedaluwarsa.']);
+        }
+
+        $user->forceFill(['email_otp_enabled_at' => now()])->save();
+        $request->session()->put('mfa_authenticated_user', $user->id);
+        AuditLogger::logModelEvent('security.mfa.enabled', $user, null, ['method' => 'email_otp']);
+
+        return redirect()->route('two-factor.settings')->with('success', 'Verifikasi kode email aktif. Kode akan dikirim ke email Anda setiap kali masuk.');
+    }
+
+    public function disableEmailOtp(Request $request, EmailOtpService $emailOtp): RedirectResponse
+    {
+        $request->validate(['code' => ['required', 'string', 'max:20']]);
+        $user = $request->user();
+        abort_if((bool) config('mfa.email_otp.enforced'), 422, 'Email OTP is required by the security policy.');
+        abort_if(is_null($user->email_otp_enabled_at), 422, 'Email OTP is not enabled.');
+
+        if (!$emailOtp->verify($user, (string) $request->input('code'))) {
+            return redirect()->route('two-factor.settings')->withErrors(['email_otp_code' => 'Kode email tidak valid atau sudah kedaluwarsa.']);
+        }
+
+        $user->forceFill(['email_otp_enabled_at' => null])->save();
+        AuditLogger::logModelEvent('security.mfa.disabled', $user, null, ['method' => 'email_otp']);
+
+        return redirect()->route('two-factor.settings')->with('success', 'Verifikasi kode email dinonaktifkan.');
+    }
+
+    public function challenge(Request $request, EmailOtpService $emailOtp): View|RedirectResponse
+    {
+        $user = $this->pendingChallengeUser($request);
+        if (is_null($user)) {
             return redirect()->route('login');
         }
 
-        return view('auth.two-factor-challenge');
+        $method = $user->hasTwoFactorEnabled() ? 'totp' : 'email';
+        if ($method === 'email' && !$emailOtp->hasActiveCode($user)) {
+            $result = $emailOtp->send($user);
+            if ($result['status'] === EmailOtpService::FAILED) {
+                $request->session()->now('error', 'Kode verifikasi gagal dikirim. Coba kirim ulang beberapa saat lagi atau hubungi administrator.');
+            }
+        }
+
+        return view('auth.two-factor-challenge', [
+            'method' => $method,
+            'maskedEmail' => $emailOtp->maskEmail((string) $user->email),
+        ]);
     }
 
-    public function verifyChallenge(Request $request, TwoFactorAuthenticationService $service): RedirectResponse
+    public function resendChallenge(Request $request, EmailOtpService $emailOtp): RedirectResponse
+    {
+        $user = $this->pendingChallengeUser($request);
+        if (is_null($user)) {
+            return redirect()->route('login');
+        }
+        abort_unless($user->usesEmailOtp(), 422, 'Email OTP is not active for this account.');
+
+        return $this->sendResult(redirect()->route('two-factor.challenge'), $emailOtp->send($user), $emailOtp->maskEmail((string) $user->email));
+    }
+
+    public function verifyChallenge(Request $request, TwoFactorAuthenticationService $service, EmailOtpService $emailOtp): RedirectResponse
     {
         $request->validate(['code' => ['required', 'string', 'max:20']]);
         $userId = $request->session()->pull('mfa_user_id');
@@ -116,7 +191,15 @@ class TwoFactorAuthenticationController extends Controller
         }
 
         $user = User::query()->find($userId);
-        if (is_null($user) || !$user->hasTwoFactorEnabled() || !$this->verifyCode($user, (string) $request->input('code'), $service)) {
+        $code = (string) $request->input('code');
+        $method = null;
+        if ($user && $user->hasTwoFactorEnabled()) {
+            $method = $this->verifyCode($user, $code, $service) ? 'totp' : null;
+        } elseif ($user && $user->usesEmailOtp()) {
+            $method = $emailOtp->verify($user, $code) ? 'email_otp' : null;
+        }
+
+        if (is_null($method)) {
             $request->session()->put('mfa_user_id', $userId);
 
             return back()->withErrors(['code' => 'The MFA code is invalid or expired.']);
@@ -126,9 +209,40 @@ class TwoFactorAuthenticationController extends Controller
         $request->session()->regenerate();
         $request->session()->put('mfa_authenticated_user', $user->id);
         $user->forceFill(['two_factor_last_used_at' => now()])->save();
-        AuditLogger::logModelEvent('security.mfa.challenge_passed', $user, null, []);
+        AuditLogger::logModelEvent('security.mfa.challenge_passed', $user, null, ['method' => $method]);
 
         return redirect()->intended(\App\Providers\RouteServiceProvider::HOME);
+    }
+
+    private function emailOtpAvailableFor(User $user): bool
+    {
+        return (bool) config('mfa.email_otp.enabled')
+            && !$user->hasTwoFactorEnabled()
+            && trim((string) $user->email) !== '';
+    }
+
+    private function pendingChallengeUser(Request $request): ?User
+    {
+        $userId = $request->session()->get('mfa_user_id');
+        if (empty($userId)) {
+            return null;
+        }
+
+        $user = User::query()->find($userId);
+
+        return $user && $user->requiresMfaChallenge() ? $user : null;
+    }
+
+    /**
+     * @param array{status: string, retry_after: int} $result
+     */
+    private function sendResult(RedirectResponse $redirect, array $result, string $maskedEmail): RedirectResponse
+    {
+        return match ($result['status']) {
+            EmailOtpService::SENT => $redirect->with('success', 'Kode verifikasi telah dikirim ke ' . $maskedEmail . '.'),
+            EmailOtpService::COOLDOWN => $redirect->with('error', 'Tunggu ' . $result['retry_after'] . ' detik sebelum meminta kode baru.'),
+            default => $redirect->with('error', 'Kode verifikasi gagal dikirim. Coba lagi beberapa saat lagi atau hubungi administrator.'),
+        };
     }
 
     private function verifyCode(User $user, string $code, TwoFactorAuthenticationService $service): bool

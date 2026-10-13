@@ -8,6 +8,7 @@
 
 @section('auth_body')
 @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+@if(session('error'))<div class="alert alert-warning">{{ session('error') }}</div>@endif
 @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
 @if($recoveryCodes)
@@ -39,6 +40,39 @@
         <label class="form-label">Current Authenticator or Recovery Code</label><input name="code" inputmode="text" class="form-control" maxlength="20" required>
         <button class="btn btn-outline-danger w-100 mt-2">Disable MFA</button>
     </form>
+@endif
+
+@if($emailOtpAvailable)
+    <hr class="my-4">
+    <h3 class="h4">Kode Verifikasi via Email</h3>
+    @if($emailOtpActive)
+        <div class="alert alert-success">
+            Kode verifikasi dikirim ke <strong>{{ $maskedEmail }}</strong> setiap kali Anda masuk.
+            @if($emailOtpEnforced)<br><span class="small">Diwajibkan oleh kebijakan keamanan. Aktifkan aplikasi authenticator di atas untuk menggantinya.</span>@endif
+        </div>
+        @if(!$emailOtpEnforced)
+            <form method="POST" action="{{ route('two-factor.email-otp.send') }}" class="mb-2">@csrf
+                <button class="btn btn-outline-secondary w-100">Kirim Kode untuk Menonaktifkan</button>
+            </form>
+            @if($emailOtpCodeSent)
+                <form method="POST" action="{{ route('two-factor.email-otp.disable') }}" onsubmit="return confirm('Nonaktifkan verifikasi kode email?')">@csrf @method('DELETE')
+                    <label class="form-label">Kode dari Email</label><input name="code" inputmode="numeric" autocomplete="one-time-code" class="form-control" maxlength="20" required>
+                    <button class="btn btn-outline-danger w-100 mt-2">Nonaktifkan Kode Email</button>
+                </form>
+            @endif
+        @endif
+    @else
+        <p class="text-muted">Alternatif tanpa aplikasi authenticator: kode sekali pakai dikirim ke <strong>{{ $maskedEmail }}</strong> setiap kali Anda masuk.</p>
+        <form method="POST" action="{{ route('two-factor.email-otp.send') }}" class="mb-2">@csrf
+            <button class="btn btn-outline-primary w-100">Kirim Kode Verifikasi</button>
+        </form>
+        @if($emailOtpCodeSent)
+            <form method="POST" action="{{ route('two-factor.email-otp.enable') }}">@csrf
+                <label class="form-label">Kode dari Email</label><input name="code" inputmode="numeric" autocomplete="one-time-code" class="form-control" maxlength="20" required autofocus>
+                <button class="btn btn-primary w-100 mt-2">Aktifkan Kode Email</button>
+            </form>
+        @endif
+    @endif
 @endif
 @stop
 

@@ -17,5 +17,10 @@ return [
         ],
         'allowed_email_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env('SSO_OIDC_ALLOWED_EMAIL_DOMAINS', ''))))),
         'auto_provision' => filter_var(env('SSO_OIDC_AUTO_PROVISION', false), FILTER_VALIDATE_BOOL),
+        // Reject identities whose email the provider has not verified. Only turn
+        // off for providers that never emit the claim and own every mailbox.
+        'require_verified_email' => filter_var(env('SSO_OIDC_REQUIRE_VERIFIED_EMAIL', true), FILTER_VALIDATE_BOOL),
+        'email_verified_claim' => env('SSO_OIDC_EMAIL_VERIFIED_CLAIM', 'email_verified'),
+        'button_label' => env('SSO_OIDC_BUTTON_LABEL', 'Sign in with SSO'),
     ],
 ];
