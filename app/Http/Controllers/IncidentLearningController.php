@@ -136,8 +136,16 @@ class IncidentLearningController extends Controller
 
         if (!$user->isSuperadmin() && !$user->isComplianceDivision()) {
             $allowedOwners = $user->allowedRiskOwners();
-            $query->whereHas('risk', function (Builder $riskQuery) use ($allowedOwners) {
-                $riskQuery->whereIn('risk_owner', $allowedOwners);
+            $query->where(function (Builder $sub) use ($allowedOwners, $user) {
+                $sub->whereHas('risk', function (Builder $riskQuery) use ($allowedOwners) {
+                    $riskQuery->whereIn('risk_owner', $allowedOwners);
+                })->orWhere(function (Builder $noRiskQuery) use ($allowedOwners, $user) {
+                    $noRiskQuery->whereNull('risk_id')
+                        ->where(function (Builder $inner) use ($allowedOwners, $user) {
+                            $inner->whereIn('risk_owner', $allowedOwners)
+                                ->orWhere('reported_by', $user->id);
+                        });
+                });
             });
         }
 
@@ -150,8 +158,18 @@ class IncidentLearningController extends Controller
             return false;
         }
 
-        return $user->isComplianceDivision()
-            || (!is_null($incident->risk) && $user->canManageRiskOwner($incident->risk->risk_owner));
+        if ($user->isComplianceDivision()) {
+            return true;
+        }
+
+        if (!is_null($incident->risk)) {
+            return $user->canManageRiskOwner($incident->risk->risk_owner);
+        }
+
+        $effectiveOwner = $incident->risk_owner ?: null;
+
+        return (!empty($effectiveOwner) && $user->canManageRiskOwner($effectiveOwner))
+            || ((int) $incident->reported_by === (int) $user->id);
     }
 
     private function ensureCanManage(RiskIncident $incident): void

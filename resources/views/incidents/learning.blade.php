@@ -21,9 +21,46 @@
 @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
 <div class="row row-deck row-cards mb-3">
-    <div class="col-md-4"><div class="card"><div class="card-body"><div class="subheader">Linked Risk</div><div class="h3 mt-1"><a href="{{ route('risks.show', $incident->risk->id) }}">{{ $incident->risk->risk_id }}</a></div><div class="text-muted">{{ $incident->risk->risk_title }}</div></div></div></div>
-    <div class="col-md-4"><div class="card"><div class="card-body"><div class="subheader">Open CAPA Actions</div><div class="h1 mt-1 mb-0">{{ $openActions }}</div></div></div></div>
-    <div class="col-md-4"><div class="card {{ $overdueActions > 0 ? 'bg-warning' : '' }}"><div class="card-body"><div class="subheader">Overdue CAPA Actions</div><div class="h1 mt-1 mb-0">{{ $overdueActions }}</div></div></div></div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Linked Risk</div>
+                @if($incident->risk)
+                    <div class="h3 mt-1"><a href="{{ route('risks.show', $incident->risk->id) }}">{{ $incident->risk->risk_id }}</a></div>
+                    <div class="text-muted">{{ $incident->risk->risk_title }}</div>
+                @else
+                    <div class="h4 mt-1"><span class="badge bg-purple-lt">Temuan Baru (Belum Terdaftar)</span></div>
+                    <div class="text-muted small">Belum terdaftar di risk register.</div>
+                    @if($canManage)
+                        <div class="mt-2">
+                            <a href="{{ route('risks.create', ['from_incident' => $incident->id]) }}" class="btn btn-outline-primary btn-xs">
+                                <i class="fas fa-plus-circle me-1"></i> Jadikan Risk Baru
+                            </a>
+                        </div>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Client Terdampak</div>
+                <div class="h3 mt-1 text-primary">
+                    @if($incident->affected_client)
+                        <i class="fas fa-building me-1 small"></i>{{ $incident->affected_client }}
+                    @else
+                        <span class="text-muted">-</span>
+                    @endif
+                </div>
+                <div class="text-muted small">
+                    Kerugian: <strong class="text-danger">{{ $incident->formatted_loss_amount }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><div class="subheader">Open CAPA Actions</div><div class="h1 mt-1 mb-0">{{ $openActions }}</div></div></div></div>
+    <div class="col-md-3"><div class="card {{ $overdueActions > 0 ? 'bg-warning' : '' }}"><div class="card-body"><div class="subheader">Overdue CAPA Actions</div><div class="h1 mt-1 mb-0">{{ $overdueActions }}</div></div></div></div>
 </div>
 
 <div class="card mb-3">

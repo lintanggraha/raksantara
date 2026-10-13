@@ -29,9 +29,34 @@ class RiskIncident extends Model
         'Effective',
     ];
 
+    public const COLLEGA_CLIENTS = [
+        'BANK ACEH',
+        'BANK BENGKULU',
+        'BANK KALTENG',
+        'BANK SULTENG',
+        'BANK SULUTGO',
+        'BANK SUMUT',
+        'BANK NTT',
+        'BANK MALUKU MALUT',
+        'BANK PAPUA',
+        'BANK BANTEN',
+        'BANK LAMPUNG',
+        'BANK JAMBI',
+        'BANK RIAU KEPRI',
+        'BANK NAGARI',
+        'BANK NTB SYARIAH',
+        'BANK SULSELBAR',
+        'COLLEGA (INTERNAL)',
+        'SEMUA CLIENT / MULTI CLIENT',
+    ];
+
     protected $fillable = [
         'incident_code',
         'risk_id',
+        'risk_owner',
+        'affected_client',
+        'is_new_finding',
+        'loss_amount',
         'reported_by',
         'last_updated_by',
         'title',
@@ -55,16 +80,46 @@ class RiskIncident extends Model
         'closed_at',
     ];
 
+    public static function getCollegaClients(): array
+    {
+        $configBanks = collect(config('audit_dashboard.bank.mappings', []))
+            ->pluck('name')
+            ->filter()
+            ->all();
+
+        $all = array_unique(array_merge(self::COLLEGA_CLIENTS, $configBanks));
+        sort($all);
+
+        return array_values($all);
+    }
+
     protected $casts = [
         'occurred_at' => 'datetime',
         'detected_at' => 'datetime',
         'closed_at' => 'datetime',
         'post_incident_reviewed_at' => 'datetime',
+        'loss_amount' => 'float',
+        'is_new_finding' => 'boolean',
     ];
 
     public function risk()
     {
         return $this->belongsTo(Risk::class);
+    }
+
+    public function getEffectiveRiskOwnerAttribute(): ?string
+    {
+        return $this->risk ? $this->risk->risk_owner : $this->risk_owner;
+    }
+
+    public function getFormattedLossAmountAttribute(): string
+    {
+        return 'Rp ' . number_format((float) ($this->loss_amount ?? 0), 0, ',', '.');
+    }
+
+    public function isNewFinding(): bool
+    {
+        return (bool) $this->is_new_finding || is_null($this->risk_id);
     }
 
     public function actions()
