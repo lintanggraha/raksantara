@@ -583,7 +583,7 @@
             @endif
         </div>
         <div class="right">
-            <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Risk Management System</div>
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">Raksantara</div>
             <div style="font-size:12px; font-weight:700; color:#0f2f4f;">{{ $title }}</div>
             <div style="margin-top:2px;">Generated: {{ $generatedAt }}</div>
         </div>

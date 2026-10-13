@@ -38,7 +38,7 @@ class ScheduledReportDelivered extends Mailable
 
         return $this
             ->from($fromAddress, $fromName)
-            ->subject('[RMS] Scheduled Report - ' . $this->scheduledReport->name)
+            ->subject('[Raksantara] Scheduled Report - ' . $this->scheduledReport->name)
             ->view('emails.scheduled-report-delivered')
             ->attachData($this->binary, $this->filename, [
                 'mime' => $this->mime,

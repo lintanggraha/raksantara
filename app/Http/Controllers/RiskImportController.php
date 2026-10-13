@@ -80,14 +80,18 @@ class RiskImportController extends Controller
                 ->with('success', $successMessage)
                 ->with('import_output', $commandOutput);
         } catch (\Throwable $e) {
+            $incidentId = (string) \Illuminate\Support\Str::uuid();
             AuditLogger::logModelEvent('risk.import.failed', $user, null, array_merge($importAuditPayload, [
                 'reason' => 'exception',
-                'error' => $e->getMessage(),
+                'incident_id' => $incidentId,
+                'exception_class' => get_class($e),
+                'exception_file' => basename($e->getFile()),
+                'exception_line' => $e->getLine(),
             ]));
 
             return redirect()
                 ->route('risks.index')
-                ->with('error', 'Import gagal: ' . $e->getMessage());
+                ->with('error', 'Import gagal. Referensi insiden: ' . $incidentId . '.');
         } finally {
             if (!empty($storedPath) && Storage::disk('local')->exists($storedPath)) {
                 Storage::disk('local')->delete($storedPath);

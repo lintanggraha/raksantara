@@ -1,6 +1,6 @@
 @extends('layouts.tabler')
 
-@section('title', 'User Guide - Risk Management System')
+@section('title', 'User Guide - Raksantara')
 
 @push('styles')
 <style>

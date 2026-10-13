@@ -83,15 +83,18 @@ class ScheduledReportController extends Controller
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
+            $incidentId = (string) \Illuminate\Support\Str::uuid();
             \Log::error('Failed to store scheduled report', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'input' => $request->all(),
+                'incident_id' => $incidentId,
+                'user_id' => auth()->id(),
+                'exception_class' => get_class($e),
+                'exception_file' => basename($e->getFile()),
+                'exception_line' => $e->getLine(),
             ]);
 
             return redirect()
                 ->back()
-                ->withErrors(['store' => 'Gagal menyimpan scheduled report: ' . $e->getMessage()])
+                ->withErrors(['store' => 'Gagal menyimpan scheduled report. Referensi insiden: ' . $incidentId . '.'])
                 ->withInput();
         }
     }
@@ -112,16 +115,19 @@ class ScheduledReportController extends Controller
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
+            $incidentId = (string) \Illuminate\Support\Str::uuid();
             \Log::error('Failed to update scheduled report', [
+                'incident_id' => $incidentId,
                 'id' => $scheduledReport->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'input' => $request->all(),
+                'user_id' => auth()->id(),
+                'exception_class' => get_class($e),
+                'exception_file' => basename($e->getFile()),
+                'exception_line' => $e->getLine(),
             ]);
 
             return redirect()
                 ->back()
-                ->withErrors(['update' => 'Gagal mengupdate scheduled report: ' . $e->getMessage()])
+                ->withErrors(['update' => 'Gagal memperbarui scheduled report. Referensi insiden: ' . $incidentId . '.'])
                 ->withInput();
         }
     }

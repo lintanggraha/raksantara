@@ -60,7 +60,9 @@ class KriController extends Controller
             ->limit(500)
             ->get();
 
-        $canManage = !is_null($user) && !$user->isSuperadmin();
+        $canManage = !is_null($user)
+            && !$user->isSuperadmin()
+            && (!$user->hasRoleAssignments() || $user->hasPermission('risks.manage'));
 
         return view('kris.index', compact(
             'kris',
@@ -269,16 +271,11 @@ class KriController extends Controller
             return $this->visibleRiskIdsCache;
         }
 
-        $userId = (int) $user->id;
-
         $ids = Risk::query()
             ->select(['id', 'risk_owner', 'created_by'])
             ->get()
-            ->filter(function (Risk $risk) use ($user, $userId) {
-                $isCreator = (int) ($risk->created_by ?? 0) > 0
-                    && (int) $risk->created_by === $userId;
-
-                return $isCreator || $user->canManageRiskOwner($risk->risk_owner);
+            ->filter(function (Risk $risk) use ($user) {
+                return RiskAccess::canView($user, $risk);
             })
             ->pluck('id')
             ->map(function ($id) {

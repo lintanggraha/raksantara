@@ -46,14 +46,14 @@
                 @forelse($controls as $control)
                     <tr>
                         <td><span class="badge badge-dark">{{ $control->control_code }}</span></td>
-                        <td><strong>{{ $control->name }}</strong><div class="small text-muted">{{ \\Illuminate\\Support\\Str::limit($control->description, 100) }}</div></td>
+                        <td><strong>{{ $control->name }}</strong><div class="small text-muted">{{ \Illuminate\Support\Str::limit($control->description, 100) }}</div></td>
                         <td>{{ $control->owner_name ?: '-' }}</td>
                         <td>{{ $control->review_frequency }}</td>
                         <td><span class="badge badge-{{ $control->design_effectiveness === 'effective' ? 'success' : ($control->design_effectiveness === 'ineffective' ? 'danger' : 'warning') }}">{{ str_replace('_', ' ', ucfirst($control->design_effectiveness)) }}</span></td>
                         <td>{{ optional($control->last_tested_at)->format('d M Y') ?: '-' }}</td>
                         <td class="{{ $control->next_test_at && $control->next_test_at->isPast() ? 'text-danger font-weight-bold' : '' }}">{{ optional($control->next_test_at)->format('d M Y') ?: '-' }}</td>
                         <td>
-                            @if($canManage)
+                            @if($canManageControls)
                                 <button class="btn btn-outline-primary btn-xs" type="button" data-toggle="collapse" data-target="#test-control-{{ $control->id }}">Record Test</button>
                             @endif
                         </td>
@@ -65,7 +65,7 @@
                                 @if($control->tests->first()->findings) · {{ $control->tests->first()->findings }} @endif
                             </div>
                         @endif
-                        @if($canManage)
+                        @if($canManageControls)
                             <form method="POST" action="{{ route('risks.governance.controls.tests.store', [$risk->id, $control->id]) }}" class="row g-2">
                                 @csrf
                                 <div class="col-md-2"><input type="date" name="tested_at" class="form-control form-control-sm" value="{{ now()->format('Y-m-d') }}" required></div>
@@ -86,7 +86,7 @@
     </div>
 </div>
 
-@if($canManage)
+@if($canManageControls)
 <div class="card mb-4">
     <div class="card-header"><strong>Register a Control</strong></div>
     <div class="card-body">
@@ -114,8 +114,8 @@
             @forelse($acceptances as $acceptance)
                 <tr>
                     <td>{{ optional($acceptance->requester)->name ?: '-' }}<div class="small text-muted">{{ optional($acceptance->created_at)->format('d M Y H:i') }}</div></td>
-                    <td>{{ \\Illuminate\\Support\\Str::limit($acceptance->rationale, 140) }}</td>
-                    <td>{{ \\Illuminate\\Support\\Str::limit($acceptance->compensating_controls, 120) ?: '-' }}</td>
+                    <td>{{ \Illuminate\Support\Str::limit($acceptance->rationale, 140) }}</td>
+                    <td>{{ \Illuminate\Support\Str::limit($acceptance->compensating_controls, 120) ?: '-' }}</td>
                     <td>{{ optional($acceptance->accepted_until)->format('d M Y') }}</td>
                     <td><span class="badge badge-{{ $acceptance->status === 'approved' ? 'success' : ($acceptance->status === 'rejected' ? 'danger' : 'warning') }}">{{ ucfirst($acceptance->status) }}</span></td>
                     <td>
@@ -139,7 +139,7 @@
     </div>
 </div>
 
-@if($canManage)
+@if($canRequestAcceptance)
 <div class="card">
     <div class="card-header"><strong>Request Risk Acceptance</strong></div>
     <div class="card-body">

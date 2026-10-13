@@ -14,6 +14,10 @@ class RiskAccess
             return false;
         }
 
+        if ($user->hasRoleAssignments() && !$user->hasPermission('risks.view')) {
+            return false;
+        }
+
         if ($user->isSuperadmin() || $user->isComplianceDivision()) {
             return true;
         }
@@ -21,13 +25,18 @@ class RiskAccess
         return self::isCreator($user, $risk) || $user->canManageRiskOwner($risk->risk_owner);
     }
 
-    public static function canManage(?User $user, Risk $risk): bool
+    public static function canManage(?User $user, Risk $risk, string $permission = 'risks.manage'): bool
     {
         if (is_null($user) || $user->isSuperadmin()) {
             return false;
         }
 
-        return self::isCreator($user, $risk) || $user->canManageRiskOwner($risk->risk_owner);
+        $withinScope = self::isCreator($user, $risk) || $user->canManageRiskOwner($risk->risk_owner);
+        if (!$withinScope) {
+            return false;
+        }
+
+        return !$user->hasRoleAssignments() || $user->hasPermission($permission);
     }
 
     public static function applyVisibilityScope(
@@ -37,6 +46,12 @@ class RiskAccess
         string $createdByColumn = 'created_by'
     ): void {
         if (is_null($user)) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        if ($user->hasRoleAssignments() && !$user->hasPermission('risks.view')) {
             $query->whereRaw('1 = 0');
 
             return;
@@ -85,14 +100,37 @@ class RiskAccess
             return 'superadmin:' . (int) $user->id;
         }
 
+        $assignmentState = $user->roleAssignments()
+            ->with('role.permissions')
+            ->orderBy('id')
+            ->get()
+            ->map(function ($assignment): array {
+                $permissions = $assignment->role
+                    ? $assignment->role->permissions->pluck('slug')->sort()->values()->all()
+                    : [];
+
+                return [
+                    'role' => $assignment->role?->slug,
+                    'organizational_unit_id' => $assignment->organizational_unit_id,
+                    'expires_at' => $assignment->expires_at?->toIso8601String(),
+                    'permissions' => $permissions,
+                ];
+            })
+            ->values()
+            ->all();
+        $assignmentFingerprint = sha1(json_encode($assignmentState) ?: '[]');
+
         if ($user->isComplianceDivision()) {
-            return 'compliance:' . (int) $user->id;
+            return 'compliance:' . (int) $user->id . ':' . $assignmentFingerprint;
         }
 
         $allowedOwners = $user->allowedRiskOwners();
         sort($allowedOwners, SORT_NATURAL | SORT_FLAG_CASE);
 
-        return 'user:' . (int) $user->id . ':' . sha1(json_encode(array_values($allowedOwners)));
+        return 'user:' . (int) $user->id . ':' . sha1(json_encode([
+            array_values($allowedOwners),
+            $assignmentFingerprint,
+        ]) ?: '[]');
     }
 
     private static function isCreator(User $user, Risk $risk): bool

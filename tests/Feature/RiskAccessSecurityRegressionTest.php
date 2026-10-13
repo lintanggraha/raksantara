@@ -62,6 +62,29 @@ class RiskAccessSecurityRegressionTest extends TestCase
         $this->assertNotContains('COMPLIANCE', $trendOwners);
     }
 
+    public function test_enterprise_executive_dashboard_renders_with_executive_metrics(): void
+    {
+        $viewer = $this->createUser('CO - COMPLIANCE', false);
+        $this->createRiskRecord($viewer, 'CO - COMPLIANCE', 'Executive Dashboard Risk');
+
+        $this->actingAs($viewer);
+
+        $response = $this->get(route('dashboard'));
+        $response->assertOk();
+        $response->assertViewIs('risks.unified-dashboard');
+        $response->assertViewHas('executiveMetrics');
+        $response->assertSee('Enterprise Risk Dashboard');
+        $response->assertSee('EST. POTENTIAL LOSS');
+        $response->assertSee('OVERALL RISK RATING');
+        $response->assertSee('OPEN RISK ITEMS');
+        $response->assertSee('CONTROL COVERAGE');
+        $response->assertSee('RISK MATRIX');
+        $response->assertSee('YOY RISK REDUCTION');
+        $response->assertSee('ENTERPRISE RESILIENCE SCORE');
+        $response->assertSee('TOP RISK CATEGORIES');
+        $response->assertSee('RISK POSTURE OVER TIME');
+    }
+
     public function test_non_compliance_user_cannot_comment_or_download_attachment_on_foreign_risk(): void
     {
         Storage::fake('local');

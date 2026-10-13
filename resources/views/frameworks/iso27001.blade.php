@@ -1,6 +1,6 @@
 @extends('layouts.tabler')
 
-@section('title', 'ISO 27001:2022 Framework - Risk Management System')
+@section('title', 'ISO 27001:2022 Framework - Raksantara')
 
 @push('styles')
 <style>

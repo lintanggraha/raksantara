@@ -6,15 +6,16 @@ use App\ScheduledReport;
 use App\Services\ReportDataService;
 use App\Services\ScheduledReportDispatchService;
 use App\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ScheduledReportSecurityRegressionTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_non_compliance_user_cannot_store_schedule_with_foreign_risk_owner_filter(): void
     {
@@ -95,6 +96,73 @@ class ScheduledReportSecurityRegressionTest extends TestCase
 
         $this->assertTrue((bool) ($result['success'] ?? false));
         $this->assertSame((int) $user->id, (int) $spyService->viewerId);
+    }
+
+    public function test_unexpected_store_and_update_errors_are_redacted(): void
+    {
+        $user = $this->createUser('CO - COMPLIANCE', false);
+        $sensitiveDetail = 'Sensitive database exception detail';
+        $schedule = ScheduledReport::query()->create([
+            'user_id' => $user->id,
+            'name' => 'Redaction Test Schedule',
+            'scope' => 'monitoring',
+            'format' => 'pdf',
+            'frequency' => 'daily',
+            'send_time' => '06:00',
+            'timezone' => 'UTC',
+            'recipients' => [$user->email],
+            'filters' => [],
+            'is_active' => true,
+            'next_run_at' => now()->addDay(),
+        ]);
+
+        $dispatchService = \Mockery::mock(ScheduledReportDispatchService::class);
+        $dispatchService->shouldReceive('parseRecipients')->twice()->andReturn([$user->email]);
+        $dispatchService->shouldReceive('computeNextRunAt')
+            ->twice()
+            ->andThrow(new \RuntimeException($sensitiveDetail));
+        $this->app->instance(ScheduledReportDispatchService::class, $dispatchService);
+
+        Log::shouldReceive('error')
+            ->twice()
+            ->withArgs(function ($message, $context): bool {
+                return in_array($message, [
+                    'Failed to store scheduled report',
+                    'Failed to update scheduled report',
+                ], true)
+                    && isset($context['incident_id'], $context['exception_class'])
+                    && !array_key_exists('input', $context)
+                    && !array_key_exists('error', $context)
+                    && !array_key_exists('trace', $context);
+            });
+
+        $payload = [
+            'name' => 'Redaction Test Schedule',
+            'scope' => 'monitoring',
+            'format' => 'pdf',
+            'frequency' => 'daily',
+            'send_time' => '08:30',
+            'timezone' => 'Asia/Jakarta',
+            'recipients' => $user->email,
+        ];
+
+        $storeResponse = $this->actingAs($user)
+            ->from(route('reports.scheduled.index'))
+            ->post(route('reports.scheduled.store'), $payload);
+        $storeResponse->assertRedirect(route('reports.scheduled.index'));
+        $storeResponse->assertSessionHasErrors(['store']);
+        $storeError = (string) $storeResponse->getSession()->get('errors')->getBag('default')->first('store');
+        $this->assertStringNotContainsString($sensitiveDetail, $storeError);
+        $this->assertStringContainsString('Referensi insiden:', $storeError);
+
+        $updateResponse = $this->actingAs($user)
+            ->from(route('reports.scheduled.index'))
+            ->patch(route('reports.scheduled.update', $schedule), $payload);
+        $updateResponse->assertRedirect(route('reports.scheduled.index'));
+        $updateResponse->assertSessionHasErrors(['update']);
+        $updateError = (string) $updateResponse->getSession()->get('errors')->getBag('default')->first('update');
+        $this->assertStringNotContainsString($sensitiveDetail, $updateError);
+        $this->assertStringContainsString('Referensi insiden:', $updateError);
     }
 
     private function createUser(string $division, bool $isSuperadmin): User

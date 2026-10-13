@@ -20,7 +20,7 @@ class RiskTreatmentKanbanController extends Controller
         abort_if(is_null($user), 403, 'Unauthorized.');
 
         $query = RiskTreatment::with(['risk', 'template'])->withCount('attachments');
-        if (!$user->isSuperadmin() && !$user->isComplianceDivision()) {
+        if ($user->hasRoleAssignments() || (!$user->isSuperadmin() && !$user->isComplianceDivision())) {
             $query->whereHas('risk', function (Builder $riskQuery) use ($user) {
                 RiskAccess::applyVisibilityScope($riskQuery, $user);
             });
@@ -52,7 +52,8 @@ class RiskTreatmentKanbanController extends Controller
             'Completed' => $treatments->where('status', 'Completed'),
         ];
 
-        $canManage = !$user->isSuperadmin();
+        $canManage = !$user->isSuperadmin()
+            && (!$user->hasRoleAssignments() || $user->hasPermission('risks.manage'));
 
         return view('treatments.kanban', compact('kanbanData', 'canManage'));
     }

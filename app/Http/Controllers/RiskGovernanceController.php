@@ -26,15 +26,16 @@ class RiskGovernanceController extends Controller
                 return $control->next_test_at?->format('Y-m-d') ?? '9999-12-31';
             })->values(),
             'acceptances' => $risk->acceptances,
-            'canManage' => RiskAccess::canManage($user, $risk),
-            'canDecide' => !is_null($user) && $user->isSuperadmin(),
+            'canManageControls' => RiskAccess::canManage($user, $risk, 'controls.manage'),
+            'canRequestAcceptance' => RiskAccess::canManage($user, $risk, 'risk-acceptance.request'),
+            'canDecide' => !is_null($user) && $user->hasPermission('risk-acceptance.decide'),
         ]);
     }
 
     public function storeControl(Request $request, int $riskId): RedirectResponse
     {
         $risk = $this->loadRisk($riskId);
-        $this->ensureCanManage($risk);
+        $this->ensureCanManage($risk, 'controls.manage');
 
         $validated = $request->validate([
             'control_code' => ['required', 'string', 'max:80', 'regex:' . InputValidation::SAFE_TEXT_REGEX],
@@ -63,7 +64,7 @@ class RiskGovernanceController extends Controller
     public function storeControlTest(Request $request, int $riskId, int $controlId): RedirectResponse
     {
         $risk = $this->loadRisk($riskId);
-        $this->ensureCanManage($risk);
+        $this->ensureCanManage($risk, 'controls.manage');
         $control = $this->loadControl($risk, $controlId);
 
         $validated = $request->validate([
@@ -104,7 +105,7 @@ class RiskGovernanceController extends Controller
     public function requestAcceptance(Request $request, int $riskId): RedirectResponse
     {
         $risk = $this->loadRisk($riskId);
-        $this->ensureCanManage($risk);
+        $this->ensureCanManage($risk, 'risk-acceptance.request');
 
         $validated = $request->validate([
             'rationale' => ['required', 'string', 'max:5000', 'regex:' . InputValidation::SAFE_TEXT_REGEX],
@@ -139,7 +140,7 @@ class RiskGovernanceController extends Controller
     {
         $risk = $this->loadRisk($riskId);
         $user = auth()->user();
-        abort_unless(!is_null($user) && $user->isSuperadmin(), 403, 'Only superadmin may decide a risk acceptance.');
+        abort_unless(!is_null($user) && $user->hasPermission('risk-acceptance.decide'), 403, 'Permission required to decide a risk acceptance.');
 
         $acceptance = $risk->acceptances()->whereKey($acceptanceId)->firstOrFail();
         abort_unless($acceptance->isOpen(), 422, 'This risk acceptance has already been decided.');
@@ -185,9 +186,9 @@ class RiskGovernanceController extends Controller
         return $risk->controls()->whereKey($controlId)->firstOrFail();
     }
 
-    private function ensureCanManage(Risk $risk): void
+    private function ensureCanManage(Risk $risk, string $permission): void
     {
-        abort_unless(RiskAccess::canManage(auth()->user(), $risk), 403, 'You are not allowed to manage assurance for this risk.');
+        abort_unless(RiskAccess::canManage(auth()->user(), $risk, $permission), 403, 'You are not allowed to perform this governance action.');
     }
 
     private function redirectToGovernance(Risk $risk): RedirectResponse

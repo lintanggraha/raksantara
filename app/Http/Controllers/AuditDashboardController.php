@@ -92,9 +92,18 @@ class AuditDashboardController extends Controller
                     (string) ($importMeta['sheet_name'] ?? '-')
                 ));
         } catch (\Throwable $e) {
+            $incidentId = (string) \Illuminate\Support\Str::uuid();
+            \Log::error('Audit dashboard import failed', [
+                'incident_id' => $incidentId,
+                'user_id' => auth()->id(),
+                'exception_class' => get_class($e),
+                'exception_file' => basename($e->getFile()),
+                'exception_line' => $e->getLine(),
+            ]);
+
             return redirect()
                 ->route('audit.placeholder')
-                ->with('error', 'Import audit gagal: ' . $e->getMessage());
+                ->with('error', 'Import audit gagal. Referensi insiden: ' . $incidentId . '.');
         } finally {
             if (!empty($storedPath) && Storage::disk('local')->exists($storedPath)) {
                 Storage::disk('local')->delete($storedPath);
@@ -146,15 +155,19 @@ class AuditDashboardController extends Controller
                     abort(404, 'Unknown report format.');
             }
         } catch (\Throwable $e) {
+            $incidentId = (string) \Illuminate\Support\Str::uuid();
             \Log::error('Audit export failed', [
+                'incident_id' => $incidentId,
+                'user_id' => auth()->id(),
                 'format' => $format,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'exception_class' => get_class($e),
+                'exception_file' => basename($e->getFile()),
+                'exception_line' => $e->getLine(),
             ]);
 
             return redirect()
                 ->back()
-                ->with('error', 'Export failed: ' . $e->getMessage());
+                ->with('error', 'Ekspor audit gagal. Referensi insiden: ' . $incidentId . '.');
         }
     }
 
@@ -414,12 +427,12 @@ class AuditDashboardController extends Controller
             ]);
         } catch (\Throwable $e) {
             \Log::error('Audit PDF export failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'payload_title' => $payload['title'] ?? 'unknown',
+                'exception_class' => get_class($e),
+                'exception_file' => basename($e->getFile()),
+                'exception_line' => $e->getLine(),
             ]);
             
-            throw new \RuntimeException('Failed to generate PDF: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('Failed to generate PDF.', 0, $e);
         }
     }
 
@@ -490,11 +503,12 @@ class AuditDashboardController extends Controller
             ])->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             \Log::error('Audit PPTX export failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'exception_class' => get_class($e),
+                'exception_file' => basename($e->getFile()),
+                'exception_line' => $e->getLine(),
             ]);
             
-            throw new \RuntimeException('Failed to generate PPTX: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('Failed to generate PPTX.', 0, $e);
         }
     }
 

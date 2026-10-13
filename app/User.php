@@ -51,6 +51,7 @@ class User extends Authenticatable
         'password_changed_at' => 'datetime',
         'two_factor_confirmed_at' => 'datetime',
         'two_factor_last_used_at' => 'datetime',
+        'email_otp_enabled_at' => 'datetime',
     ];
 
     protected static function booted()
@@ -124,6 +125,24 @@ class User extends Authenticatable
         return !is_null($this->two_factor_confirmed_at) && !empty($this->two_factor_secret);
     }
 
+    /**
+     * Email one-time codes apply only when the feature is on, the user has no
+     * authenticator app, and either the policy enforces it or the user opted in.
+     */
+    public function usesEmailOtp(): bool
+    {
+        if (!config('mfa.email_otp.enabled') || $this->hasTwoFactorEnabled() || trim((string) $this->email) === '') {
+            return false;
+        }
+
+        return (bool) config('mfa.email_otp.enforced') || !is_null($this->email_otp_enabled_at);
+    }
+
+    public function requiresMfaChallenge(): bool
+    {
+        return $this->hasTwoFactorEnabled() || $this->usesEmailOtp();
+    }
+
     public function dashboardPreference()
     {
         return $this->hasOne(UserDashboardPreference::class, 'user_id');
@@ -181,6 +200,11 @@ class User extends Authenticatable
                 $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
             ->exists();
+    }
+
+    public function hasRoleAssignments(): bool
+    {
+        return $this->roleAssignments()->exists();
     }
 
     private function ownRiskOwnerOptions(): array

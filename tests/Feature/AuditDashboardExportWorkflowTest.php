@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\User;
+use App\Services\AuditDashboardSpreadsheetImportService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -36,6 +39,31 @@ class AuditDashboardExportWorkflowTest extends TestCase
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
         $this->assertNotEmpty((string) $response->getContent());
+    }
+
+    public function test_audit_import_failure_does_not_expose_exception_detail(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->createUser('CO - COMPLIANCE', false);
+        $this->mock(AuditDashboardSpreadsheetImportService::class, function ($mock): void {
+            $mock->shouldReceive('parse')
+                ->once()
+                ->andThrow(new \RuntimeException('Sensitive parser filesystem detail'));
+        });
+
+        $response = $this->actingAs($user)->post(route('audit.import.store'), [
+            'file' => UploadedFile::fake()->create(
+                'invalid-audit.xlsx',
+                10,
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        ]);
+
+        $response->assertRedirect(route('audit.placeholder'));
+        $message = (string) $response->getSession()->get('error');
+        $this->assertStringNotContainsString('Sensitive parser filesystem detail', $message);
+        $this->assertStringContainsString('Referensi insiden:', $message);
     }
 
     private function createUser(string $division, bool $isSuperadmin): User

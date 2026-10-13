@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', config('app.name', 'Risk Management System'))</title>
+    <title>@yield('title', config('app.name', 'Raksantara'))</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('raksantara-mark.svg') }}">
 
     <link rel="stylesheet" href="{{ asset('vendor/tabler/css/tabler.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome-free/css/all.min.css') }}">
@@ -401,57 +402,6 @@
             text-align: center;
             color: #5f6b7a;
         }
-        [data-compliance-menu] .dropdown-item,
-        [data-risk-menu] .dropdown-item,
-        [data-app-management-menu] .dropdown-item {
-            border-radius: 0;
-            margin: 0;
-            padding: 0.5rem 0.75rem;
-            background-color: transparent !important;
-            transition: color 0.15s ease;
-        }
-        [data-risk-menu] .dropdown-item {
-            display: block;
-            width: 100%;
-            line-height: 1.45;
-            white-space: normal;
-            word-break: normal;
-            overflow-wrap: break-word;
-        }
-        [data-compliance-menu] .dropdown-item:hover,
-        [data-compliance-menu] .dropdown-item:focus,
-        [data-risk-menu] .dropdown-item:hover,
-        [data-risk-menu] .dropdown-item:focus,
-        [data-app-management-menu] .dropdown-item:hover,
-        [data-app-management-menu] .dropdown-item:focus {
-            background-color: transparent !important;
-            color: #0b57d0 !important;
-        }
-        [data-compliance-menu] .dropdown-item.active,
-        [data-compliance-menu] .dropdown-item.active:hover,
-        [data-compliance-menu] .dropdown-item.active:focus,
-        [data-risk-menu] .dropdown-item.active,
-        [data-risk-menu] .dropdown-item.active:hover,
-        [data-risk-menu] .dropdown-item.active:focus,
-        [data-app-management-menu] .dropdown-item.active,
-        [data-app-management-menu] .dropdown-item.active:hover,
-        [data-app-management-menu] .dropdown-item.active:focus {
-            background-color: transparent !important;
-            color: #0b57d0 !important;
-            font-weight: 600;
-            box-shadow: none;
-        }
-        [data-compliance-menu] .dropdown-item:hover i,
-        [data-compliance-menu] .dropdown-item:focus i,
-        [data-compliance-menu] .dropdown-item.active i,
-        [data-risk-menu] .dropdown-item:hover i,
-        [data-risk-menu] .dropdown-item:focus i,
-        [data-risk-menu] .dropdown-item.active i,
-        [data-app-management-menu] .dropdown-item:hover i,
-        [data-app-management-menu] .dropdown-item:focus i,
-        [data-app-management-menu] .dropdown-item.active i {
-            color: #0b57d0;
-        }
         @media (max-width: 991.98px) {
             [data-risk-menu] {
                 width: auto;
@@ -517,12 +467,28 @@
         .app-sidebar .navbar-brand {
             width: 100%;
             margin: 0 0 1.25rem;
-            padding: 0 0.75rem;
+            padding: 0 2.5rem 0 0.75rem;
             font-size: 1.05rem;
+            display: flex;
+            align-items: center;
         }
         .app-sidebar .navbar-brand a {
             color: #182433;
             text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            white-space: nowrap;
+        }
+        .app-brand-mark {
+            flex: 0 0 auto;
+            display: block;
+            filter: drop-shadow(0 1px 2px rgba(30, 58, 138, 0.25));
+        }
+        .app-brand-full {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.01em;
         }
         .app-brand-short {
             display: none;
@@ -530,23 +496,35 @@
         .sidebar-collapse-toggle {
             position: absolute;
             top: 0.85rem;
-            right: 0.7rem;
+            right: 0.75rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 2rem;
-            height: 2rem;
+            width: 28px;
+            height: 28px;
             padding: 0;
-            color: #5f6b7a;
+            color: #94a3b8;
             background: transparent;
-            border: 1px solid transparent;
-            border-radius: 0.4rem;
+            border: 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: color 0.15s ease, background-color 0.15s ease;
+            outline: none !important;
         }
-        .sidebar-collapse-toggle:hover,
-        .sidebar-collapse-toggle:focus {
-            color: var(--app-accent);
-            background: #eaf2ff;
-            border-color: #d7e6ff;
+        .sidebar-collapse-toggle:hover {
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+        .sidebar-collapse-toggle:focus-visible {
+            color: #0f172a;
+            box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.35);
+        }
+        .sidebar-collapse-toggle:active {
+            background: #e2e8f0;
+        }
+        .sidebar-collapse-toggle .sidebar-toggle-icon {
+            display: block;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .app-sidebar .navbar-collapse {
             display: block !important;
@@ -604,52 +582,95 @@
         /* Keep sidebar submenus in the navigation flow (accordion), not as flyout popups. */
         .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu {
             position: static !important;
-            float: none;
-            width: 100%;
-            min-width: 0;
-            margin: 0.2rem 0;
-            padding: 0.2rem 0 0.35rem 2.75rem;
-            border-color: var(--app-sidebar-border);
-            border: 0;
-            box-shadow: none;
-            background: transparent;
+            float: none !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            margin: 0.15rem 0 0.25rem 0 !important;
+            padding: 0.15rem 0 0.25rem 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
         }
         .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu.show {
             display: block !important;
         }
         .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            padding: 0.48rem 0.65rem;
-            border-radius: 0.35rem;
-            color: #5f6b7a;
-            font-size: 0.8125rem;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            padding: 0.45rem 0.75rem !important;
+            gap: 0.75rem !important;
+            border-radius: 0.45rem !important;
+            border: 0 !important;
+            margin: 0.05rem 0 !important;
+            color: #5f6b7a !important;
+            font-size: 0.8125rem !important;
+            font-weight: 500 !important;
+            line-height: 1.35 !important;
+            white-space: normal !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+            text-align: left !important;
+            background: transparent !important;
+            transition: background-color 0.15s ease, color 0.15s ease !important;
         }
         .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover,
-        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus,
-        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active {
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus {
+            background: #f1f5f9 !important;
+            color: var(--app-accent, #0b57d0) !important;
+        }
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active,
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active:hover,
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active:focus {
             background: #eaf2ff !important;
-            color: var(--app-accent) !important;
+            color: var(--app-accent, #0b57d0) !important;
+            font-weight: 600 !important;
         }
         .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item i {
-            width: 1rem;
-            color: currentColor;
-            text-align: center;
+            width: 1.25rem !important;
+            min-width: 1.25rem !important;
+            margin-right: 0 !important;
+            font-size: 0.75rem !important;
+            color: #64748b !important;
+            text-align: center !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover i,
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus i,
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active i {
+            color: var(--app-accent, #0b57d0) !important;
+        }
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item span {
+            display: inline !important;
+            font-size: 0.8125rem !important;
+            font-weight: inherit !important;
+            color: inherit !important;
+            text-align: left !important;
+        }
+        .app-sidebar .navbar-collapse .dropdown-menu .dropdown-divider {
+            margin: 0.35rem 0.75rem !important;
+            border-top: 1px solid var(--app-sidebar-border, #e5e7eb) !important;
+            opacity: 1 !important;
         }
         .app-sidebar .navbar-collapse [data-risk-menu] {
-            width: 100%;
+            width: 100% !important;
+            padding: 0.15rem 0 0.25rem 0 !important;
         }
         .app-sidebar .risk-menu-columns {
-            display: block;
-            width: 100%;
+            display: block !important;
+            width: 100% !important;
         }
         .app-sidebar .risk-menu-columns::before {
-            display: none;
+            display: none !important;
         }
         .app-sidebar .risk-menu-column {
-            width: 100%;
-            padding: 0;
+            width: 100% !important;
+            padding: 0 !important;
         }
         .app-sidebar .navbar-nav.flex-row {
             order: 3;
@@ -727,21 +748,37 @@
             padding-left: 0.5rem;
         }
         body.sidebar-collapsed .app-sidebar .navbar-brand {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto 0.75rem auto !important;
             padding: 0 !important;
-            text-align: center;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-brand a {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            width: 100% !important;
+            text-align: center !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         body.sidebar-collapsed .sidebar-collapse-toggle {
-            top: 3rem;
+            top: 3.25rem;
             right: auto;
             left: 50%;
             z-index: 2;
-            width: 2rem;
-            height: 1.75rem;
             transform: translateX(-50%);
-            background: #f8fafc;
-            border-color: var(--app-sidebar-border);
-            border-radius: 0.4rem;
-            box-shadow: none;
+        }
+        body.sidebar-collapsed .sidebar-collapse-toggle .sidebar-toggle-icon {
+            transform: rotate(180deg);
         }
         body.sidebar-collapsed .app-brand-full,
         body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main > span:not(.nav-link-icon),
@@ -750,7 +787,14 @@
             display: none !important;
         }
         body.sidebar-collapsed .app-brand-short {
-            display: inline;
+            display: block !important;
+            text-align: center !important;
+            width: 100% !important;
+            margin: 0 auto !important;
+            font-size: 1.05rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.05em !important;
+            line-height: 1.2 !important;
         }
         body.sidebar-collapsed .app-sidebar .navbar-nav > .nav-item > .nav-link-main {
             justify-content: center !important;
@@ -786,77 +830,107 @@
             border-radius: 0.45rem;
         }
 
-        /* Collapsed Sidebar: Hide in-flow dropdown accordion menus to prevent invisible item gaps and layout breaks */
+        /* Collapsed Sidebar: Submenus accordion display - Icons only */
         body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu {
             display: none !important;
-        }
-
-        /* Collapsed Sidebar: Hover Flyout Popup on the right */
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown {
-            position: relative;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu {
-            display: block !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: calc(var(--app-sidebar-collapsed-width) + 0.25rem) !important;
-            width: auto !important;
-            min-width: 17rem !important;
-            max-width: 32rem !important;
-            margin: 0 !important;
-            padding: 0.65rem 0.5rem !important;
-            background: #ffffff !important;
-            border: 1px solid var(--app-sidebar-border, #e5e7eb) !important;
-            border-radius: 0.5rem !important;
-            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1) !important;
-            z-index: 1050 !important;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu [data-risk-menu],
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > [data-risk-menu] {
-            width: auto !important;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .risk-menu-columns {
-            display: grid !important;
-            grid-template-columns: repeat(2, 14.5rem) !important;
-            width: 29rem !important;
-            column-gap: 0.5rem !important;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .risk-menu-column {
-            display: flex !important;
-            flex-direction: column !important;
+            position: static !important;
+            float: none !important;
             width: 100% !important;
-            padding: 0 0.25rem !important;
-        }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: flex-start !important;
-            gap: 0.6rem !important;
-            padding: 0.45rem 0.65rem !important;
-            border-radius: 0.35rem !important;
-            color: #334155 !important;
-            font-size: 0.8125rem !important;
-            white-space: nowrap !important;
+            min-width: 0 !important;
+            margin: 0.2rem 0 !important;
+            padding: 0.25rem 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
             background: transparent !important;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item span {
-            display: inline !important;
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu.show {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            background: rgba(241, 245, 249, 0.45) !important;
+            border-radius: 0.5rem !important;
+            padding: 0.3rem 0 !important;
+            margin: 0.2rem 0 !important;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item i {
-            display: inline-block !important;
-            width: 1rem !important;
-            color: #64748b !important;
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 2.35rem !important;
+            height: 2.2rem !important;
+            min-width: 2.35rem !important;
+            max-width: 2.35rem !important;
+            padding: 0 !important;
+            margin: 0.125rem auto !important;
+            border-radius: 0.4rem !important;
             text-align: center !important;
+            font-size: 0 !important;
+            line-height: 0 !important;
+            gap: 0 !important;
+            color: #64748b !important;
+            background: transparent !important;
+            transition: all 0.15s ease !important;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item:hover,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item:focus,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item.active {
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus {
+            background: #e2e8f0 !important;
+            color: var(--app-accent, #0b57d0) !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active:hover,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active:focus {
             background: #eaf2ff !important;
             color: var(--app-accent, #0b57d0) !important;
+            font-weight: 600 !important;
+            box-shadow: inset 0 0 0 1px rgba(11, 87, 208, 0.25) !important;
         }
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item:hover i,
-        body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown:hover > .dropdown-menu .dropdown-item.active i {
+        /* ALL SUBMENUS IN COLLAPSED SIDEBAR: HIDE TEXT, SHOW ONLY ICON */
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item span {
+            display: none !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item i {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 1.25rem !important;
+            min-width: 1.25rem !important;
+            height: 1.25rem !important;
+            font-size: 0.95rem !important;
+            line-height: 1 !important;
+            margin: 0 !important;
+            margin-right: 0 !important;
+            padding: 0 !important;
+            color: inherit !important;
+            text-align: center !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:hover i,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item:focus i,
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item.active i {
             color: var(--app-accent, #0b57d0) !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-divider {
+            width: 1.75rem !important;
+            margin: 0.35rem auto !important;
+            border-top: 1px solid var(--app-sidebar-border, #cbd5e1) !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse [data-risk-menu] {
+            width: 100% !important;
+            padding: 0 !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .risk-menu-columns {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            width: 100% !important;
+        }
+        body.sidebar-collapsed .app-sidebar .navbar-collapse .risk-menu-column {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            width: 100% !important;
+            padding: 0 !important;
         }
 
         /* Collapsed Sidebar: User dropup to the side */
@@ -902,6 +976,23 @@
             }
             body.sidebar-collapsed .app-sidebar .navbar-collapse .nav-item.dropdown > .dropdown-menu.show {
                 display: block !important;
+                background: transparent !important;
+                padding: 0.15rem 0 0.25rem 0 !important;
+            }
+            body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item {
+                display: flex !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                justify-content: flex-start !important;
+                padding: 0.45rem 0.75rem !important;
+                gap: 0.75rem !important;
+            }
+            body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item span {
+                display: inline !important;
+            }
+            body.sidebar-collapsed .app-sidebar .navbar-collapse .dropdown-menu .dropdown-item i {
+                margin-right: 0 !important;
             }
             .app-sidebar {
                 position: sticky;
@@ -989,14 +1080,17 @@
             >
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <h1 class="navbar-brand navbar-brand-autodark pe-0 pe-md-3">
-                <a href="{{ route('risks.index') }}">
-                    <span class="app-brand-full">Enterprise RMS</span>
-                    <span class="app-brand-short">ERMS</span>
+            <h1 class="navbar-brand navbar-brand-autodark">
+                <a href="{{ route('dashboard', ['view' => 'strategic']) }}" class="app-brand-link" title="Raksantara: Strategic Dashboard">
+                    @include('partials.brand-mark', ['size' => 28])
+                    <span class="app-brand-full">Raksantara</span>
                 </a>
             </h1>
-            <button class="sidebar-collapse-toggle" type="button" data-sidebar-toggle aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
-                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            <button class="sidebar-collapse-toggle" type="button" data-sidebar-toggle aria-label="Sembunyikan sidebar" aria-expanded="true" title="Sembunyikan sidebar">
+                <svg class="sidebar-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M11 17l-5-5 5-5"></path>
+                    <path d="M18 17l-5-5 5-5"></path>
+                </svg>
             </button>
             <div class="navbar-nav flex-row order-md-last">
                 @auth
@@ -1071,7 +1165,7 @@
                                     <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
                                     <span>Frameworks</span>
                                 </a>
-                                <div class="dropdown-menu {{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'show' : '' }}">
+                                <div class="dropdown-menu {{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'show' : '' }}" data-framework-menu>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
                                         <i class="fas fa-shield-alt"></i><span>ISO 27001</span>
                                     </a>
@@ -1158,6 +1252,23 @@
                                     <span>Threat Intel</span>
                                 </a>
                             </li>
+                            @php($isAssessmentActiveSuper = request()->routeIs('sulteng.*') || request()->routeIs('sumut.*') || request()->routeIs('assessment.*'))
+                            <li class="nav-item dropdown {{ $isAssessmentActiveSuper ? 'active show' : '' }}" data-assessment-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-assessment-toggle role="button" aria-expanded="{{ $isAssessmentActiveSuper ? 'true' : 'false' }}">
+                                    <span class="nav-link-icon"><i class="fas fa-clipboard-check"></i></span>
+                                    <span>Monitoring Assessment</span>
+                                </a>
+                                <div class="dropdown-menu {{ $isAssessmentActiveSuper ? 'show' : '' }}" data-assessment-menu>
+                                    <a class="dropdown-item {{ (request()->routeIs('sulteng.*') || request()->routeIs('assessment.sulteng')) ? 'active' : '' }}" href="{{ route('sulteng.dashboard') }}">
+                                        <i class="fas fa-landmark"></i>
+                                        <span>Sulteng</span>
+                                    </a>
+                                    <a class="dropdown-item {{ (request()->routeIs('sumut.*') || request()->routeIs('assessment.sumut')) ? 'active' : '' }}" href="{{ route('sumut.dashboard') }}">
+                                        <i class="fas fa-tasks"></i>
+                                        <span>Sumut 27 Point</span>
+                                    </a>
+                                </div>
+                            </li>
                         @elseif(auth()->user()->isDivisionVerified())
                             <li class="nav-item dropdown {{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'active show' : '' }}" data-dashboard-nav>
                                 <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-dashboard-toggle role="button" aria-expanded="{{ (request()->routeIs('dashboard') || request()->routeIs('management.dashboard') || request()->routeIs('risks.monitoring')) ? 'true' : 'false' }}">
@@ -1241,7 +1352,7 @@
                                     <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
                                     <span>Frameworks</span>
                                 </a>
-                                <div class="dropdown-menu {{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'show' : '' }}">
+                                <div class="dropdown-menu {{ (request()->routeIs('frameworks.*') || request()->routeIs('control-framework-mappings.*')) ? 'show' : '' }}" data-framework-menu>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
                                         <i class="fas fa-shield-alt"></i><span>ISO 27001</span>
                                     </a>
@@ -1285,6 +1396,25 @@
                                     <span>Threat Intel</span>
                                 </a>
                             </li>
+                            @if(auth()->user()->isComplianceDivision())
+                            @php($isAssessmentActiveDivision = request()->routeIs('sulteng.*') || request()->routeIs('sumut.*') || request()->routeIs('assessment.*'))
+                            <li class="nav-item dropdown {{ $isAssessmentActiveDivision ? 'active show' : '' }}" data-assessment-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-assessment-toggle role="button" aria-expanded="{{ $isAssessmentActiveDivision ? 'true' : 'false' }}">
+                                    <span class="nav-link-icon"><i class="fas fa-clipboard-check"></i></span>
+                                    <span>Monitoring Assessment</span>
+                                </a>
+                                <div class="dropdown-menu {{ $isAssessmentActiveDivision ? 'show' : '' }}" data-assessment-menu>
+                                    <a class="dropdown-item {{ (request()->routeIs('sulteng.*') || request()->routeIs('assessment.sulteng')) ? 'active' : '' }}" href="{{ route('sulteng.dashboard') }}">
+                                        <i class="fas fa-landmark"></i>
+                                        <span>Sulteng</span>
+                                    </a>
+                                    <a class="dropdown-item {{ (request()->routeIs('sumut.*') || request()->routeIs('assessment.sumut')) ? 'active' : '' }}" href="{{ route('sumut.dashboard') }}">
+                                        <i class="fas fa-tasks"></i>
+                                        <span>Sumut 27 Point</span>
+                                    </a>
+                                </div>
+                            </li>
+                            @endif
                             @if(auth()->user()->isComplianceDivision() && config('features.show_ojk_mitigation', false))
                                 <li class="nav-item {{ request()->routeIs('ojk-mitigation.*') ? 'active' : '' }}">
                                     <a class="nav-link nav-link-main" href="{{ route('ojk-mitigation.index') }}">
@@ -1580,8 +1710,8 @@
 
         if (sidebarToggle) {
             sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
-            sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
-            sidebarToggle.setAttribute('title', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+            sidebarToggle.setAttribute('aria-label', collapsed ? 'Lebarkan sidebar' : 'Sembunyikan sidebar');
+            sidebarToggle.setAttribute('title', collapsed ? 'Lebarkan sidebar' : 'Sembunyikan sidebar');
         }
     }
 
@@ -1604,6 +1734,29 @@
         });
     }
 
+    // Auto-populate title attributes for collapsed sidebar tooltips
+    function initSidebarTooltips() {
+        document.querySelectorAll('.app-sidebar .navbar-collapse .dropdown-item').forEach(function(item) {
+            if (!item.getAttribute('title')) {
+                const span = item.querySelector('span');
+                const text = span ? span.textContent.trim() : item.textContent.trim();
+                if (text) {
+                    item.setAttribute('title', text);
+                }
+            }
+        });
+        document.querySelectorAll('.app-sidebar .navbar-nav > .nav-item > .nav-link-main').forEach(function(link) {
+            if (!link.getAttribute('title')) {
+                const span = link.querySelector('span:not(.nav-link-icon)');
+                const text = span ? span.textContent.trim() : link.textContent.trim();
+                if (text) {
+                    link.setAttribute('title', text);
+                }
+            }
+        });
+    }
+    initSidebarTooltips();
+
     // Sidebar submenu accordion. Capture the click before Bootstrap tries to create a flyout.
     document.addEventListener('click', function (event) {
         const toggle = event.target.closest(
@@ -1611,6 +1764,7 @@
             '.app-sidebar .navbar-collapse [data-risk-toggle], ' +
             '.app-sidebar .navbar-collapse [data-framework-toggle], ' +
             '.app-sidebar .navbar-collapse [data-compliance-toggle], ' +
+            '.app-sidebar .navbar-collapse [data-assessment-toggle], ' +
             '.app-sidebar .navbar-collapse [data-app-management-toggle]'
         );
 
@@ -1620,16 +1774,6 @@
 
         event.preventDefault();
         event.stopImmediatePropagation();
-
-        if (document.body.classList.contains('sidebar-collapsed')) {
-            setSidebarCollapsed(false);
-            try {
-                window.localStorage.setItem(sidebarStorageKey, 'false');
-            } catch (error) {
-                // The sidebar still expands without persistent browser storage.
-            }
-            return;
-        }
 
         const item = toggle.closest('.nav-item.dropdown');
         const menu = item ? item.querySelector(':scope > .dropdown-menu') : null;

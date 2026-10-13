@@ -106,6 +106,35 @@ class RiskImportButtonWorkflowTest extends TestCase
         $this->assertSame('broken-template.xls', data_get($log->after_state, 'file_name'));
     }
 
+    public function test_import_exception_does_not_expose_internal_detail(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->createUser('CO - COMPLIANCE', false);
+        Artisan::shouldReceive('call')
+            ->once()
+            ->andThrow(new \RuntimeException('Sensitive importer filesystem path'));
+
+        $response = $this->actingAs($user)->post(route('risks.import.store'), [
+            'file' => UploadedFile::fake()->create('exception-template.xls', 50, 'application/vnd.ms-excel'),
+        ]);
+
+        $response->assertRedirect(route('risks.index'));
+        $message = (string) $response->getSession()->get('error');
+        $this->assertStringNotContainsString('Sensitive importer filesystem path', $message);
+        $this->assertStringContainsString('Referensi insiden:', $message);
+
+        $log = AuditLog::query()
+            ->where('event', 'risk.import.failed')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($log);
+        $this->assertSame('exception', data_get($log->after_state, 'reason'));
+        $this->assertSame('RuntimeException', data_get($log->after_state, 'exception_class'));
+        $this->assertNull(data_get($log->after_state, 'error'));
+        $this->assertStringNotContainsString('Sensitive importer filesystem path', json_encode($log->after_state));
+    }
+
     private function createUser(string $division, bool $isSuperadmin): User
     {
         $suffix = Str::lower(Str::random(8));

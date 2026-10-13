@@ -1,6 +1,6 @@
 @extends('layouts.tabler')
 
-@section('title', 'Threat Intelligence - Risk Management System')
+@section('title', 'Threat Intelligence - Raksantara')
 
 @php
     $summary = $dashboard['summary'] ?? [];

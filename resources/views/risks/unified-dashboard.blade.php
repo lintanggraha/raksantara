@@ -319,6 +319,7 @@
 @endsection
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 window.switchDashboardView = function (targetView) {
     const strategicContainer = document.getElementById('strategicViewContainer');
@@ -358,6 +359,14 @@ window.switchDashboardView = function (targetView) {
 
     if (filterViewInput) {
         filterViewInput.value = targetView;
+    }
+
+    if (targetView === 'strategic') {
+        setTimeout(function() {
+            if (typeof window.renderExecutiveCharts === 'function') {
+                window.renderExecutiveCharts();
+            }
+        }, 50);
     }
 
     try {

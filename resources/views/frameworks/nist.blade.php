@@ -1,6 +1,6 @@
 @extends('layouts.tabler')
 
-@section('title', 'NIST CSF 2.0 - Risk Management System')
+@section('title', 'NIST CSF 2.0 - Raksantara')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('vendor/datatables/css/dataTables.bootstrap5.min.css') }}">

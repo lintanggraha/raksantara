@@ -84,9 +84,18 @@ class OjkMitigationController extends Controller
                 ->route('ojk-mitigation.index')
                 ->with('success', sprintf('Import mitigasi OJK berhasil. %d baris dimuat.', count($rows)));
         } catch (\Throwable $e) {
+            $incidentId = (string) Str::uuid();
+            \Log::error('OJK mitigation import failed', [
+                'incident_id' => $incidentId,
+                'user_id' => auth()->id(),
+                'exception_class' => get_class($e),
+                'exception_file' => basename($e->getFile()),
+                'exception_line' => $e->getLine(),
+            ]);
+
             return redirect()
                 ->route('ojk-mitigation.index')
-                ->with('error', 'Import mitigasi OJK gagal: ' . $e->getMessage());
+                ->with('error', 'Import mitigasi OJK gagal. Referensi insiden: ' . $incidentId . '.');
         } finally {
             if (!empty($storedPath) && Storage::disk('local')->exists($storedPath)) {
                 Storage::disk('local')->delete($storedPath);

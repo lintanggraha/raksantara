@@ -59,6 +59,9 @@ Route::get('/two-factor-challenge', [TwoFactorAuthenticationController::class, '
 Route::post('/two-factor-challenge', [TwoFactorAuthenticationController::class, 'verifyChallenge'])
     ->middleware('throttle:10,1')
     ->name('two-factor.challenge.verify');
+Route::post('/two-factor-challenge/resend', [TwoFactorAuthenticationController::class, 'resendChallenge'])
+    ->middleware('throttle:5,1')
+    ->name('two-factor.challenge.resend');
 
 Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function () {
     Route::get('/account/pending-approval', [AppEntryController::class, 'pendingApproval'])->name('account.pending');
@@ -74,6 +77,15 @@ Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function
     Route::delete('/two-factor', [TwoFactorAuthenticationController::class, 'disable'])
         ->middleware('throttle:10,1')
         ->name('two-factor.disable');
+    Route::post('/two-factor/email-otp/send', [TwoFactorAuthenticationController::class, 'sendEmailOtp'])
+        ->middleware('throttle:5,1')
+        ->name('two-factor.email-otp.send');
+    Route::post('/two-factor/email-otp', [TwoFactorAuthenticationController::class, 'enableEmailOtp'])
+        ->middleware('throttle:10,1')
+        ->name('two-factor.email-otp.enable');
+    Route::delete('/two-factor/email-otp', [TwoFactorAuthenticationController::class, 'disableEmailOtp'])
+        ->middleware('throttle:10,1')
+        ->name('two-factor.email-otp.disable');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -227,7 +239,11 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
     Route::redirect('/frameworks/pci-dss', '/frameworks/pbi-02-2024')->name('frameworks.pci-dss');
     Route::get('/frameworks/pbi-02-2024', [FrameworkController::class, 'pbi'])->name('frameworks.pbi');
     Route::get('/incident-management', [IncidentManagementController::class, 'index'])->name('incidents.index');
+    Route::get('/incident-management/create', [IncidentManagementController::class, 'create'])->name('incidents.create');
     Route::post('/incident-management', [IncidentManagementController::class, 'store'])->name('incidents.store');
+    Route::get('/incident-management/{incident}/edit', [IncidentManagementController::class, 'edit'])
+        ->whereNumber('incident')
+        ->name('incidents.edit');
     Route::put('/incident-management/{incident}', [IncidentManagementController::class, 'update'])
         ->whereNumber('incident')
         ->name('incidents.update');
@@ -427,4 +443,53 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
     Route::resource('vendors', \App\Http\Controllers\VendorController::class);
     Route::resource('risk-appetites', \App\Http\Controllers\RiskAppetiteController::class);
     Route::resource('risks', RiskController::class);
+
+    // Sulteng Investigation Checklist & Evidence Routes
+    Route::prefix('sulteng-investigasi')->name('sulteng.')->middleware('regional.assessment')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\SultengInvestigationController::class, 'dashboard'])->name('dashboard');
+        Route::get('/items', [\App\Http\Controllers\SultengInvestigationController::class, 'items'])->name('items');
+        Route::post('/items/{item}/upload', [\App\Http\Controllers\SultengInvestigationController::class, 'uploadEvidence'])
+            ->middleware('throttle:30,1')
+            ->whereNumber('item')
+            ->name('items.upload');
+        Route::post('/items/{item}/update', [\App\Http\Controllers\SultengInvestigationController::class, 'updateItem'])
+            ->whereNumber('item')
+            ->name('items.update');
+        Route::get('/evidence/{evidence}/download', [\App\Http\Controllers\SultengInvestigationController::class, 'downloadEvidence'])
+            ->whereNumber('evidence')
+            ->name('evidence.download');
+        Route::get('/evidence/{evidence}/preview', [\App\Http\Controllers\SultengInvestigationController::class, 'previewEvidence'])
+            ->whereNumber('evidence')
+            ->name('evidence.preview');
+        Route::delete('/evidence/{evidence}', [\App\Http\Controllers\SultengInvestigationController::class, 'destroyEvidence'])
+            ->whereNumber('evidence')
+            ->name('evidence.destroy');
+        Route::get('/export-excel', [\App\Http\Controllers\SultengInvestigationController::class, 'exportExcel'])->name('export-excel');
+        Route::post('/sync-excel', [\App\Http\Controllers\SultengInvestigationController::class, 'syncFromExcel'])
+            ->middleware('superadmin')
+            ->name('sync-excel');
+    });
+
+    // Monitoring Assessment Multi-region Routes
+    // Sumut 27 Point Monitoring Routes
+    Route::prefix('sumut-monitoring')->name('sumut.')->middleware('regional.assessment')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\SumutMonitoringController::class, 'dashboard'])->name('dashboard');
+        Route::get('/items', [\App\Http\Controllers\SumutMonitoringController::class, 'items'])->name('items');
+        Route::post('/items/{item}/update', [\App\Http\Controllers\SumutMonitoringController::class, 'updateItem'])
+            ->whereNumber('item')
+            ->name('items.update');
+        Route::get('/evidence/{evidence}/download', [\App\Http\Controllers\SumutMonitoringController::class, 'downloadEvidence'])
+            ->whereNumber('evidence')
+            ->name('evidence.download');
+        Route::get('/evidence/{evidence}/preview', [\App\Http\Controllers\SumutMonitoringController::class, 'previewEvidence'])
+            ->whereNumber('evidence')
+            ->name('evidence.preview');
+        Route::get('/export-excel', [\App\Http\Controllers\SumutMonitoringController::class, 'exportExcel'])->name('export-excel');
+        Route::post('/sync-excel', [\App\Http\Controllers\SumutMonitoringController::class, 'syncFromExcel'])
+            ->middleware('superadmin')
+            ->name('sync-excel');
+    });
+
+    Route::get('/monitoring-assessment/sumut', [\App\Http\Controllers\SumutMonitoringController::class, 'dashboard'])->middleware('regional.assessment')->name('assessment.sumut');
+    Route::get('/monitoring-assessment/sulteng', [\App\Http\Controllers\SultengInvestigationController::class, 'dashboard'])->middleware('regional.assessment')->name('assessment.sulteng');
 });

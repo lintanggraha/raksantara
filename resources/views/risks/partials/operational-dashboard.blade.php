@@ -215,21 +215,30 @@
                         @endphp
                         <div class="p-2 mb-2 border rounded bg-white">
                             <div class="d-flex justify-content-between align-items-start gap-1">
-                                <a href="{{ route('incidents.index') }}" class="fw-bold small text-dark text-decoration-none text-truncate" style="max-width: 240px;">
+                                <a href="{{ route('incidents.index') }}" class="fw-bold small text-dark text-decoration-none text-truncate" style="max-width: 220px;">
                                     [{{ $incident->incident_code }}] {{ $incident->title }}
                                 </a>
-                                <span class="badge {{ $sevClass }}">{{ $incident->severity }}</span>
+                                <div>
+                                    @if(is_null($incident->risk_id))
+                                        <span class="badge bg-purple-lt me-1" style="font-size: 0.65rem;">Temuan Baru</span>
+                                    @endif
+                                    <span class="badge {{ $sevClass }}">{{ $incident->severity }}</span>
+                                </div>
                             </div>
                             <div class="d-flex justify-content-between small text-muted mt-1">
                                 <span>Status: <strong>{{ $incident->status }}</strong></span>
-                                <span>{{ $incident->detected_at ? $incident->detected_at->diffForHumans() : 'Recently detected' }}</span>
+                                @if((float)($incident->loss_amount ?? 0) > 0)
+                                    <span class="text-danger fw-semibold">Rp {{ number_format($incident->loss_amount, 0, ',', '.') }}</span>
+                                @else
+                                    <span>{{ $incident->detected_at ? $incident->detected_at->diffForHumans() : 'Recently detected' }}</span>
+                                @endif
                             </div>
                         </div>
                     @empty
                         <div class="text-center py-4 text-muted">
                             <i class="fas fa-shield-alt text-success fa-2x mb-2 opacity-50"></i>
                             <p class="small mb-1">No open or investigating incidents recorded.</p>
-                            <a href="{{ route('incidents.index') }}" class="btn btn-sm btn-outline-primary">Log New Incident</a>
+                            <a href="{{ route('incidents.create') }}" class="btn btn-sm btn-outline-primary">Log New Incident</a>
                         </div>
                     @endforelse
                 </div>

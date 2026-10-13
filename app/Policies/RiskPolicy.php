@@ -13,6 +13,10 @@ class RiskPolicy
      */
     public function viewAny(User $user): bool
     {
+        if ($user->hasRoleAssignments() && !$user->hasPermission('risks.view')) {
+            return false;
+        }
+
         return $user->isDivisionVerified() || $user->isSuperadmin();
     }
 
@@ -29,9 +33,11 @@ class RiskPolicy
      */
     public function create(User $user): bool
     {
-        return $user->isDivisionVerified()
-            && !$user->isSuperadmin()
-            && !empty($user->allowedRiskOwners());
+        if (!$user->isDivisionVerified() || $user->isSuperadmin() || empty($user->allowedRiskOwners())) {
+            return false;
+        }
+
+        return !$user->hasRoleAssignments() || $user->hasPermission('risks.manage');
     }
 
     /**

@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\OjkMitigationItem;
+use App\Services\OjkMitigationSpreadsheetImportService;
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -138,6 +140,31 @@ class OjkMitigationMonitoringWorkflowTest extends TestCase
         $response->assertOk();
         $response->assertSee('Edit Point Mitigasi OJK');
         $response->assertSee('Simpan Perubahan');
+    }
+
+    public function test_import_exception_does_not_expose_internal_detail(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->createUser('CO - COMPLIANCE', false);
+        $this->mock(OjkMitigationSpreadsheetImportService::class, function ($mock): void {
+            $mock->shouldReceive('parse')
+                ->once()
+                ->andThrow(new \RuntimeException('Sensitive OJK parser path'));
+        });
+
+        $response = $this->actingAs($user)->post(route('ojk-mitigation.import'), [
+            'file' => UploadedFile::fake()->create(
+                'invalid-mitigation.xlsx',
+                10,
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        ]);
+
+        $response->assertRedirect(route('ojk-mitigation.index'));
+        $message = (string) $response->getSession()->get('error');
+        $this->assertStringNotContainsString('Sensitive OJK parser path', $message);
+        $this->assertStringContainsString('Referensi insiden:', $message);
     }
 
     private function createTempSpreadsheet(): string

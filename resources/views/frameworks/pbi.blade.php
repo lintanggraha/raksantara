@@ -1,6 +1,6 @@
 @extends('layouts.tabler')
 
-@section('title', 'PBI 02/2024 - Risk Management System')
+@section('title', 'PBI 02/2024 - Raksantara')
 
 @push('styles')
 <style>

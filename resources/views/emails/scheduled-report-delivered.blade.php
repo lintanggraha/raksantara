@@ -6,7 +6,7 @@
 </head>
 <body style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
     <h2 style="margin-bottom: 8px;">Scheduled Report Delivered</h2>
-    <p style="margin-top: 0;">Report dari Risk Management System sudah digenerate otomatis sesuai jadwal.</p>
+    <p style="margin-top: 0;">Report dari Raksantara sudah digenerate otomatis sesuai jadwal.</p>
 
     <table cellpadding="6" cellspacing="0" border="0" style="border-collapse: collapse; margin-top: 8px;">
         <tr>

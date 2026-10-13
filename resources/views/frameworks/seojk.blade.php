@@ -1,6 +1,6 @@
 @extends('layouts.tabler')
 
-@section('title', 'SEOJK 29/SEOJK.03/2022 - Risk Management System')
+@section('title', 'SEOJK 29/SEOJK.03/2022 - Raksantara')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('vendor/datatables/css/dataTables.bootstrap5.min.css') }}">

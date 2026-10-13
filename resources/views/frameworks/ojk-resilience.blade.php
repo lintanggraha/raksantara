@@ -1,6 +1,6 @@
 @extends('layouts.tabler')
 
-@section('title', 'Panduan Resiliensi OJK - Risk Management System')
+@section('title', 'Panduan Resiliensi OJK - Raksantara')
 
 @push('styles')
 <style>

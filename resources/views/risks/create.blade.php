@@ -182,6 +182,17 @@
         @endif
 
 
+        @if(!empty($fromIncident))
+            <input type="hidden" name="from_incident_id" value="{{ $fromIncident->id }}">
+            <div class="alert alert-info d-flex align-items-center mb-3">
+                <i class="fas fa-lightbulb fa-2x me-3 text-info"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">Mendaftarkan Risk Baru dari Temuan Insiden [{{ $fromIncident->incident_code }}]</h5>
+                    <div>Data proses, deskripsi, penyebab, dan estimasi kerugian telah diisikan otomatis dari insiden <strong>{{ $fromIncident->title }}</strong>. Silakan lengkapi kategori dan analisis risiko, lalu simpan. Insiden akan otomatis terhubung ke risk baru ini.</div>
+                </div>
+            </div>
+        @endif
+
         {{-- ==================== TAB 1: BASIC INFO ==================== --}}
         <div role="tabpanel" class="tab-pane {{ $activeTab === 'basic' ? 'active' : '' }}" id="basic">
             <div class="card">
@@ -211,7 +222,7 @@
                                     <option value="">Select Category</option>
                                     @foreach($categories as $cat)
                                         <option value="{{ $cat->id }}" {{ (string) old('risk_category_id') === (string) $cat->id ? 'selected' : '' }}>
-                                            {{ $cat->name }}
+                                             {{ $cat->name }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -223,7 +234,7 @@
                         <div class="col-md-8">
                             <div class="form-group">
                                 <label>Process <span class="text-danger">*</span></label>
-                                <input type="text" name="risk_title" class="form-control" value="{{ old('risk_title') }}" required>
+                                <input type="text" name="risk_title" class="form-control" value="{{ old('risk_title', optional($fromIncident ?? null)->title) }}" required>
                             </div>
                         </div>
 
@@ -234,7 +245,7 @@
                                 <select name="risk_owner" class="form-control" required>
                                     <option value="">Select Risk Owner</option>
                                     @foreach($riskOwners as $owner)
-                                        <option value="{{ $owner }}" {{ old('risk_owner') === $owner ? 'selected' : '' }}>
+                                        <option value="{{ $owner }}" {{ old('risk_owner', optional($fromIncident ?? null)->effective_risk_owner) === $owner ? 'selected' : '' }}>
                                             {{ $owner }}
                                         </option>
                                     @endforeach
@@ -304,7 +315,7 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Risk Identification</label>
-                                <textarea name="risk_description" class="form-control" rows="2"></textarea>
+                                <textarea name="risk_description" class="form-control" rows="2">{{ old('risk_description', optional($fromIncident ?? null)->incident_description) }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -313,7 +324,7 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Cause</label>
-                                <textarea name="cause" class="form-control" rows="2"></textarea>
+                                <textarea name="cause" class="form-control" rows="2">{{ old('cause', optional($fromIncident ?? null)->root_cause) }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -322,7 +333,7 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Existing Control</label>
-                                <textarea name="existing_control" class="form-control" rows="2"></textarea>
+                                <textarea name="existing_control" class="form-control" rows="2">{{ old('existing_control', optional($fromIncident ?? null)->immediate_action ?: optional($fromIncident ?? null)->corrective_action) }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -767,6 +778,7 @@
                                     id="inherent_potential_loss"
                                     name="inherent_potential_loss"
                                     class="form-control"
+                                    value="{{ old('inherent_potential_loss', (!empty($fromIncident) && $fromIncident->loss_amount > 0) ? (int)$fromIncident->loss_amount : '') }}"
                                     placeholder="Auto dari Impact x Probability"
                                 >
                             </div>
