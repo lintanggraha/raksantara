@@ -66,7 +66,7 @@
 <style>
     /* Executive Board Dashboard Theme */
     .executive-dashboard {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family: var(--tblr-font-sans-serif);
         color: #1e293b;
     }
 
@@ -80,8 +80,8 @@
 
     .executive-title {
         font-size: 1.65rem;
-        font-weight: 800;
-        letter-spacing: -0.02em;
+        font-weight: 600;
+        letter-spacing: -0.01em;
         margin: 0;
         color: #ffffff;
     }
@@ -99,8 +99,8 @@
         align-items: center;
         gap: 0.45rem;
         font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
+        font-weight: 600;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
         color: #e2e8f0;
     }
@@ -151,7 +151,7 @@
 
     .exec-kpi-label {
         font-size: 0.72rem;
-        font-weight: 800;
+        font-weight: 600;
         letter-spacing: 0.04em;
         text-transform: uppercase;
         color: #475569;
@@ -160,9 +160,9 @@
 
     .exec-kpi-value {
         font-size: 2.15rem;
-        font-weight: 800;
+        font-weight: 600;
         line-height: 1.1;
-        letter-spacing: -0.03em;
+        letter-spacing: -0.01em;
         margin-bottom: 0.35rem;
     }
 
@@ -193,7 +193,7 @@
 
     .exec-card-title {
         font-size: 0.84rem;
-        font-weight: 800;
+        font-weight: 600;
         letter-spacing: 0.04em;
         text-transform: uppercase;
         color: #0f172a;
@@ -204,7 +204,7 @@
         border-radius: 999px;
         padding: 0.2rem 0.65rem;
         font-size: 0.72rem;
-        font-weight: 700;
+        font-weight: 600;
         line-height: 1;
     }
 
@@ -288,7 +288,7 @@
         background: #ffffff;
         color: #0f172a;
         font-size: 0.68rem;
-        font-weight: 800;
+        font-weight: 600;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -338,7 +338,7 @@
 
     .yoy-bar-value {
         font-size: 0.88rem;
-        font-weight: 800;
+        font-weight: 600;
         color: #0f172a;
         margin-bottom: 0.4rem;
     }
@@ -362,14 +362,14 @@
     .yoy-bar-label {
         margin-top: 0.55rem;
         font-size: 0.72rem;
-        font-weight: 700;
+        font-weight: 600;
         color: #475569;
     }
 
     .yoy-callout {
         color: #16a34a;
         font-size: 0.78rem;
-        font-weight: 800;
+        font-weight: 600;
         text-align: center;
         margin-top: 0.8rem;
     }
@@ -390,10 +390,10 @@
 
     .gauge-score-number {
         font-size: 2.3rem;
-        font-weight: 800;
+        font-weight: 600;
         line-height: 1;
         color: #0f172a;
-        letter-spacing: -0.04em;
+        letter-spacing: -0.01em;
     }
 
     .gauge-score-total {
