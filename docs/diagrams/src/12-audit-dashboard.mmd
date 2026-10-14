@@ -1,0 +1,14 @@
+flowchart TD
+    A["Compliance user opens /audit"] --> B{"Import spreadsheet?"}
+    B -- No --> C["Build dashboard from normal data service"]
+    B -- Yes --> D["Upload XLS or XLSX"]
+    D --> E["Parse spreadsheet"]
+    E --> F{"Rows valid?"}
+    F -- No --> G["Return import error"]
+    F -- Yes --> H["Store imported rows in session"]
+    H --> I["Build dashboard from imported rows"]
+    C --> J["Render audit dashboard"]
+    I --> J
+    J --> K{"Export needed?"}
+    K -- Yes --> L["Export PDF XLS XLSX or PPTX"]
+    K -- No --> M["Continue analysis"]

@@ -1,0 +1,15 @@
+flowchart TD
+    A["User opens monitoring or analytics page"] --> B["Apply RiskAccess visibility scope"]
+    B --> C["Load scoped risks"]
+    C --> D["Join inherent analysis"]
+    C --> E["Join residual analysis"]
+    E --> F["Join radar group and quant profile"]
+    D --> G["Build monitoring widgets"]
+    E --> H["Build heatmap and recap"]
+    F --> I["Build trend and summary data"]
+    G --> J["Render dashboard page"]
+    H --> J
+    I --> J
+    J --> K{"Need report output?"}
+    K -- Yes --> L["Manual export via ReportController"]
+    K -- No --> M["Open risk detail"]

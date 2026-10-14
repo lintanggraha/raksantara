@@ -1,0 +1,51 @@
+erDiagram
+    USER {
+        bigint id PK
+        string username
+        string email
+        string division
+        boolean is_superadmin
+    }
+
+    COMPLIANCE_WORK_PROGRAM {
+        bigint id PK
+        string section
+        string work_id
+        bigint created_by FK
+        string program_kerja
+    }
+
+    SCHEDULED_REPORT {
+        bigint id PK
+        bigint user_id FK
+        string name
+        string scope
+        string format
+        string frequency
+        boolean is_active
+        datetime last_run_at
+        datetime next_run_at
+    }
+
+    SCHEDULED_REPORT_RUN {
+        bigint id PK
+        bigint scheduled_report_id FK
+        string trigger_type
+        string status
+        string format
+        int recipient_count
+        datetime ran_at
+    }
+
+    AUDIT_LOG {
+        bigint id PK
+        bigint actor_id FK
+        string auditable_type
+        bigint auditable_id
+        string event
+    }
+
+    USER ||--o{ COMPLIANCE_WORK_PROGRAM : creates
+    USER ||--o{ SCHEDULED_REPORT : owns
+    SCHEDULED_REPORT ||--o{ SCHEDULED_REPORT_RUN : generates
+    USER ||--o{ AUDIT_LOG : performs

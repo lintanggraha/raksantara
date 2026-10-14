@@ -1,0 +1,17 @@
+flowchart TD
+    A["User opens risk detail"] --> B{"Can manage risk?"}
+    B -- Yes --> C["Add comments attachments treatment evidence RCSA BCM KRI"]
+    B -- No --> D["Read-only detail view"]
+    C --> E{"Requested status change?"}
+    E -- No --> F["Stay on current status"]
+    E -- Yes --> G{"Target status requires approval?"}
+    G -- No --> H["Risk status updated directly"]
+    G -- Yes --> I["Create RiskStatusChangeRequest pending"]
+    I --> J["Superadmin approval queue"]
+    J --> K{"Approve or reject?"}
+    K -- Approve --> L["Risk status updated"]
+    K -- Reject --> M["Risk status unchanged"]
+    C --> N["Audit log entries written"]
+    H --> N
+    L --> N
+    M --> N

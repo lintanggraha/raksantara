@@ -1,0 +1,11 @@
+flowchart TD
+    A["/threat-intelligence"] --> B["Validate filters: keyword severity owasp days limit"]
+    B --> C["ThreatIntelligenceService.buildDashboard"]
+    C --> D["Fetch KEV catalog from cache or CISA feed"]
+    C --> E["Fetch NVD CVE feed from cache or API"]
+    E --> F["Map CVEs to CWE and OWASP"]
+    D --> G["Build KEV index"]
+    F --> H["Enrich CVEs with KEV match"]
+    G --> H
+    H --> I["Build summary severity trend vendor exposure priority queue"]
+    I --> J["Render CVE feed KEV queue sources and analyst console"]

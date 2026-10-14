@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Backend Tests and Security
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: riskmanagementsystem_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      APP_ENV: testing
+      APP_DEBUG: false
+      APP_URL: http://localhost
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: riskmanagementsystem_test
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      CACHE_DRIVER: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      LOG_CHANNEL: stack
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          extensions: mbstring, dom, fileinfo, intl, pdo_mysql, zip, xml, gd
+
+      - name: Refresh trusted CA certificates
+        run: |
+          sudo apt-get update
+          sudo apt-get install --reinstall -y ca-certificates
+          sudo update-ca-certificates
+          composer config --global cafile /etc/ssl/certs/ca-certificates.crt
+          composer config --global --list | grep 'cafile'
+
+      - name: Install backend dependencies
+        run: |
+          for attempt in 1 2 3; do
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress && exit 0
+            if [ "$attempt" -lt 3 ]; then
+              echo "Composer download failed on attempt $attempt; retrying with TLS verification still enabled."
+              sleep $((attempt * 10))
+            fi
+          done
+          exit 1
+
+      - name: Audit backend dependencies
+        run: composer audit --no-interaction
+
+      - name: Check PHP syntax
+        run: find app bootstrap config database routes tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Prepare app key
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Run migrations
+        run: php artisan migrate --force
+
+      - name: Run test suite
+        run: php artisan test
+
+  frontend:
+    name: Frontend Build and Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Audit frontend dependencies
+        run: npm audit --audit-level=high
+
+      - name: Build production assets
+        run: npm run build

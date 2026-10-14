@@ -1,0 +1,22 @@
+flowchart TD
+    A["Superadmin opens governance menu"] --> B{"Module?"}
+    B --> C["User Management"]
+    B --> D["Risk Status Approvals"]
+    B --> E["Risk Alerts"]
+    B --> F["Audit Logs"]
+    C --> G["Verify division"]
+    C --> H["Grant or revoke superadmin"]
+    C --> I["Reset user password"]
+    D --> J["Review pending status request"]
+    J --> K{"Approve or reject"}
+    K -- Approve --> L["Update risk status"]
+    K -- Reject --> M["Keep current risk status"]
+    E --> N["Resolve alert"]
+    F --> O["Trace audit trail"]
+    G --> P["System governance state updated"]
+    H --> P
+    I --> P
+    L --> P
+    M --> P
+    N --> P
+    O --> P

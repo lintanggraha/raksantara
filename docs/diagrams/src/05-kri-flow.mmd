@@ -1,0 +1,14 @@
+flowchart TD
+    A["User opens /kris or risk detail KRI tab"] --> B["Load visible risks and existing KRIs"]
+    B --> C{"Create or update KRI?"}
+    C -- Create --> D["Define metric threshold type warn critical"]
+    C -- Update --> E["Edit metric and thresholds"]
+    D --> F["Validate threshold consistency"]
+    E --> F
+    F --> G["Save KRI"]
+    G --> H["User logs recorded value"]
+    H --> I["Create KriLog"]
+    I --> J["Recalculate KRI status Green Amber Red"]
+    J --> K["Update KRI current_value and status"]
+    K --> L["Refresh KRI dashboard and risk detail"]
+    L --> M["Owner workload can consume red KRI counts"]

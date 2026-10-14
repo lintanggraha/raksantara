@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'options' => [
+        'BT - BANKING APPLICATIONS',
+        'BT - CORE BANKING SYSTEM CONVENTIONAL',
+        'BT - CORE BANKING SYSTEM SYARIAH',
+        'PM - REGULATORY & FINANCIAL REPORTING',
+        'QA - QA & INNOVATION',
+        'DI - DIGITAL SOLUTION',
+        'OM - BUSINESS & DIGITAL OPERATION',
+        'BT - DIGITAL BANKING',
+        'BT - SURROUNDING APPLICATION',
+        'IF - SWITCHING & MIDDLEWARE',
+        'BS - BUSINESS STRATEGY',
+        'CR - CUSTOMER RELATIONS',
+        'OM - DATA CENTER OPERATION',
+        'IF - INFRASTRUCTURE',
+        'OM - IT OPERATION MANAGEMENT',
+        'RI - RESEARCH & INNOVATION',
+        'BS - CEO OFFICE',
+        'CS - CYBER SECURITY',
+        'BS - BUSINESS SUPPORT',
+        'HC - HC, FINANCE, & LEGAL',
+        'CO - COMPLIANCE',
+    ],
+];

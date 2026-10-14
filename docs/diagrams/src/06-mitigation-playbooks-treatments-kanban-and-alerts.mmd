@@ -1,0 +1,18 @@
+flowchart TD
+    A["Manage playbook library"] --> B["Create or update RiskTreatmentTemplate"]
+    B --> C["Risk create or edit selects playbook"]
+    C --> D["RiskTreatment records created or updated"]
+    D --> E["/mitigation-kanban"]
+    E --> F["Load scoped treatment cards"]
+    F --> G{"Drag card to new status"}
+    G -- Blocked --> H["Blocked reason required"]
+    G -- Completed --> I["Evidence attachment required"]
+    G -- In Progress or Not Started --> J["Save status"]
+    H --> J
+    I --> J
+    J --> K["Update status_updated_at and optional next_action_at"]
+    K --> L["Risk scan command checks deadlines"]
+    L --> M{"Due soon or overdue?"}
+    M -- Yes --> N["Open RiskAlert"]
+    M -- No --> O["Resolve old alert if applicable"]
+    N --> P["Superadmin reviews and resolves alert"]

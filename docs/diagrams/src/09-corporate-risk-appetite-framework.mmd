@@ -1,0 +1,20 @@
+flowchart TD
+    A["Superadmin opens /risk-appetites"] --> B{"Create edit deactivate?"}
+    B --> C["Define framework"]
+    C --> D["Set metric: qualitative score or loss"]
+    D --> E["Set appetite target and tolerance"]
+    E --> F["Set active or inactive"]
+    F --> G["Framework saved"]
+    G --> H["Risk create or edit can link risk_appetite_id"]
+    H --> I["Residual analysis available"]
+    I --> J["RiskAppetiteEvaluator runs"]
+    J --> K{"Linked appetite quantitative?"}
+    K -- Yes --> L["Compare current residual vs appetite and tolerance"]
+    K -- No --> M{"Fallback radar quant profile available?"}
+    M -- Yes --> N["Use radar quant profile fallback"]
+    M -- No --> O["No automated threshold"]
+    L --> P{"Within warning or breach?"}
+    N --> P
+    P -- Warning or breach --> Q["Create risk_appetite_threshold_breach alert"]
+    P -- Within --> R["Resolve old threshold alert"]
+    Q --> S["Superadmin resolves alert"]

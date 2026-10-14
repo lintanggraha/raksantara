@@ -1,0 +1,15 @@
+flowchart TD
+    A["Compliance user opens compliance section"] --> B{"Section?"}
+    B --> C["Internal Audit"]
+    B --> D["Risk Management"]
+    B --> E["Governance and Compliance"]
+    C --> F["List programs by section"]
+    D --> F
+    E --> F
+    F --> G{"Create or edit program?"}
+    G -- Create --> H["Generate next work_id preview"]
+    G -- Edit --> I["Load existing work program"]
+    H --> J["Validate business fields"]
+    I --> J
+    J --> K["Persist ComplianceWorkProgram"]
+    K --> L["Return to section index"]
