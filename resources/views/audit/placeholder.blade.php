@@ -817,7 +817,7 @@
                             <div class="audit-panel-body">
                                 <canvas id="auditProgressRegionChart" height="240"></canvas>
                                 <div class="audit-highlight mt-2">
-                                    Region view diturunkan dari mapping bank internal deck: Region 1 (Aceh/Bengkulu/Sumut), Region 2 (Sulteng), Internal Collega.
+                                    Region view diturunkan dari kolom region pada mapping bank di konfigurasi audit dashboard.
                                 </div>
                             </div>
                         </div>

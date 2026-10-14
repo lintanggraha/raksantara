@@ -136,7 +136,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <small class="text-muted d-block mt-1">Divisi Collega yang bertanggung jawab terhadap insiden ini.</small>
+                    <small class="text-muted d-block mt-1">Divisi atau unit yang bertanggung jawab terhadap insiden ini.</small>
                 </div>
 
                 <div class="col-md-6">
@@ -148,19 +148,19 @@
                             name="affected_client" 
                             id="edit_affected_client" 
                             class="form-control" 
-                            list="collega_client_list" 
-                            placeholder="Pilih atau ketik nama client (contoh: BANK SULTENG)"
+                            list="affected_party_list" 
+                            placeholder="Pilih atau ketik nama client (contoh: BANK CONTOH A)"
                             value="{{ old('affected_client', $incident->affected_client) }}"
                             maxlength="150"
                         >
                     </div>
-                    <datalist id="collega_client_list">
+                    <datalist id="affected_party_list">
                         @foreach($clientOptions as $cOpt)
                             <option value="{{ $cOpt }}">{{ $cOpt }}</option>
                         @endforeach
                     </datalist>
                     <small class="text-muted d-block mt-1">
-                        Pilih bank client Collega dari daftar atau perbarui nama client/mitra terdampak.
+                        Pilih client atau pihak terdampak dari daftar atau perbarui nama client/mitra terdampak.
                     </small>
                 </div>
 

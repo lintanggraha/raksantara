@@ -198,7 +198,7 @@
         <h3 class="card-title mb-0">Summary Recap (By Radar Code)</h3>
     </div>
     <div class="card-body table-responsive p-0">
-        <table class="table table-bordered table-sm mb-0 recap-table">
+        <table class="table table-bordered table-sm mb-0 recap-table" data-no-sort>
             <thead>
                 <tr>
                     <th class="head-main" rowspan="2">Risk Categorization</th>
@@ -259,7 +259,7 @@
         <h3 class="card-title mb-0">Detailed Recap</h3>
     </div>
     <div class="card-body table-responsive p-0">
-        <table class="table table-bordered table-sm mb-0 recap-table">
+        <table class="table table-bordered table-sm mb-0 recap-table" data-no-sort>
             <thead>
                 <tr>
                     <th class="head-main" rowspan="2">Risk Categorization</th>

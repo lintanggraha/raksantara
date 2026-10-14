@@ -195,7 +195,7 @@
     <div class="card-body">
         <div class="heatmap-wrapper">
             <div class="heatmap-title">Likelihood vs Impact</div>
-            <table class="heatmap-grid">
+            <table class="heatmap-grid" data-no-sort>
                 <tbody>
                 @for($probability = 5; $probability >= 1; $probability--)
                     <tr>

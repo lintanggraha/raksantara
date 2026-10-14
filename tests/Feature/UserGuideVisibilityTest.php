@@ -25,7 +25,7 @@ class UserGuideVisibilityTest extends TestCase
             ->assertSee('id="guide-superadmin-tab"', false)
             ->assertSee('id="guide-intel-tab"', false)
             ->assertSee('Reset Password')
-            ->assertSee('Threshold Metric')
+            ->assertSee('Berlaku untuk kategori')
             ->assertSee('Review note (required)')
             ->assertSee('Resolve')
             ->assertDontSee('id="guide-risk-tab"', false)

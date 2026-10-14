@@ -39,7 +39,9 @@ class KriController extends Controller
 
         $summary = [
             'total' => (clone $summaryQuery)->count(),
-            'green' => (clone $summaryQuery)->where('status', 'Green')->count(),
+            // A KRI without a reading is not "healthy"; it has no data yet.
+            'green' => (clone $summaryQuery)->where('status', 'Green')->whereNotNull('current_value')->count(),
+            'no_data' => (clone $summaryQuery)->whereNull('current_value')->count(),
             'amber' => (clone $summaryQuery)->where('status', 'Amber')->count(),
             'red' => (clone $summaryQuery)->where('status', 'Red')->count(),
             'quality_valid' => (clone $summaryQuery)->where('data_quality_status', 'valid')->count(),

@@ -17,7 +17,8 @@ class RiskAppetiteEvaluator
         $residualScore = (int) (optional($residual)->residual_risk_score ?? 0);
         $residualLoss = (int) (optional($residual)->potential_loss ?? 0);
 
-        $appetite = $risk->riskAppetite;
+        // Override on the risk, else its category's appetite, else the default.
+        $appetite = RiskAppetite::effectiveFor($risk);
         if ($appetite instanceof RiskAppetite) {
             $appetiteEvaluation = self::evaluateLinkedAppetite($appetite, $hasResidual, $residualScore, $residualLoss);
             if ($appetiteEvaluation['source'] !== 'fallback_required') {

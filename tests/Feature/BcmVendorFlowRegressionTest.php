@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Bia;
+use App\BusinessService;
 use App\Risk;
 use App\RiskCategory;
 use App\User;
@@ -16,55 +16,31 @@ class BcmVendorFlowRegressionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_bcm_dashboard_only_shows_visible_risks_and_hides_foreign_bia_targets(): void
+    public function test_bcm_catalogue_only_shows_services_of_visible_units(): void
     {
         $viewer = $this->createUser('BT - DIGITAL BANKING', false);
-        $owner = $this->createUser('CO - COMPLIANCE', false);
 
-        $ownRisk = $this->createRiskRecord($viewer, 'BT - DIGITAL BANKING', 'Own BCM Risk');
-        $foreignRiskWithBia = $this->createRiskRecord($owner, 'CO - COMPLIANCE', 'Foreign BCM Risk');
-        $foreignRiskWithoutBia = $this->createRiskRecord($owner, 'CO - COMPLIANCE', 'Foreign Available BCM Risk');
-
-        Bia::create([
-            'risk_id' => $ownRisk->id,
-            'criticality_tier' => 'Tier 2',
-        ]);
-
-        Bia::create([
-            'risk_id' => $foreignRiskWithBia->id,
-            'criticality_tier' => 'Tier 1',
-        ]);
+        BusinessService::create(['code' => 'SVC-901', 'name' => 'Own Digital Service', 'owner_unit' => 'BT - DIGITAL BANKING', 'status' => 'active']);
+        BusinessService::create(['code' => 'SVC-902', 'name' => 'Foreign Compliance Service', 'owner_unit' => 'CO - COMPLIANCE', 'status' => 'active']);
 
         $this->actingAs($viewer);
 
         $this->get(route('bcm.index'))
             ->assertOk()
-            ->assertSee('Own BCM Risk')
-            ->assertDontSee('Foreign BCM Risk')
-            ->assertDontSee('Foreign Available BCM Risk');
+            ->assertSee('Own Digital Service')
+            ->assertDontSee('Foreign Compliance Service');
     }
 
-    public function test_non_compliance_user_cannot_update_foreign_bia_or_bcp(): void
+    public function test_non_compliance_user_cannot_view_or_update_foreign_service(): void
     {
         $viewer = $this->createUser('BT - DIGITAL BANKING', false);
-        $owner = $this->createUser('CO - COMPLIANCE', false);
-        $foreignRisk = $this->createRiskRecord($owner, 'CO - COMPLIANCE', 'Foreign Protected BCM Risk');
-        $foreignBia = Bia::create([
-            'risk_id' => $foreignRisk->id,
-            'criticality_tier' => 'Tier 1',
-        ]);
+        $foreign = BusinessService::create(['code' => 'SVC-903', 'name' => 'Foreign Protected Service', 'owner_unit' => 'CO - COMPLIANCE', 'status' => 'active']);
 
         $this->actingAs($viewer);
 
-        $this->post(route('bia.store', $foreignRisk->id), [
-            'rto' => '1 Hour',
-            'criticality_tier' => 'Tier 1',
-        ])->assertForbidden();
-
-        $this->post(route('bcp.store', $foreignBia->id), [
-            'testing_frequency' => 'Annual',
-            'last_test_result' => 'Pass',
-        ])->assertForbidden();
+        $this->get(route('bcm.services.show', $foreign))->assertNotFound();
+        $this->put(route('bcm.bcp.update', $foreign), ['strategy_summary' => 'x'])->assertNotFound();
+        $this->assertDatabaseMissing('service_bcps', ['business_service_id' => $foreign->id]);
     }
 
     public function test_vendor_detail_only_lists_visible_risks(): void
@@ -87,7 +63,7 @@ class BcmVendorFlowRegressionTest extends TestCase
             ->assertDontSee('Foreign Vendor Risk');
     }
 
-    public function test_create_risk_page_includes_vendor_field_and_can_continue_to_bcm(): void
+    public function test_create_risk_page_includes_vendor_field_and_can_continue_to_services(): void
     {
         $user = $this->createUser('BT - DIGITAL BANKING', false);
         $vendor = Vendor::create([
@@ -103,7 +79,7 @@ class BcmVendorFlowRegressionTest extends TestCase
             ->assertSee('Mitigation Playbook (Optional)')
             ->assertSee('Add Treatment Manually')
             ->assertSee('ensureAtLeastOneTreatmentRow', false)
-            ->assertSee('SAVE & CONTINUE TO BCM', false);
+            ->assertSee('SAVE & LINK TO SERVICES', false);
 
         $response = $this->post(route('risks.store'), [
             'risk_title' => 'Create Flow BCM Risk',
@@ -115,7 +91,7 @@ class BcmVendorFlowRegressionTest extends TestCase
 
         $risk = Risk::query()->where('risk_title', 'Create Flow BCM Risk')->firstOrFail();
 
-        $response->assertRedirect(route('risks.show', $risk->id) . '#bcm');
+        $response->assertRedirect(route('risks.show', $risk->id) . '#services');
 
         $this->assertDatabaseHas('risks', [
             'id' => $risk->id,
@@ -123,7 +99,7 @@ class BcmVendorFlowRegressionTest extends TestCase
         ]);
     }
 
-    public function test_edit_risk_can_continue_to_bcm(): void
+    public function test_edit_risk_can_continue_to_services(): void
     {
         $user = $this->createUser('BT - DIGITAL BANKING', false);
         $risk = $this->createRiskRecord($user, 'BT - DIGITAL BANKING', 'Editable BCM Risk');
@@ -135,7 +111,7 @@ class BcmVendorFlowRegressionTest extends TestCase
             ->assertSee('Mitigation Playbook (Optional)')
             ->assertSee('Add Treatment Manually')
             ->assertSee('ensureAtLeastOneTreatmentRow', false)
-            ->assertSee('UPDATE & OPEN BCM', false);
+            ->assertSee('UPDATE & LINK TO SERVICES', false);
 
         $response = $this->put(route('risks.update', $risk->id), [
             'risk_title' => 'Editable BCM Risk Updated',
@@ -145,7 +121,7 @@ class BcmVendorFlowRegressionTest extends TestCase
             'post_submit_action' => 'bcm',
         ]);
 
-        $response->assertRedirect(route('risks.show', $risk->id) . '#bcm');
+        $response->assertRedirect(route('risks.show', $risk->id) . '#services');
 
         $this->assertDatabaseHas('risks', [
             'id' => $risk->id,

@@ -224,9 +224,9 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label>Corporate Risk Appetite</label>
+                                <label>Risk Appetite (override)</label>
                                 <select name="risk_appetite_id" class="form-control">
-                                    <option value="">None / Custom</option>
+                                    <option value="">Ikuti appetite kategori (default)</option>
                                     @foreach($riskAppetites ?? [] as $appetite)
                                         <option value="{{ $appetite->id }}" {{ (string) old('risk_appetite_id', $risk->risk_appetite_id) === (string) $appetite->id ? 'selected' : '' }}>
                                             {{ $appetite->name }}
@@ -238,7 +238,7 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                <small class="text-muted">Linked appetite will drive threshold checks when quantitative thresholds are configured.</small>
+                                <small class="text-muted">Kosongkan agar risk memakai appetite kategorinya. Pilih hanya bila risk ini butuh batas berbeda.</small>
                             </div>
                         </div>
 
@@ -1014,7 +1014,7 @@
                         </div>
                         <div class="col-md-4">
                             <button type="submit" name="post_submit_action" value="bcm" class="btn btn-info btn-lg btn-block">
-                                <i class="fas fa-life-ring"></i> UPDATE & OPEN BCM
+                                <i class="fas fa-life-ring"></i> UPDATE & LINK TO SERVICES
                             </button>
                         </div>
                     </div>

@@ -29,27 +29,6 @@ class RiskIncident extends Model
         'Effective',
     ];
 
-    public const COLLEGA_CLIENTS = [
-        'BANK ACEH',
-        'BANK BENGKULU',
-        'BANK KALTENG',
-        'BANK SULTENG',
-        'BANK SULUTGO',
-        'BANK SUMUT',
-        'BANK NTT',
-        'BANK MALUKU MALUT',
-        'BANK PAPUA',
-        'BANK BANTEN',
-        'BANK LAMPUNG',
-        'BANK JAMBI',
-        'BANK RIAU KEPRI',
-        'BANK NAGARI',
-        'BANK NTB SYARIAH',
-        'BANK SULSELBAR',
-        'COLLEGA (INTERNAL)',
-        'SEMUA CLIENT / MULTI CLIENT',
-    ];
-
     protected $fillable = [
         'incident_code',
         'risk_id',
@@ -80,14 +59,17 @@ class RiskIncident extends Model
         'closed_at',
     ];
 
-    public static function getCollegaClients(): array
+    /**
+     * Autocomplete suggestions for the affected client / party field.
+     */
+    public static function affectedPartyOptions(): array
     {
         $configBanks = collect(config('audit_dashboard.bank.mappings', []))
             ->pluck('name')
             ->filter()
             ->all();
 
-        $all = array_unique(array_merge(self::COLLEGA_CLIENTS, $configBanks));
+        $all = array_unique(array_merge((array) config('incidents.affected_parties', []), $configBanks));
         sort($all);
 
         return array_values($all);

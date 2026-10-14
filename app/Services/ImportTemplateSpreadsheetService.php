@@ -532,7 +532,7 @@ class ImportTemplateSpreadsheetService
 
         $sheet->fromArray([
             'ATM-' . $year . '-001',
-            'COLLEGA',
+            'INTERNAL',
             $year,
             'Digital Banking',
             'Digital Banking',
@@ -553,7 +553,7 @@ class ImportTemplateSpreadsheetService
 
         $sheet->fromArray([
             'ATM-' . $year . '-002',
-            'COLLEGA',
+            'INTERNAL',
             $year,
             'IT Operation',
             'IT Operation',

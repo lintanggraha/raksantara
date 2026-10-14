@@ -18,6 +18,33 @@ yarn-error.log
 /*.xlsx
 /*.xls
 
-# Regional investigation seeders contain sensitive incident data; keep them on local machines only
-/database/seeders/SultengChecklistSeeder.php
-/database/seeders/SumutChecklistSeeder.php
+
+
+# Organisation-specific data (real client names, audit results, risk register) stays local.
+# See private/README.md for the files the app picks up from here.
+/private/*
+!/private/README.md
+/database/seeders/data/
+/database/seeders/seed_dummy_rms.sql
+
+# Internal review reports and scratch files
+/docs/0[0-5]-*.md
+/docs/dashboard-refactor-report.md
+/public/assets/image/asdf.mwb
+/public/assets/image/asdf.mwb.bak
+
+# Optional local-only routes and views
+/routes/local.php
+/resources/views/local/
+
+# Local AI/editor tooling
+/.agents/
+/.vscode/mcp.json
+/.github/copilot-instructions.md
+/skills-lock.json
+
+# Old internal reports, local DB helper, and a scraped third-party bundle used only by scripts/
+/EXECUTION_REPORT.md
+/SCA_REPORT.md
+/mysql.sh
+/nist_bundle.js

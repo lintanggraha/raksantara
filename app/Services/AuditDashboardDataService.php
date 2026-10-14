@@ -52,236 +52,24 @@ class AuditDashboardDataService
     private function buildFromPptSnapshot(array $filters): array
     {
         $statusColors = $this->statusColors();
+        $snapshot = $this->snapshotData();
 
-        $summaryRows = [
-            ['label' => 'Closed', 'count' => 30],
-            ['label' => 'Domain Bank', 'count' => 5],
-            ['label' => 'On Progress', 'count' => 41],
-        ];
+        $summaryRows = $snapshot['summary_rows'];
+        $overdueRows = $snapshot['overdue_rows'];
+        $rekapRows = $snapshot['rekap_rows'];
+        $progressByBankRows = $snapshot['progress_by_bank'];
+        $progressByRegionRows = $snapshot['progress_by_region'];
+        $detailRows = $snapshot['detail_rows'];
+        $mapPoints = array_map(function (array $point) {
+            $coords = $this->coordinatesByBank((string) $point['bank']);
 
-        $overdueRows = [
-            ['label' => 'Closed', 'count' => 24],
-            ['label' => 'Domain Bank', 'count' => 3],
-            ['label' => 'On Progress', 'count' => 2],
-        ];
-
-        $rekapRows = [
-            ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Jaringan Komunikasi Data', 'total' => 2, 'closed' => 0, 'on_progress' => 2, 'domain_bank' => 0],
-            ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Operasional', 'total' => 2, 'closed' => 0, 'on_progress' => 2, 'domain_bank' => 0],
-            ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Operasional DC & DRC', 'total' => 23, 'closed' => 0, 'on_progress' => 23, 'domain_bank' => 0],
-            ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Organisasi & Manajemen', 'total' => 7, 'closed' => 0, 'on_progress' => 7, 'domain_bank' => 0],
-            ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Pengembangan Aplikasi', 'total' => 2, 'closed' => 0, 'on_progress' => 2, 'domain_bank' => 0],
-            ['region' => 'Internal Collega', 'bank' => 'COLLEGA', 'year' => '2025', 'auditee' => 'Service Desk', 'total' => 3, 'closed' => 0, 'on_progress' => 3, 'domain_bank' => 0],
-            ['region' => 'Region 1', 'bank' => 'BANK ACEH', 'year' => '2024', 'auditee' => 'Pentest CBS', 'total' => 7, 'closed' => 7, 'on_progress' => 0, 'domain_bank' => 0],
-            ['region' => 'Region 1', 'bank' => 'BANK BENGKULU', 'year' => '2025', 'auditee' => 'Audit Pentest SCV', 'total' => 8, 'closed' => 8, 'on_progress' => 0, 'domain_bank' => 0],
-            ['region' => 'Region 1', 'bank' => 'BANK BENGKULU', 'year' => '2025', 'auditee' => 'Pemenuhan KHP TI Bank Bengkulu', 'total' => 5, 'closed' => 3, 'on_progress' => 2, 'domain_bank' => 0],
-            ['region' => 'Region 1', 'bank' => 'BANK SUMUT', 'year' => '2024', 'auditee' => 'Audit DC & DRC 2024', 'total' => 8, 'closed' => 6, 'on_progress' => 0, 'domain_bank' => 2],
-            ['region' => 'Region 2', 'bank' => 'BANK SULTENG', 'year' => '2024', 'auditee' => 'Audit SCV', 'total' => 9, 'closed' => 6, 'on_progress' => 0, 'domain_bank' => 3],
-        ];
-
-        $progressByBankRows = [
-            [
-                'group' => 'BANK ACEH',
-                'total' => 7,
-                'counts' => ['Closed' => 7, 'Domain Bank' => 0, 'On Progress' => 0],
-                'percentages' => ['Closed' => 100.00, 'Domain Bank' => 0.00, 'On Progress' => 0.00],
-            ],
-            [
-                'group' => 'BANK BENGKULU',
-                'total' => 13,
-                'counts' => ['Closed' => 11, 'Domain Bank' => 0, 'On Progress' => 2],
-                'percentages' => ['Closed' => 84.62, 'Domain Bank' => 0.00, 'On Progress' => 15.38],
-            ],
-            [
-                'group' => 'BANK SULTENG',
-                'total' => 9,
-                'counts' => ['Closed' => 6, 'Domain Bank' => 3, 'On Progress' => 0],
-                'percentages' => ['Closed' => 66.67, 'Domain Bank' => 33.33, 'On Progress' => 0.00],
-            ],
-            [
-                'group' => 'BANK SUMUT',
-                'total' => 8,
-                'counts' => ['Closed' => 6, 'Domain Bank' => 2, 'On Progress' => 0],
-                'percentages' => ['Closed' => 75.00, 'Domain Bank' => 25.00, 'On Progress' => 0.00],
-            ],
-            [
-                'group' => 'COLLEGA',
-                'total' => 39,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 39],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-        ];
-
-        $progressByRegionRows = [
-            [
-                'group' => 'Region',
-                'total' => 76,
-                'counts' => ['Closed' => 30, 'Domain Bank' => 5, 'On Progress' => 41],
-                'percentages' => ['Closed' => 39.47, 'Domain Bank' => 6.58, 'On Progress' => 53.95],
-            ],
-        ];
-
-        $progressByProductRows = [
-            [
-                'group' => 'ALL DIVISI',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'CBS CONVEN, CBS SYARIAH',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'CBS SYARIAH',
-                'total' => 7,
-                'counts' => ['Closed' => 7, 'Domain Bank' => 0, 'On Progress' => 0],
-                'percentages' => ['Closed' => 100.00, 'Domain Bank' => 0.00, 'On Progress' => 0.00],
-            ],
-            [
-                'group' => 'CR',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'CR, ITOM',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'DC',
-                'total' => 1,
-                'counts' => ['Closed' => 1, 'Domain Bank' => 0, 'On Progress' => 0],
-                'percentages' => ['Closed' => 100.00, 'Domain Bank' => 0.00, 'On Progress' => 0.00],
-            ],
-            [
-                'group' => 'HCFL',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'HCFL, CR',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'HCFL, INFRA',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'INFRA',
-                'total' => 29,
-                'counts' => ['Closed' => 3, 'Domain Bank' => 0, 'On Progress' => 26],
-                'percentages' => ['Closed' => 10.34, 'Domain Bank' => 0.00, 'On Progress' => 89.66],
-            ],
-            [
-                'group' => 'INFRA & ITOM',
-                'total' => 4,
-                'counts' => ['Closed' => 3, 'Domain Bank' => 1, 'On Progress' => 0],
-                'percentages' => ['Closed' => 75.00, 'Domain Bank' => 25.00, 'On Progress' => 0.00],
-            ],
-            [
-                'group' => 'INFRA, BUSINESS SUPPORT',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'ITOM',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'RFR',
-                'total' => 16,
-                'counts' => ['Closed' => 13, 'Domain Bank' => 3, 'On Progress' => 0],
-                'percentages' => ['Closed' => 81.25, 'Domain Bank' => 18.75, 'On Progress' => 0.00],
-            ],
-            [
-                'group' => 'SURROUNDING',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-            [
-                'group' => 'SURROUNDING, INFRA',
-                'total' => 1,
-                'counts' => ['Closed' => 0, 'Domain Bank' => 0, 'On Progress' => 1],
-                'percentages' => ['Closed' => 0.00, 'Domain Bank' => 0.00, 'On Progress' => 100.00],
-            ],
-        ];
-
-        $detailRows = [
-            ['bank' => 'BANK ACEH', 'date' => '28', 'month' => 'March', 'year' => '2024', 'product' => 'CBS SYARIAH', 'product_name' => 'OLIBS 724 BE', 'status_detail' => 'Closed 100%', 'pic' => 'CBS SYARIAH', 'log_css' => 'DK202402055', 'status_summary' => 'Closed', 'task' => 'Evaluasi konfigurasi keamanan web service Back End Core Banking.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK ACEH', 'date' => '29', 'month' => 'February', 'year' => '2024', 'product' => 'CBS SYARIAH', 'product_name' => 'OLIBS 724 BE', 'status_detail' => 'Closed 100%', 'pic' => 'CBS SYARIAH', 'log_css' => 'DK202402053', 'status_summary' => 'Closed', 'task' => 'Perbaikan kontrol HTTP method dan hardening policy aplikasi.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK BENGKULU', 'date' => '9', 'month' => 'September', 'year' => '2025', 'product' => 'INFRA', 'product_name' => 'CBS', 'status_detail' => 'Closed 100%', 'pic' => 'INFRA', 'log_css' => 'GP202507058', 'status_summary' => 'Closed', 'task' => 'Penerapan firewall policy dan perbaikan konfigurasi jaringan.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK BENGKULU', 'date' => '9', 'month' => 'September', 'year' => '2025', 'product' => 'INFRA', 'product_name' => 'FDS', 'status_detail' => 'On Progress', 'pic' => 'INFRA', 'log_css' => 'GP202507063', 'status_summary' => 'On Progress', 'task' => 'Monitoring security incident dan tuning alert di FDS.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK BENGKULU', 'date' => '9', 'month' => 'September', 'year' => '2025', 'product' => 'INFRA', 'product_name' => 'ISO', 'status_detail' => 'Closed 100%', 'pic' => 'INFRA', 'log_css' => 'GP202507060', 'status_summary' => 'Closed', 'task' => 'Penyesuaian dokumen ISO sesuai hasil audit terbaru.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK BENGKULU', 'date' => '9', 'month' => 'September', 'year' => '2025', 'product' => 'INFRA', 'product_name' => 'OS', 'status_detail' => 'On Progress', 'pic' => 'INFRA', 'log_css' => 'GP202507062', 'status_summary' => 'On Progress', 'task' => 'Hardening OS dan patching berkala server kritikal.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK BENGKULU', 'date' => '9', 'month' => 'September', 'year' => '2025', 'product' => 'INFRA', 'product_name' => 'SOP', 'status_detail' => 'Closed 100%', 'pic' => 'INFRA', 'log_css' => 'GP202507059', 'status_summary' => 'Closed', 'task' => 'Pembaruan SOP operasional sesuai catatan audit.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK BENGKULU', 'date' => '17', 'month' => 'July', 'year' => '2024', 'product' => 'RFR', 'product_name' => 'SCV', 'status_detail' => 'Closed 100%', 'pic' => 'RFR', 'log_css' => '0', 'status_summary' => 'Closed', 'task' => 'Penutupan celah input validation dan dependency vulnerability.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK SULTENG', 'date' => '31', 'month' => 'May', 'year' => '2025', 'product' => 'RFR', 'product_name' => 'SCV', 'status_detail' => 'Closed 100%', 'pic' => 'RFR', 'log_css' => '0', 'status_summary' => 'Closed', 'task' => 'Perbaikan kontrol kredensial dan enkripsi data.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK SULTENG', 'date' => '12', 'month' => 'June', 'year' => '2024', 'product' => 'DC', 'product_name' => 'SCV', 'status_detail' => 'Closed 100%', 'pic' => 'ITOM', 'log_css' => 'CP202405052', 'status_summary' => 'Closed', 'task' => 'Perbaikan keandalan storage dan backup data center.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK SULTENG', 'date' => '12', 'month' => 'June', 'year' => '2024', 'product' => 'RFR', 'product_name' => 'SCV', 'status_detail' => 'Closed 100%', 'pic' => 'REGION 2', 'log_css' => 'CK202405005', 'status_summary' => 'Domain Bank', 'task' => 'Penyelesaian temuan yang memerlukan aksi domain bank.', 'assigned_to' => 'Null', 'is_overdue' => true],
-            ['bank' => 'BANK SUMUT', 'date' => '-', 'month' => 'Null', 'year' => '2024', 'product' => 'INFRA & ITOM', 'product_name' => 'INFRA & ITOM', 'status_detail' => 'Closed 100%', 'pic' => 'INFRA & ITOM', 'log_css' => '0', 'status_summary' => 'Closed', 'task' => 'Improvement kapasitas DRC dan sinkronisasi backup.', 'assigned_to' => 'Null', 'is_overdue' => false],
-            ['bank' => 'COLLEGA', 'date' => '-', 'month' => 'Null', 'year' => '2025', 'product' => 'ALL DIVISI', 'product_name' => 'ALL DIVISI', 'status_detail' => 'On Progress', 'pic' => 'ALL DIVISI', 'log_css' => '0', 'status_summary' => 'On Progress', 'task' => 'Persiapan pembaruan struktur organisasi dan dokumen internal.', 'assigned_to' => 'Null', 'is_overdue' => false],
-            ['bank' => 'COLLEGA', 'date' => '-', 'month' => 'Null', 'year' => '2025', 'product' => 'CR', 'product_name' => 'CR, ITOM', 'status_detail' => 'On Progress', 'pic' => 'CR, ITOM', 'log_css' => '0', 'status_summary' => 'On Progress', 'task' => 'Penguatan proses incident response dan monitoring akses.', 'assigned_to' => 'Null', 'is_overdue' => false],
-            ['bank' => 'COLLEGA', 'date' => '-', 'month' => 'Null', 'year' => '2025', 'product' => 'INFRA', 'product_name' => 'INFRA', 'status_detail' => 'On Progress', 'pic' => 'INFRA', 'log_css' => '0', 'status_summary' => 'On Progress', 'task' => 'Peningkatan reliability DRC dan konfigurasi server.', 'assigned_to' => 'Null', 'is_overdue' => false],
-            ['bank' => 'COLLEGA', 'date' => '-', 'month' => 'Null', 'year' => '2025', 'product' => 'SURROUNDING', 'product_name' => 'SURROUNDING', 'status_detail' => 'On Progress', 'pic' => 'SURROUNDING', 'log_css' => '0', 'status_summary' => 'On Progress', 'task' => 'Perbaikan integrasi aplikasi surrounding dengan CBS.', 'assigned_to' => 'Null', 'is_overdue' => false],
-        ];
-
-        $mapPoints = [
-            ['bank' => 'BANK ACEH', 'lat' => (float) $this->coordinatesByBank('BANK ACEH')['lat'], 'lng' => (float) $this->coordinatesByBank('BANK ACEH')['lng'], 'total' => 7, 'closed' => 7, 'domain_bank' => 0, 'on_progress' => 0],
-            ['bank' => 'BANK BENGKULU', 'lat' => (float) $this->coordinatesByBank('BANK BENGKULU')['lat'], 'lng' => (float) $this->coordinatesByBank('BANK BENGKULU')['lng'], 'total' => 13, 'closed' => 11, 'domain_bank' => 0, 'on_progress' => 2],
-            ['bank' => 'BANK SULTENG', 'lat' => (float) $this->coordinatesByBank('BANK SULTENG')['lat'], 'lng' => (float) $this->coordinatesByBank('BANK SULTENG')['lng'], 'total' => 9, 'closed' => 6, 'domain_bank' => 3, 'on_progress' => 0],
-            ['bank' => 'BANK SUMUT', 'lat' => (float) $this->coordinatesByBank('BANK SUMUT')['lat'], 'lng' => (float) $this->coordinatesByBank('BANK SUMUT')['lng'], 'total' => 8, 'closed' => 6, 'domain_bank' => 2, 'on_progress' => 0],
-            ['bank' => 'COLLEGA', 'lat' => (float) $this->coordinatesByBank('COLLEGA')['lat'], 'lng' => (float) $this->coordinatesByBank('COLLEGA')['lng'], 'total' => 39, 'closed' => 0, 'domain_bank' => 0, 'on_progress' => 39],
-        ];
-
-        $dueByBank = [
-            ['group' => 'BANK ACEH', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 7, 'grand_total' => 7],
-            ['group' => 'BANK BENGKULU', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 7, 'grand_total' => 13],
-            ['group' => 'BANK SULTENG', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 9, 'grand_total' => 9],
-            ['group' => 'Grand Total', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 23, 'grand_total' => 29, 'is_total' => true],
-        ];
-
-        $dueByDivision = [
-            ['group' => 'CBS SYARIAH', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 7, 'grand_total' => 7],
-            ['group' => 'INFRA', '<=6 Bulan' => 5, '<=9 Bulan' => 0, '>9 Bulan' => 0, 'grand_total' => 5],
-            ['group' => 'ITOM', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 1, 'grand_total' => 1],
-            ['group' => 'REGION 2', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 8, 'grand_total' => 8],
-            ['group' => 'RFR', '<=6 Bulan' => 0, '<=9 Bulan' => 1, '>9 Bulan' => 7, 'grand_total' => 8],
-            ['group' => 'Grand Total', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 23, 'grand_total' => 29, 'is_total' => true],
-        ];
-
-        $dueByProduct = [
-            ['group' => 'CBS SYARIAH', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 7, 'grand_total' => 7],
-            ['group' => 'DC', '<=6 Bulan' => 0, '<=9 Bulan' => 0, '>9 Bulan' => 1, 'grand_total' => 1],
-            ['group' => 'INFRA', '<=6 Bulan' => 5, '<=9 Bulan' => 0, '>9 Bulan' => 0, 'grand_total' => 5],
-            ['group' => 'RFR', '<=6 Bulan' => 0, '<=9 Bulan' => 1, '>9 Bulan' => 15, 'grand_total' => 16],
-            ['group' => 'Grand Total', '<=6 Bulan' => 5, '<=9 Bulan' => 1, '>9 Bulan' => 23, 'grand_total' => 29, 'is_total' => true],
-        ];
-
-        $trendCreated = $this->buildSnapshotTrendData($detailRows, false);
-        $trendClosed = $this->buildSnapshotTrendData($detailRows, true);
+            return ['bank' => $point['bank'], 'lat' => (float) $coords['lat'], 'lng' => (float) $coords['lng']] + $point;
+        }, $snapshot['map_points']);
 
         return [
             'generated_at' => now()->format('Y-m-d H:i:s'),
             'source' => 'snapshot',
-            'period' => [
-                'month_label' => 'Feb 2026',
-                'week_label' => 'W2',
-                'overdue_until' => '2/6/2026',
-            ],
+            'period' => $snapshot['period'],
             'filters' => [
                 'selected_year' => null,
                 'selected_bank' => null,
@@ -316,48 +104,42 @@ class AuditDashboardDataService
             'progress' => [
                 'by_bank' => ['rows' => $progressByBankRows],
                 'by_region' => ['rows' => $progressByRegionRows],
-                'by_product' => ['rows' => $progressByProductRows],
+                'by_product' => ['rows' => $snapshot['progress_by_product']],
                 'status_by_bank_chart' => $this->buildStatusByGroupChart($progressByBankRows, 'group'),
                 'region_percentage_chart' => $this->buildStatusPercentageChart($progressByRegionRows),
             ],
             'trend' => [
-                'created' => $trendCreated,
-                'closed' => $trendClosed,
+                'created' => $this->buildSnapshotTrendData($detailRows, false),
+                'closed' => $this->buildSnapshotTrendData($detailRows, true),
             ],
             'detail_outstanding' => [
                 'rows' => $detailRows,
             ],
             'duedate_maturity' => [
-                'by_bank' => $dueByBank,
-                'by_division' => $dueByDivision,
-                'by_product' => $dueByProduct,
-                'pie_by_bank' => [
-                    ['label' => 'BANK SULTENG >9 Bulan', 'count' => 9],
-                    ['label' => 'BANK BENGKULU >9 Bulan', 'count' => 7],
-                    ['label' => 'BANK ACEH >9 Bulan', 'count' => 7],
-                    ['label' => 'BANK BENGKULU <=6 Bulan', 'count' => 5],
-                    ['label' => 'BANK BENGKULU <=9 Bulan', 'count' => 1],
-                ],
-                'pie_by_division' => [
-                    ['label' => 'REGION 2 >9 Bulan', 'count' => 8],
-                    ['label' => 'RFR >9 Bulan', 'count' => 7],
-                    ['label' => 'CBS SYARIAH >9 Bulan', 'count' => 7],
-                    ['label' => 'INFRA <=6 Bulan', 'count' => 5],
-                    ['label' => 'RFR <=9 Bulan', 'count' => 1],
-                    ['label' => 'ITOM >9 Bulan', 'count' => 1],
-                ],
-                'pie_by_product' => [
-                    ['label' => 'SCV >9 Bulan', 'count' => 16],
-                    ['label' => 'OLIBS 724 BE >9 Bulan', 'count' => 7],
-                    ['label' => 'SOP <=6 Bulan', 'count' => 3],
-                    ['label' => 'SCV <=9 Bulan', 'count' => 1],
-                    ['label' => 'CBS <=6 Bulan', 'count' => 1],
-                    ['label' => 'ISO <=6 Bulan', 'count' => 1],
-                ],
-                'grand_total' => 29,
+                'by_bank' => $snapshot['due_by_bank'],
+                'by_division' => $snapshot['due_by_division'],
+                'by_product' => $snapshot['due_by_product'],
+                'pie_by_bank' => $snapshot['pie_by_bank'],
+                'pie_by_division' => $snapshot['pie_by_division'],
+                'pie_by_product' => $snapshot['pie_by_product'],
+                'grand_total' => $snapshot['due_grand_total'],
             ],
             'status_colors' => $statusColors,
         ];
+    }
+
+    /**
+     * Snapshot shown before any spreadsheet is imported: the organisation's own
+     * file in private/ when present, otherwise the bundled fictional sample.
+     */
+    private function snapshotData(): array
+    {
+        $path = (string) config('audit_dashboard.snapshot_path');
+        if ($path === '' || !is_file($path)) {
+            $path = resource_path('data/audit-dashboard-sample.php');
+        }
+
+        return require $path;
     }
 
     /**
@@ -1255,11 +1037,11 @@ class AuditDashboardDataService
             }
         }
 
-        $fallback = (array) config('audit_dashboard.bank.fallback_coordinates', ['lat' => -6.2596, 'lng' => 106.7972]);
+        $fallback = (array) config('audit_dashboard.bank.fallback_coordinates', ['lat' => -6.2088, 'lng' => 106.8456]);
 
         return [
-            'lat' => (float) ($fallback['lat'] ?? -6.2596),
-            'lng' => (float) ($fallback['lng'] ?? 106.7972),
+            'lat' => (float) ($fallback['lat'] ?? -6.2088),
+            'lng' => (float) ($fallback['lng'] ?? 106.8456),
         ];
     }
 
@@ -1397,9 +1179,9 @@ class AuditDashboardDataService
 
     private function defaultBankName(): string
     {
-        $name = trim((string) config('audit_dashboard.bank.default', 'COLLEGA'));
+        $name = trim((string) config('audit_dashboard.bank.default', 'INTERNAL'));
 
-        return $name !== '' ? strtoupper($name) : 'COLLEGA';
+        return $name !== '' ? strtoupper($name) : 'INTERNAL';
     }
 
     private function defaultProductLabel(): string
@@ -1445,10 +1227,10 @@ class AuditDashboardDataService
 
         if (empty($mappings)) {
             $mappings[] = [
-                'name' => 'COLLEGA',
-                'keywords' => ['COLLEGA'],
-                'coordinates' => ['lat' => -6.2596, 'lng' => 106.7972],
-                'region' => 'Internal Collega',
+                'name' => 'INTERNAL',
+                'keywords' => ['INTERNAL'],
+                'coordinates' => ['lat' => -6.2088, 'lng' => 106.8456],
+                'region' => 'Internal',
             ];
         }
 

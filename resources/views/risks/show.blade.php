@@ -16,12 +16,6 @@
 <div class="d-flex justify-content-between align-items-center">
     <h1>Risk Details - {{ $risk->risk_id }}</h1>
     <div class="d-flex gap-2">
-        <a href="{{ route('risks.rcsa.show', $risk->id) }}" class="btn btn-info btn-sm with-icon">
-            <i class="fas fa-clipboard-check"></i> RCSA Workspace
-        </a>
-        <a href="{{ route('risks.governance.show', $risk->id) }}" class="btn btn-primary btn-sm with-icon">
-            <i class="fas fa-shield-alt"></i> Control Assurance
-        </a>
         @if($canManage)
             <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-warning btn-sm with-icon">
                 <i class="fas fa-edit"></i> Edit
@@ -158,6 +152,23 @@
 @endphp
 
 @section('js')
+<script>
+    // Open the tab named in the URL (e.g. /risks/12#services) and keep the
+    // hash in sync, so links and redirects land on the right tab.
+    document.addEventListener('DOMContentLoaded', () => {
+        const openTab = (hash) => {
+            const link = hash ? document.querySelector('.nav-link[role="tab"][href="' + CSS.escape(hash) + '"]') : null;
+            if (link && window.bootstrap) {
+                bootstrap.Tab.getOrCreateInstance(link).show();
+            }
+        };
+        openTab(window.location.hash);
+        document.querySelectorAll('.nav-link[role="tab"]').forEach((link) => {
+            link.addEventListener('shown.bs.tab', () => history.replaceState(null, '', link.getAttribute('href')));
+        });
+        window.addEventListener('hashchange', () => openTab(window.location.hash));
+    });
+</script>
 <script>
     (() => {
         const mentionUsers = @json($mentionOptions);
@@ -519,13 +530,10 @@
         <a class="nav-link" href="#treatment" role="tab" data-toggle="tab">Treatment</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#rcsa" role="tab" data-toggle="tab">RCSA</a>
-    </li>
-    <li class="nav-item">
         <a class="nav-link" href="#residual" role="tab" data-toggle="tab">Residual</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#bcm" role="tab" data-toggle="tab">BCM (BIA/BCP)</a>
+        <a class="nav-link" href="#services" role="tab" data-toggle="tab">Layanan terdampak</a>
     </li>
     <li class="nav-item">
         <a class="nav-link" href="#governance" role="tab" data-toggle="tab">Governance</a>
@@ -557,14 +565,18 @@
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <strong>Corporate Risk Appetite</strong>
+                        <strong>Risk Appetite</strong>
+                        @php
+                            $effectiveAppetite = \App\RiskAppetite::effectiveFor($risk);
+                        @endphp
                         <div>
-                            @if($risk->riskAppetite)
-                                <a href="{{ route('risk-appetites.show', $risk->riskAppetite->id) }}">{{ $risk->riskAppetite->name }}</a>
-                                @if($risk->riskAppetite->tolerance_limit_value !== null)
-                                    <span class="badge bg-danger ms-1" title="Tolerance Limit">
-                                        Max: {{ number_format($risk->riskAppetite->tolerance_limit_value, 0) }}
-                                        {{ $risk->riskAppetite->effectiveThresholdMetric() === \App\RiskAppetite::THRESHOLD_METRIC_RESIDUAL_SCORE ? 'Score' : $risk->riskAppetite->unit }}
+                            @if($effectiveAppetite)
+                                <a href="{{ route('risk-appetites.show', $effectiveAppetite->id) }}">{{ $effectiveAppetite->name }}</a>
+                                <span class="badge bg-secondary-lt ms-1">{{ $risk->risk_appetite_id ? 'override' : ($effectiveAppetite->risk_category_id ? 'dari kategori' : 'default') }}</span>
+                                @if($effectiveAppetite->tolerance_limit_value !== null)
+                                    <span class="badge bg-danger ms-1" title="Batas toleransi">
+                                        Maks: {{ number_format($effectiveAppetite->tolerance_limit_value, 0, ',', '.') }}
+                                        {{ $effectiveAppetite->effectiveThresholdMetric() === \App\RiskAppetite::THRESHOLD_METRIC_RESIDUAL_SCORE ? 'Skor' : $effectiveAppetite->unit }}
                                     </span>
                                 @endif
                                 @if(!empty($appetiteEvaluation['status_label']))
@@ -591,7 +603,7 @@
                                     <div class="small text-muted mt-1">{{ $appetiteEvaluation['message'] }}</div>
                                 @endif
                             @else
-                                <span class="text-muted">Not specified</span>
+                                <span class="text-muted">Belum ada appetite untuk kategori risk ini.</span>
                                 @if(!empty($appetiteEvaluation['source_label']))
                                     <div class="small text-muted mt-1">Threshold source: {{ $appetiteEvaluation['source_label'] }}</div>
                                 @endif
@@ -715,49 +727,6 @@
         </div>
     </div>
 
-    <div role="tabpanel" class="tab-pane" id="rcsa">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <div>
-                        <div class="fw-bold">RCSA Workspace</div>
-                        <div class="text-muted small">
-                            @if($risk->rcsaWorkspace)
-                                Last updated {{ optional($risk->rcsaWorkspace->updated_at)->format('d-m-Y H:i') ?? '-' }}
-                                @if($risk->rcsaWorkspace->updater)
-                                    by {{ $risk->rcsaWorkspace->updater->name }}
-                                @endif
-                            @else
-                                No RCSA assessment captured yet.
-                            @endif
-                        </div>
-                    </div>
-                    <a href="{{ route('risks.rcsa.show', $risk->id) }}" class="btn btn-sm btn-outline-primary">Open Full Workspace</a>
-                </div>
-
-                @if($risk->rcsaWorkspace)
-                    <div class="row g-3">
-                        <div class="col-md-4"><strong>Process Owner</strong><div>{{ $risk->rcsaWorkspace->process_owner ?: '-' }}</div></div>
-                        <div class="col-md-4"><strong>Review Frequency</strong><div>{{ $risk->rcsaWorkspace->review_frequency ?: '-' }}</div></div>
-                        <div class="col-md-4"><strong>Next Review</strong><div>{{ optional($risk->rcsaWorkspace->next_review_at)->format('d-m-Y') ?? '-' }}</div></div>
-                        <div class="col-md-6"><strong>Objective</strong><div>{!! nl2br(e($risk->rcsaWorkspace->objective ?: '-')) !!}</div></div>
-                        <div class="col-md-6"><strong>Scope</strong><div>{!! nl2br(e($risk->rcsaWorkspace->scope ?: '-')) !!}</div></div>
-                        <div class="col-md-6"><strong>Key Controls</strong><div>{!! nl2br(e($risk->rcsaWorkspace->key_controls ?: '-')) !!}</div></div>
-                        <div class="col-md-6"><strong>Control Gaps</strong><div>{!! nl2br(e($risk->rcsaWorkspace->control_gaps ?: '-')) !!}</div></div>
-                        <div class="col-md-6"><strong>Likelihood Rationale</strong><div>{!! nl2br(e($risk->rcsaWorkspace->likelihood_rationale ?: '-')) !!}</div></div>
-                        <div class="col-md-6"><strong>Impact Rationale</strong><div>{!! nl2br(e($risk->rcsaWorkspace->impact_rationale ?: '-')) !!}</div></div>
-                        <div class="col-md-4"><strong>Sign-Off Name</strong><div>{{ $risk->rcsaWorkspace->sign_off_name ?: '-' }}</div></div>
-                        <div class="col-md-4"><strong>Sign-Off Role</strong><div>{{ $risk->rcsaWorkspace->sign_off_role ?: '-' }}</div></div>
-                        <div class="col-md-4"><strong>Signed-Off Date</strong><div>{{ optional($risk->rcsaWorkspace->signed_off_at)->format('d-m-Y') ?? '-' }}</div></div>
-                        <div class="col-md-12"><strong>Notes</strong><div>{!! nl2br(e($risk->rcsaWorkspace->notes ?: '-')) !!}</div></div>
-                    </div>
-                @else
-                    <div class="text-muted">No RCSA workspace data available.</div>
-                @endif
-            </div>
-        </div>
-    </div>
-
     <div role="tabpanel" class="tab-pane" id="residual">
         <div class="card">
             <div class="card-body">
@@ -785,152 +754,52 @@
         </div>
     </div>
 
-    <div role="tabpanel" class="tab-pane" id="bcm">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <strong>Business Impact Analysis (BIA)</strong>
-                    </div>
-                    <div class="card-body">
-                        @php
-                            $bia = $risk->bia ?? new \App\Bia();
-                        @endphp
-                        <form action="{{ route('bia.store', $risk->id) }}" method="POST">
-                            @csrf
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Recovery Time Objective (RTO)</label>
-                                    <select name="rto" class="form-select form-select-sm">
-                                        <option value="">Select RTO</option>
-                                        @foreach(['1 Hour', '4 Hours', '24 Hours', '1 Week', '1 Month'] as $opt)
-                                            <option value="{{ $opt }}" {{ $bia->rto === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Recovery Point Objective (RPO)</label>
-                                    <select name="rpo" class="form-select form-select-sm">
-                                        <option value="">Select RPO</option>
-                                        @foreach(['1 Hour', '4 Hours', '24 Hours', '1 Week', '1 Month'] as $opt)
-                                            <option value="{{ $opt }}" {{ $bia->rpo === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Max Acceptable Outage</label>
-                                    <select name="mao" class="form-select form-select-sm">
-                                        <option value="">Select MAO</option>
-                                        @foreach(['1 Hour', '4 Hours', '24 Hours', '1 Week', '1 Month'] as $opt)
-                                            <option value="{{ $opt }}" {{ $bia->mao === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="row g-2 mb-3">
-                                @php $impacts = ['impact_financial' => 'Financial', 'impact_operational' => 'Operational', 'impact_regulatory' => 'Regulatory', 'impact_reputational' => 'Reputational']; @endphp
-                                @foreach($impacts as $field => $label)
-                                    <div class="col-md-6">
-                                        <label class="form-label">{{ $label }} Impact</label>
-                                        <select name="{{ $field }}" class="form-select form-select-sm">
-                                            <option value="">Select Impact</option>
-                                            @foreach(['Low', 'Medium', 'High', 'Critical'] as $opt)
-                                                <option value="{{ $opt }}" {{ $bia->$field === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Criticality Tier</label>
-                                <select name="criticality_tier" class="form-select form-select-sm">
-                                    <option value="">Select Tier</option>
-                                    @foreach(['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'] as $opt)
-                                        <option value="{{ $opt }}" {{ $bia->criticality_tier === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Justification / Notes</label>
-                                <textarea name="justification_notes" class="form-control form-control-sm" rows="3">{{ $bia->justification_notes }}</textarea>
-                            </div>
-
-                            @if($canManage)
-                                <button type="submit" class="btn btn-sm btn-primary">Save BIA</button>
-                            @endif
-                        </form>
-                    </div>
+    <div role="tabpanel" class="tab-pane" id="services">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <strong>Layanan yang dapat terganggu oleh risk ini</strong>
+                    <div class="text-muted small">BIA, BCP, dan pengujian dikelola per layanan di menu Business Continuity.</div>
                 </div>
             </div>
-
-            <div class="col-md-6">
-                <div class="card h-100 {{ !$risk->bia ? 'bg-secondary-lt' : '' }}">
-                    <div class="card-header">
-                        <strong>Business Continuity Plan (BCP)</strong>
-                    </div>
-                    <div class="card-body">
-                        @if($risk->bia)
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead><tr><th>Layanan</th><th>Tier</th><th>RTO</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @forelse($risk->businessServices as $service)
                             @php
-                                $bcp = $risk->bia->bcp ?? new \App\Bcp();
+                                [$serviceStatusLabel, $serviceStatusClass] = \App\BusinessService::continuityStatusLabels()[$service->continuityStatus()];
                             @endphp
-                            <form action="{{ route('bcp.store', $risk->bia->id) }}" method="POST">
-                                @csrf
-                                <div class="mb-3">
-                                    <label class="form-label">Recovery Strategy Summary</label>
-                                    <textarea name="strategy_summary" class="form-control form-control-sm" rows="2">{{ $bcp->strategy_summary }}</textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Recovery Step-by-Step Procedures</label>
-                                    <textarea name="recovery_procedures" class="form-control form-control-sm" rows="3">{{ $bcp->recovery_procedures }}</textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Primary Workaround</label>
-                                    <textarea name="primary_workaround" class="form-control form-control-sm" rows="2">{{ $bcp->primary_workaround }}</textarea>
-                                </div>
-
-                                <hr>
-                                <strong>Testing & Maintenance</strong>
-                                
-                                <div class="row g-2 mt-2 mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Testing Frequency</label>
-                                        <select name="testing_frequency" class="form-select form-select-sm">
-                                            <option value="">Select Frequency</option>
-                                            @foreach(['Monthly', 'Quarterly', 'Semi-Annual', 'Annual'] as $opt)
-                                                <option value="{{ $opt }}" {{ $bcp->testing_frequency === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Last Tested Date</label>
-                                        <input type="date" name="last_tested_at" class="form-control form-control-sm" value="{{ optional($bcp->last_tested_at)->format('Y-m-d') }}">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Last Test Result</label>
-                                        <select name="last_test_result" class="form-select form-select-sm">
-                                            <option value="">Select Result</option>
-                                            @foreach(['Pass', 'Partial', 'Fail'] as $opt)
-                                                <option value="{{ $opt }}" {{ $bcp->last_test_result === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-
-                                @if($canManage)
-                                    <button type="submit" class="btn btn-sm btn-primary">Save BCP</button>
-                                @endif
-                            </form>
-                        @else
-                            <div class="text-muted d-flex align-items-center justify-content-center h-100">
-                                <div>Please complete and save the <strong>Business Impact Analysis (BIA)</strong> first to unlock the BCP form.</div>
-                            </div>
-                        @endif
-                    </div>
-                </div>
+                            <tr>
+                                <td><a href="{{ route('bcm.services.show', $service) }}">{{ $service->name }}</a><div class="small text-muted">{{ $service->code }} · {{ \App\Support\RiskOwnerAccess::displayLabel($service->owner_unit) }}</div></td>
+                                <td>{{ optional($service->bia)->tier ?? '-' }}</td>
+                                <td>{{ $service->bia ? \App\Support\BusinessContinuity::durationLabel($service->bia->rto_minutes) : '-' }}</td>
+                                <td><span class="badge {{ $serviceStatusClass }}">{{ $serviceStatusLabel }}</span></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" class="text-muted text-center py-3">Risk ini belum ditautkan ke layanan mana pun.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
+            @if(($linkableServices ?? collect())->isNotEmpty())
+                <div class="card-footer">
+                    <form method="POST" action="{{ route('risks.business-services.attach', $risk->id) }}" class="d-flex flex-wrap gap-2 align-items-end">
+                        @csrf
+                        <div class="flex-grow-1" style="min-width: 240px;">
+                            <label class="form-label" for="business_service_id">Tautkan ke layanan</label>
+                            <select name="business_service_id" id="business_service_id" class="form-select" required>
+                                <option value="">Pilih layanan...</option>
+                                @foreach($linkableServices as $service)
+                                    <option value="{{ $service->id }}">{{ $service->code }} · {{ $service->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary">Tautkan</button>
+                        <a href="{{ route('bcm.index') }}" class="btn btn-link">Kelola layanan</a>
+                    </form>
+                </div>
+            @endif
         </div>
     </div>
 

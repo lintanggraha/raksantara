@@ -78,7 +78,7 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered text-center align-middle mb-0" style="min-width: 650px;">
+                <table data-no-sort class="table table-bordered text-center align-middle mb-0" style="min-width: 650px;">
                     <thead>
                         <tr>
                             <th rowspan="2" class="bg-light text-muted small" style="width: 140px; vertical-align: middle;">

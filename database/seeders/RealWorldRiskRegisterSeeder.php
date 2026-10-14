@@ -18,6 +18,14 @@ class RealWorldRiskRegisterSeeder extends Seeder
 {
     public function run()
     {
+        // The register data files hold an organisation's real risk register and are
+        // kept out of the public repository (database/seeders/data is gitignored).
+        if (!class_exists(RiskDataBatch1::class) || !class_exists(RiskDataBatch2::class) || !class_exists(RiskDataBatch3::class)) {
+            $this->command?->warn('Risk register data files not found in database/seeders/data; skipping.');
+
+            return;
+        }
+
         // 1. Clean up existing dummy risks and previously seeded 2026 real-world risks
         $targetRiskIds = DB::table('risks')
             ->where('risk_id', 'like', 'DUMMY-%')
@@ -28,14 +36,11 @@ class RealWorldRiskRegisterSeeder extends Seeder
             DB::table('risk_inherent_analyses')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('risk_residual_analyses')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('risk_treatments')->whereIn('risk_id', $targetRiskIds)->delete();
-            DB::table('risk_controls')->whereIn('risk_id', $targetRiskIds)->delete();
-            DB::table('risk_acceptances')->whereIn('risk_id', $targetRiskIds)->delete();
-            DB::table('bias')->whereIn('risk_id', $targetRiskIds)->delete();
+            DB::table('business_service_risk')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('kris')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('risk_alerts')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('risk_comments')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('risk_incidents')->whereIn('risk_id', $targetRiskIds)->delete();
-            DB::table('risk_rcsa_workspaces')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('risk_scenario_impacts')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('risk_status_change_requests')->whereIn('risk_id', $targetRiskIds)->delete();
             DB::table('risk_committee_decisions')->whereIn('risk_id', $targetRiskIds)->delete();

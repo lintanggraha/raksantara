@@ -55,46 +55,6 @@ class RiskOpsWorkspaceRegressionTest extends TestCase
             ->assertDontSee('Foreign Playbook');
     }
 
-    public function test_rcsa_workspace_can_be_saved_for_owned_risk_and_foreign_risk_stays_hidden(): void
-    {
-        $viewer = $this->createUser('BT - DIGITAL BANKING', false);
-        $foreignUser = $this->createUser('CO - COMPLIANCE', false);
-        $ownRisk = $this->createRiskRecord($viewer, 'BT - DIGITAL BANKING', 'Owned RCSA Risk');
-        $foreignRisk = $this->createRiskRecord($foreignUser, 'CO - COMPLIANCE', 'Foreign RCSA Risk');
-
-        $this->actingAs($viewer);
-
-        $this->put(route('risks.rcsa.update', $ownRisk->id), [
-            'process_owner' => 'Digital Banking Ops',
-            'objective' => 'Validate control design and operating effectiveness.',
-            'scope' => 'Retail digital onboarding process.',
-            'key_controls' => 'Dual approval and reconciliation.',
-            'control_gaps' => 'Manual follow-up still exists.',
-            'likelihood_rationale' => 'Incidents are occasional but recurring.',
-            'impact_rationale' => 'Customer disruption and recovery effort.',
-            'review_frequency' => 'Quarterly',
-            'next_review_at' => now()->addMonth()->toDateString(),
-            'sign_off_name' => 'Risk Owner',
-            'sign_off_role' => 'Head of Digital Banking',
-            'signed_off_at' => now()->toDateString(),
-            'notes' => 'Capture control remediation status here.',
-        ])->assertRedirect(route('risks.rcsa.show', $ownRisk->id));
-
-        $this->assertDatabaseHas('risk_rcsa_workspaces', [
-            'risk_id' => $ownRisk->id,
-            'process_owner' => 'Digital Banking Ops',
-            'review_frequency' => 'Quarterly',
-            'updated_by' => $viewer->id,
-        ]);
-
-        $this->get(route('risks.rcsa.show', $ownRisk->id))
-            ->assertOk()
-            ->assertSee('Digital Banking Ops')
-            ->assertSee('Quarterly');
-
-        $this->get(route('risks.rcsa.show', $foreignRisk->id))->assertNotFound();
-    }
-
     private function createRiskRecord(User $creator, string $riskOwner, string $title): Risk
     {
         return Risk::create([

@@ -61,7 +61,7 @@ class IncidentManagementController extends Controller
         }
 
         $riskOwnerOptions = $this->resolveRiskOwnerOptions($user);
-        $clientOptions = RiskIncident::getCollegaClients();
+        $clientOptions = RiskIncident::affectedPartyOptions();
         $severityOptions = RiskIncident::SEVERITY_LEVELS;
         $statusOptions = RiskIncident::STATUS_OPTIONS;
         $mitigationVerdictOptions = RiskIncident::MITIGATION_VERDICTS;
@@ -104,7 +104,7 @@ class IncidentManagementController extends Controller
             ->get();
 
         $riskOwnerOptions = $this->resolveRiskOwnerOptions($user);
-        $clientOptions = RiskIncident::getCollegaClients();
+        $clientOptions = RiskIncident::affectedPartyOptions();
         $severityOptions = RiskIncident::SEVERITY_LEVELS;
         $statusOptions = RiskIncident::STATUS_OPTIONS;
         $mitigationVerdictOptions = RiskIncident::MITIGATION_VERDICTS;
@@ -174,7 +174,7 @@ class IncidentManagementController extends Controller
             ->get();
 
         $riskOwnerOptions = $this->resolveRiskOwnerOptions($user);
-        $clientOptions = RiskIncident::getCollegaClients();
+        $clientOptions = RiskIncident::affectedPartyOptions();
         $severityOptions = RiskIncident::SEVERITY_LEVELS;
         $statusOptions = RiskIncident::STATUS_OPTIONS;
         $mitigationVerdictOptions = RiskIncident::MITIGATION_VERDICTS;

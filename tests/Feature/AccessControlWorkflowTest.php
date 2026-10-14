@@ -25,12 +25,12 @@ class AccessControlWorkflowTest extends TestCase
             'expires_at' => now()->addDay(),
         ]);
 
-        $this->assertTrue($user->fresh()->hasPermission('controls.manage'));
+        $this->assertTrue($user->fresh()->hasPermission('risks.manage'));
         $this->assertTrue($user->fresh()->hasRole('risk-owner'));
 
         $user->roleAssignments()->update(['expires_at' => now()->subDay()]);
 
-        $this->assertFalse($user->fresh()->hasPermission('controls.manage'));
+        $this->assertFalse($user->fresh()->hasPermission('risks.manage'));
         $this->assertFalse($user->fresh()->hasRole('risk-owner'));
     }
 

@@ -35,6 +35,21 @@ class AppServiceProvider extends ServiceProvider
         RiskTreatment::observe(RiskAnalyticsObserver::class);
         RiskInherentAnalysis::observe(RiskAnalyticsObserver::class);
         RiskResidualAnalysis::observe(RiskAnalyticsObserver::class);
+        // Dashboard sections also aggregate these records.
+        foreach ([
+            \App\Kri::class,
+            \App\KriLog::class,
+            \App\RiskIncident::class,
+            \App\RiskIncidentAction::class,
+            \App\RiskCommitteeDecision::class,
+            \App\BusinessService::class,
+            \App\ServiceBia::class,
+            \App\ServiceBcp::class,
+            \App\ServiceBcpTest::class,
+            \App\RiskAppetite::class,
+        ] as $model) {
+            $model::observe(RiskAnalyticsObserver::class);
+        }
 
         if (app()->environment('production') || str_contains((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');

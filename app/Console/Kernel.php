@@ -25,6 +25,9 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('risk:scan-alerts --days=3')->dailyAt('07:00');
+        // Keeps the current month's posture up to date; the value on the last
+        // day of the month becomes that month's point on the dashboard trend.
+        $schedule->command('risks:snapshot-scores')->dailyAt('23:50')->withoutOverlapping(30);
         $schedule->command('reports:dispatch-scheduled')->everyMinute();
         $schedule->command('threat-intel:refresh --force')
             ->everyFifteenMinutes()

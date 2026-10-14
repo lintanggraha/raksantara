@@ -34,7 +34,9 @@
                             {{ $kri->current_value !== null ? $kri->current_value : '-' }}
                         </td>
                         <td class="text-center">
-                            @if($kri->status === 'Red')
+                            @if($kri->current_value === null)
+                                <span class="badge bg-secondary-lt">No data yet</span>
+                            @elseif($kri->status === 'Red')
                                 <span class="badge bg-danger">Red</span>
                             @elseif($kri->status === 'Amber')
                                 <span class="badge bg-warning text-dark">Amber</span>

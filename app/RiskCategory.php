@@ -12,4 +12,9 @@ class RiskCategory extends Model
     protected $fillable = [
         'name',
     ];
+
+    public function risks()
+    {
+        return $this->hasMany(Risk::class);
+    }
 }

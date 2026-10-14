@@ -1,26 +1,29 @@
-# Risk Management System
+# Raksantara
+
+**Platform Enterprise Risk Management open-source untuk lembaga keuangan dan organisasi yang diatur regulator.**
 
 ![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white)
 ![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php&logoColor=white)
 ![Database](https://img.shields.io/badge/Database-MySQL%20%7C%20SQLite-4479A1?logo=mysql&logoColor=white)
 ![Frontend](https://img.shields.io/badge/Frontend-Vite-646CFF?logo=vite&logoColor=white)
 
-**Risk Management System (RMS)** adalah aplikasi Laravel untuk mengelola siklus Enterprise Risk Management (ERM) dari risk register sampai assurance, incident learning, committee governance, evidence, dan operational resilience. Aplikasi ini dirancang sebagai **Laravel monolith**: web application, database, upload evidence, queue, dan scheduler dijalankan dalam lingkungan PHP yang sama atau service operasional pendukungnya.
+**Raksantara** adalah aplikasi Laravel untuk mengelola siklus Enterprise Risk Management (ERM): risk register, risk appetite, KRI, incident learning, business continuity per layanan, committee governance, evidence, dan operational resilience. Aplikasi ini dirancang sebagai **Laravel monolith**: web application, database, upload evidence, queue, dan scheduler dijalankan dalam lingkungan PHP yang sama atau service operasional pendukungnya.
 
 > Gunakan panduan [local testing](docs/LOCAL_TESTING.md) untuk menjalankan aplikasi tanpa akun cloud maupun database berbayar.
 
 ## Overview
 
-RMS menghubungkan proses identifikasi, penilaian, treatment, monitoring, assurance, dan review risiko ke dalam satu data model yang dapat diaudit. Scope pengguna diterapkan berdasarkan **role, organizational unit, risk owner, division, dan permission**.
+Raksantara menghubungkan proses identifikasi, penilaian, treatment, monitoring, dan review risiko ke dalam satu data model yang dapat diaudit. Scope pengguna diterapkan berdasarkan **role, organizational unit, risk owner, division, dan permission**.
 
 | Domain | Kapabilitas utama |
 |---|---|
-| Risk lifecycle | Risk register, inherent/residual analysis, treatment, quantitative loss, heatmap, recap, trend, dan status approval. |
-| Control assurance | RCSA, control register, control testing, evidence, remediation, regulatory framework mapping, dan risk acceptance. |
-| Monitoring | KRI threshold, log nilai, data lineage, freshness, quality status, auto-sync, dan signed external ingestion. |
-| Incident learning | Incident register, root cause, CAPA, overdue action, lesson learned, serta feedback review ke risk, control, dan KRI. |
+| Dashboard | Dashboard Ringkasan (appetite, KRI, overdue action, loss, incident, attention list, heatmap drill-down, top risks, trend) dan dashboard Analisis, dengan filter tahun/owner/kategori dan agregasi di sisi database. |
+| Risk lifecycle | Risk register, inherent/residual analysis, treatment, quantitative loss, heatmap, recap, trend, snapshot skor harian, dan status approval. |
+| Risk appetite | Appetite statement per kategori risiko dengan batas appetite dan toleransi, default korporat, override per risiko, approval board, dan coverage register. |
+| Monitoring | KRI threshold, library KRI siap pakai, status *no data*/*stale*, log nilai, data lineage, quality status, auto-sync, dan signed external ingestion. |
+| Incident learning | Incident register, root cause, CAPA, overdue action, lesson learned, serta feedback review ke risk dan KRI. |
 | Governance | Enterprise risk profile, exposure concentration, committee decision register, scenario analysis, dan maturity assessment. |
-| Resilience | BIA/BCP, backup register, restore and ransomware-recovery drill, retention schedule, legal hold, purge approval, dan Excel evidence pack. |
+| Resilience | Katalog layanan dengan BIA, BCP, dan riwayat uji per layanan (ISO 22301), backup register, restore and ransomware-recovery drill, retention schedule, legal hold, purge approval, dan Excel evidence pack. |
 | Compliance | Audit dashboard, compliance work program, framework explorer, threat intelligence, reporting, dan audit trail. |
 
 ## Capability Map
@@ -31,27 +34,35 @@ Risk workspace menyatukan register, heatmap, dan recap. Pengguna dapat membuat r
 
 | Workspace | Route | Ringkasan |
 |---|---|---|
-| Risk Monitoring | `/risk-monitoring` | Executive, operational control, dan risk-intelligence dashboard dengan user preference. |
+| Dashboard | `/dashboard` | Ringkasan (default) dan Analisis (`?view=analytical`); setiap section dimuat terpisah dengan loading dan empty state. |
 | Risk Register | `/risks` | Register, heatmap, recap, filter owner/year, import, dan export. |
-| Risk Detail | `/risks/{risk}` | Basic, inherent, treatment, RCSA, residual, BCM, governance, dan KRI. |
+| Risk Detail | `/risks/{risk}` | Basic, inherent, treatment, residual, layanan terdampak, appetite efektif, dan KRI. |
+| Risk Appetite | `/risk-appetites` | Appetite per kategori, default, coverage, dan daftar risiko yang melewati batas. |
+| Business Continuity | `/bcm` | Katalog layanan, BIA, BCP, dan uji BCP per layanan. |
 | Treatment Kanban | `/mitigation-kanban` | Prioritas action berdasarkan status, SLA, overdue, blocker, dan evidence. |
 | Trend Analysis | `/trend-analysis` | Trend inherent/residual score, category, owner concentration, dan heatmap trend. |
 
-### Control assurance and risk acceptance
+Semua tabel dapat diurutkan per kolom dengan mengklik judul kolom (angka, Rupiah, persentase, dan tanggal dikenali otomatis).
 
-Setiap risk dapat memiliki control yang dikelola dalam workspace Governance. Control menyimpan owner, frekuensi test, status, hasil effectiveness, bukti, findings, dan remediation. Risk acceptance mendukung request, justification, compensating control, expiry date, serta keputusan superadmin yang dicatat sebagai audit event.
+### Risk appetite
 
-Regulatory control mapping memungkinkan Compliance memetakan control ke framework, requirement reference, status coverage, evidence reference, dan review date. Ini menghubungkan assurance dengan kebutuhan compliance tanpa mengubah control menjadi data statis.
+Appetite ditetapkan per **kategori risiko** dengan satu appetite default korporat sebagai fallback. Untuk setiap risiko, appetite efektif ditentukan dengan urutan: override pada risiko → appetite aktif kategori → default. Status (`within`, `warning`, `breach`) dihitung dari skor residual terhadap batas appetite dan toleransi, dengan logika yang sama di PHP dan SQL sehingga dashboard dan halaman detail selalu konsisten. Appetite baru berstatus draft sampai referensi persetujuan dan tanggal approval diisi. `php artisan appetite:seed-sample` membuat draft appetite contoh dari profil risiko yang ada (`--rollback` untuk menghapusnya).
+
+### Business continuity per layanan
+
+Mengikuti ISO 22301 klausul 8.2.2 dan ISO/TS 22317, BIA dilakukan **per layanan bisnis**, bukan per risiko. Dampak dinilai pada beberapa horizon waktu; MTPD adalah horizon pertama dengan dampak ≥ 3, tier layanan diturunkan dari MTPD, dan RTO wajib ≤ MTPD. BIA disetujui dengan prinsip maker-checker (penilai tidak boleh menyetujui sendiri), BCP disusun per layanan, dan riwayat uji BCP dicatat beserta temuannya. Risiko dapat ditautkan ke layanan yang terdampak. `php artisan bcm:seed-service-catalog` mengisi katalog layanan awal.
 
 ### KRI data quality and integration readiness
 
-KRI menggunakan threshold `lower_is_better` atau `higher_is_better` dan otomatis menghitung Green, Amber, atau Red. Setiap reading dapat menyimpan **data source, source identifier, source timestamp, source reference, dan quality status**. Quality service menandai data sebagai `valid`, `stale`, `missing`, atau `invalid` berdasarkan kelengkapan, nilai, dan expected refresh interval.
+KRI menggunakan threshold `lower_is_better` atau `higher_is_better` dan otomatis menghitung Green, Amber, atau Red. Setiap reading dapat menyimpan **data source, source identifier, source timestamp, source reference, dan quality status**. Quality service menandai data sebagai `valid`, `stale`, `missing`, atau `invalid` berdasarkan kelengkapan, nilai, dan expected refresh interval. KRI yang belum pernah diisi ditampilkan sebagai **No data yet** dan tidak dihitung sebagai Green.
+
+`php artisan kri:import-library [path]` memuat library KRI dari file JSON (default `storage/app/kri/kri_library_2026.json`, tidak ikut repository) dan menautkannya ke risiko di register. Setiap item berisi `risk_code`, `metric_name`, `description`, `threshold_type`, `threshold_warn`, `threshold_critical`, `data_source`, `source_identifier`, dan `expected_refresh_minutes`. Import bersifat idempotent (satu KRI per risiko, ditandai tag `kri-library-2026`); gunakan `--dry-run` untuk validasi dan `--rollback` untuk menghapus KRI yang belum punya data.
 
 Endpoint `POST /api/kri/ingestion` mendukung ingestion eksternal dengan HMAC SHA-256, source allowlist, timestamp window, throttle, dan event idempotency. Endpoint ini **nonaktif secara default** sampai secret dan source allowlist dikonfigurasi pada environment target.
 
 ### Incident learning and CAPA
 
-Incident dapat dikaitkan langsung ke risk lalu dikelola sampai penutupan melalui root cause, immediate action, corrective action, preventive action, owner, due date, verification, dan lessons learned. Post-incident review memaksa feedback eksplisit ke risk register, control assurance, dan KRI setelah CAPA selesai.
+Incident dapat dikaitkan langsung ke risk lalu dikelola sampai penutupan melalui root cause, immediate action, corrective action, preventive action, owner, due date, verification, dan lessons learned. Post-incident review memaksa feedback eksplisit ke risk register dan KRI setelah CAPA selesai.
 
 ### Enterprise governance and strategic review
 
@@ -69,15 +80,15 @@ Manual report export mendukung scope monitoring, board, risks, heatmap, recap, d
 
 ## Identity, Access, and Security
 
-RMS mempertahankan compatibility dengan division/risk-owner legacy sambil menambahkan RBAC yang dapat diadopsi bertahap.
+Raksantara mempertahankan compatibility dengan division/risk-owner legacy sambil menambahkan RBAC yang dapat diadopsi bertahap.
 
 | Control | Implementasi |
 |---|---|
 | RBAC | Role, permission, organizational unit, assignment scope, expiry access, dan audit trail assignment. |
 | Superadmin | Administrasi user, parameter, access control, approval, alerts, dan audit oversight. |
-| Compliance | Cross-owner monitoring, audit, control mapping, governance decision, third-party review, resilience, dan retention control. |
-| MFA | TOTP, recovery code sekali pakai, challenge setelah password, rotasi code, dan audit event. |
-| SSO readiness | OpenID Connect authorization-code handoff, state/nonce, discovery, claim mapping, dan default fail-closed. |
+| Compliance | Cross-owner monitoring, audit, governance decision, third-party review, resilience, dan retention control. |
+| MFA | Authenticator app (TOTP) dengan recovery code sekali pakai, serta **email OTP** yang dapat diaktifkan atau diwajibkan lewat `MFA_EMAIL_OTP_ENABLED` / `MFA_EMAIL_OTP_ENFORCED`. |
+| SSO | OpenID Connect authorization-code flow dengan state/nonce, discovery, claim mapping, dan verifikasi email. Jika SSO nonaktif, salah konfigurasi, atau provider tidak tersedia, pengguna otomatis kembali ke login username/password. |
 | Evidence protection | Route authorization, file validation, audit trail, dan rekomendasi object storage untuk production. |
 | Audit integrity | Idempotency key untuk event export serta ledger audit untuk event security/governance penting. |
 
@@ -134,6 +145,10 @@ Buka `http://127.0.0.1:8000`. Untuk development asset dengan hot reload, jalanka
 
 Panduan lengkap termasuk Windows, testing environment terisolasi, health checks, dan local scheduler tersedia di [docs/LOCAL_TESTING.md](docs/LOCAL_TESTING.md).
 
+## Data Organisasi (`private/`)
+
+Repository ini tidak memuat data organisasi mana pun. Nama client, hasil audit, dan register risiko asli disimpan di folder `private/` yang di-gitignore; aplikasi membacanya bila ada dan memakai default generik atau contoh fiktif bila tidak ada. Lihat [private/README.md](private/README.md) untuk daftar file yang dikenali. Seed register risiko milik organisasi dapat ditaruh di `database/seeders/data/` (juga di-gitignore) dan dimuat oleh `RealWorldRiskRegisterSeeder`.
+
 ## Bootstrap First Superadmin
 
 Jika belum ada akun superadmin, jalankan:
@@ -173,7 +188,7 @@ npm audit --audit-level=low
 npm run build
 ```
 
-Suite tervalidasi saat ini mencakup **133 tests dan 714 assertions**. CI menjalankan backend test/security, frontend build/security, syntax validation, serta dependency audit.
+Suite saat ini mencakup **194 tests dan 1.249 assertions**. CI menjalankan backend test/security, frontend build/security, syntax validation, serta dependency audit.
 
 ## Documentation
 
@@ -189,4 +204,4 @@ Production deployment memerlukan persistent database, session/cache backend, obj
 
 ---
 
-Internal use only.
+Kontribusi, laporan bug, dan usulan fitur dipersilakan melalui GitHub Issues dan pull request.

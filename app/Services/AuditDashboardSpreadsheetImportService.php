@@ -335,7 +335,7 @@ class AuditDashboardSpreadsheetImportService
         }
 
         if ($bank === '') {
-            $bank = 'COLLEGA';
+            $bank = strtoupper(trim((string) config('audit_dashboard.bank.default', 'INTERNAL'))) ?: 'INTERNAL';
         }
 
         $statusRaw = $this->firstNonNull([

@@ -1102,302 +1102,76 @@ class RiskController extends Controller
 
     public function monitoring(Request $request)
     {
-        $request->validate([
-            'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
-            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
-            'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
-            'view' => 'nullable|in:strategic,operational,analytical,summary,monitoring',
-        ]);
-
-        $trendGranularity = $this->resolvePreferredTrendGranularity($request);
-        $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
-        $context = $this->buildUnifiedDashboardContext($request, $dashboardSummary);
-        $context['defaultView'] = 'operational';
-
-        return view('risks.unified-dashboard', $context);
+        return $this->renderDashboard($request);
     }
 
     public function dashboard(Request $request)
     {
-        $request->validate([
-            'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
-            'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
-            'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
-            'view' => 'nullable|in:strategic,operational,analytical,summary,monitoring',
-        ]);
-
-        $trendGranularity = $this->resolvePreferredTrendGranularity($request);
-        $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
-        $rawView = strtolower((string) $request->query('view', 'strategic'));
-        $defaultView = match ($rawView) {
-            'operational', 'monitoring' => 'operational',
-            'analytical' => 'analytical',
-            default => 'strategic',
-        };
-
-        $context = $this->buildUnifiedDashboardContext($request, $dashboardSummary);
-        $context['defaultView'] = $defaultView;
-
-        return view('risks.unified-dashboard', $context);
+        return $this->renderDashboard($request);
     }
 
     public function managementDashboard(Request $request)
     {
+        return $this->renderDashboard($request);
+    }
+
+    /**
+     * Main dashboard. "overview" sections load asynchronously from
+     * DashboardSectionController; "analytical" keeps the analyst views that
+     * are computed server-side. Legacy ?view= values map to the overview.
+     */
+    private function renderDashboard(Request $request)
+    {
         $request->validate([
+            'owner' => 'nullable|string|max:255',
+            'category' => 'nullable|integer|exists:risk_categories,id',
+            'period' => 'nullable|in:month,quarter',
             'risk_category_id' => 'nullable|integer|exists:risk_categories,id',
             'risk_cause_category_id' => 'nullable|integer|exists:risk_cause_categories,id',
             'trend_granularity' => 'nullable|in:monthly,quarterly,yearly',
-            'view' => 'nullable|in:strategic,operational,analytical,summary,monitoring',
+            'view' => 'nullable|in:overview,strategic,operational,analytical,summary,monitoring',
         ]);
 
-        $trendGranularity = $this->resolvePreferredTrendGranularity($request);
-        $dashboardSummary = $this->getCachedDashboardSummary($request, $trendGranularity);
-        $rawView = strtolower((string) $request->query('view', 'strategic'));
-        $defaultView = match ($rawView) {
-            'operational', 'monitoring' => 'operational',
-            'analytical' => 'analytical',
-            default => 'strategic',
-        };
+        $view = strtolower((string) $request->query('view', 'overview')) === 'analytical' ? 'analytical' : 'overview';
+        $filters = \App\Services\Dashboard\DashboardFilters::fromRequest($request);
+        $metrics = new \App\Services\Dashboard\DashboardMetricsService($request->user(), $filters);
 
-        $context = $this->buildUnifiedDashboardContext($request, $dashboardSummary);
-        $context['defaultView'] = $defaultView;
+        $context = [
+            'dashboardView' => $view,
+            'dashboardFilters' => $filters,
+            'filterOptions' => $metrics->filterOptions(),
+        ];
+
+        if ($view === 'analytical') {
+            if ($filters->categoryId !== null && !$request->filled('risk_category_id')) {
+                $request->merge(['risk_category_id' => $filters->categoryId]);
+            }
+            $trendGranularity = $this->resolvePreferredTrendGranularity($request);
+            $heatmap = $metrics->heatmap();
+
+            $context['dashboardSummary'] = $this->getCachedDashboardSummary($request, $trendGranularity);
+            $context['heatmapMatrix'] = [
+                'residual' => $this->heatmapRowsToMatrix($heatmap['residual']['rows']),
+                'inherent' => $this->heatmapRowsToMatrix($heatmap['inherent']['rows']),
+            ];
+        }
 
         return view('risks.unified-dashboard', $context);
     }
 
-    private function buildUnifiedDashboardContext(Request $request, array $dashboardSummary): array
+    /**
+     * @return array<int, array<int, int>> counts indexed [probability][impact]
+     */
+    private function heatmapRowsToMatrix(array $rows): array
     {
-        $risksQuery = $this->buildDashboardSummaryQuery($request);
-        $risks = $risksQuery->get();
-
-        $matrixResidual = array_fill(1, 5, array_fill(1, 5, 0));
-        $matrixInherent = array_fill(1, 5, array_fill(1, 5, 0));
-
-        foreach ($risks as $risk) {
-            $rProb = (int) (optional($risk->residualAnalysis)->probability_score ?: $risk->probability_score ?: 0);
-            $rImp = (int) (optional($risk->residualAnalysis)->impact_score ?: $risk->impact_score ?: 0);
-            if ($rProb >= 1 && $rProb <= 5 && $rImp >= 1 && $rImp <= 5) {
-                $matrixResidual[$rProb][$rImp]++;
-            }
-
-            $iProb = (int) (optional($risk->inherentAnalysis)->probability_score ?: $risk->probability_score ?: 0);
-            $iImp = (int) (optional($risk->inherentAnalysis)->impact_score ?: $risk->impact_score ?: 0);
-            if ($iProb >= 1 && $iProb <= 5 && $iImp >= 1 && $iImp <= 5) {
-                $matrixInherent[$iProb][$iImp]++;
+        $matrix = array_fill(1, 5, array_fill(1, 5, 0));
+        foreach ($rows as $row) {
+            foreach ($row as $cell) {
+                $matrix[$cell['p']][$cell['i']] = $cell['count'];
             }
         }
 
-        try {
-            $strategicDecisions = \App\RiskCommitteeDecision::with(['risk:id,risk_id,risk_title', 'creator:id,name'])
-                ->orderBy('meeting_date', 'desc')
-                ->take(5)
-                ->get();
-        } catch (\Throwable $e) {
-            $strategicDecisions = collect([]);
-        }
-
-        try {
-            $operationalKriAlerts = \App\Kri::with(['risk:id,risk_id,risk_title'])
-                ->whereIn('status', ['red', 'amber'])
-                ->orWhere('current_value', '>', 0)
-                ->orderBy('status', 'desc')
-                ->take(6)
-                ->get();
-        } catch (\Throwable $e) {
-            $operationalKriAlerts = collect([]);
-        }
-
-        try {
-            $operationalIncidents = \App\RiskIncident::with(['risk:id,risk_id,risk_title'])
-                ->whereIn('status', ['Open', 'Investigating'])
-                ->orderBy('created_at', 'desc')
-                ->take(6)
-                ->get();
-        } catch (\Throwable $e) {
-            $operationalIncidents = collect([]);
-        }
-
-        try {
-            $riskAppetites = \App\RiskAppetite::where('is_active', true)->orderBy('name')->get();
-        } catch (\Throwable $e) {
-            $riskAppetites = collect([]);
-        }
-
-        try {
-            $categories = \App\RiskCategory::orderBy('name')->get();
-        } catch (\Throwable $e) {
-            $categories = collect([]);
-        }
-
-        try {
-            $causeCategories = \App\RiskCauseCategory::orderBy('name')->get();
-        } catch (\Throwable $e) {
-            $causeCategories = collect([]);
-        }
-
-        // Executive Board Metrics (Enterprise Risk Dashboard)
-        $totalLossRaw = 0;
-        $highRiskCount = 0;
-        $matrixResidualDetail = [];
-        for ($p = 1; $p <= 5; $p++) {
-            for ($i = 1; $i <= 5; $i++) {
-                $matrixResidualDetail[$p][$i] = ['count' => 0, 'markers' => []];
-            }
-        }
-
-        foreach ($risks as $risk) {
-            $loss = (float) (optional($risk->residualAnalysis)->potential_loss ?: optional($risk->inherentAnalysis)->potential_loss ?: 0);
-            $totalLossRaw += $loss;
-
-            $dispScore = RiskMetricService::resolveDisplayScore($risk);
-            if ($dispScore >= 11) {
-                $highRiskCount++;
-            }
-
-            $rProb = (int) (optional($risk->residualAnalysis)->probability_score ?: $risk->probability_score ?: 0);
-            $rImp = (int) (optional($risk->residualAnalysis)->impact_score ?: $risk->impact_score ?: 0);
-            if ($rProb >= 1 && $rProb <= 5 && $rImp >= 1 && $rImp <= 5) {
-                $matrixResidualDetail[$rProb][$rImp]['count']++;
-                $catName = optional($risk->category)->name ?? 'Operasional';
-                $code = match(true) {
-                    str_contains(strtolower($catName), 'cyber') || str_contains(strtolower($catName), 'ti') || str_contains(strtolower($catName), 'teknis') || str_contains(strtolower($catName), 'akses') || str_contains(strtolower($catName), 'data') => 'I',
-                    str_contains(strtolower($catName), 'uang') || str_contains(strtolower($catName), 'biaya') => 'F',
-                    str_contains(strtolower($catName), 'patuh') || str_contains(strtolower($catName), 'hukum') || str_contains(strtolower($catName), 'regulasi') => 'C',
-                    str_contains(strtolower($catName), 'ketiga') || str_contains(strtolower($catName), 'vendor') => 'T',
-                    str_contains(strtolower($catName), 'strategi') || str_contains(strtolower($catName), 'reputasi') => 'R',
-                    default => 'O',
-                };
-                if (!in_array($code, $matrixResidualDetail[$rProb][$rImp]['markers'], true)) {
-                    $matrixResidualDetail[$rProb][$rImp]['markers'][] = $code;
-                }
-            }
-        }
-
-        if ($totalLossRaw === 0.0) {
-            try {
-                $incidentLoss = (float) \App\RiskIncident::sum('loss_amount');
-                $totalLossRaw = $incidentLoss > 0 ? $incidentLoss : 4440000000;
-            } catch (\Throwable $e) {
-                $totalLossRaw = 4440000000;
-            }
-        }
-
-        $estLossFormatted = $totalLossRaw >= 1000000000
-            ? 'Rp ' . number_format($totalLossRaw / 1000000000, 2, ',', '.') . 'M'
-            : ($totalLossRaw >= 1000000 ? 'Rp ' . number_format($totalLossRaw / 1000000, 1, ',', '.') . ' Jt' : 'Rp ' . number_format($totalLossRaw, 0, ',', '.'));
-
-        $residualAvg = (float) ($dashboardSummary['average_scores']['residual'] ?? 2.01);
-        $inherentAvg = (float) ($dashboardSummary['average_scores']['inherent'] ?? 14.38);
-
-        $overallRating = match (true) {
-            $residualAvg > 15 => 'Critical',
-            $residualAvg > 10 => 'High',
-            $residualAvg > 5 => 'Medium',
-            default => 'Low',
-        };
-
-        $overallRatingColor = match ($overallRating) {
-            'Critical' => '#dc2626',
-            'High' => '#ea580c',
-            'Medium' => '#d97706',
-            default => '#16a34a',
-        };
-
-        $coveragePct = (float) ($dashboardSummary['mitigation']['risk_coverage_percent'] ?? 84.0);
-        if ($coveragePct <= 0) $coveragePct = 84.0;
-
-        $openItemsCount = (int) ($dashboardSummary['open_count'] ?? 0);
-        if ($openItemsCount === 0) {
-            $openItemsCount = (int) ($dashboardSummary['total_risks'] ?? 37);
-        }
-
-        // YoY reduction calculation
-        $yoyBaseline = 100;
-        $yoyCurrent = $inherentAvg > 0 ? max(10, min(95, round(($residualAvg / $inherentAvg) * 100))) : 63;
-        $yoyReduction = max(5, 100 - $yoyCurrent);
-
-        // Resilience Index (0-100)
-        $resilienceScore = min(99, max(30, round(($coveragePct * 0.45) + (max(0, 100 - ($residualAvg / 25 * 100)) * 0.4) + 15)));
-        $resilienceRating = match (true) {
-            $resilienceScore >= 80 => 'Strong',
-            $resilienceScore >= 70 => 'Good',
-            $resilienceScore >= 55 => 'Adequate',
-            default => 'Needs Review',
-        };
-
-        // Top Categories Chart
-        $categoryCounts = [];
-        foreach ($risks as $r) {
-            $cName = optional($r->category)->name ?: 'Operasional';
-            $categoryCounts[$cName] = ($categoryCounts[$cName] ?? 0) + 1;
-        }
-        arsort($categoryCounts);
-        $topCatSlice = array_slice($categoryCounts, 0, 5, true);
-        $otherCount = array_sum(array_slice($categoryCounts, 5));
-        if ($otherCount > 0) {
-            $topCatSlice['Lainnya'] = $otherCount;
-        }
-        $totalForCat = max(1, array_sum($topCatSlice));
-        $topCatLabels = array_keys($topCatSlice);
-        $topCatValues = array_values($topCatSlice);
-        $topCatPercentages = array_map(function($val) use ($totalForCat) {
-            return round(($val / $totalForCat) * 100);
-        }, $topCatValues);
-
-        // Trend line composite
-        $trendLineLabels = ['Q2\'24', 'Q3\'24', 'Q4\'24', 'Q1\'25', 'Q2\'25', 'Q3\'25', 'Q4\'25', 'Q1\'26'];
-        $trendQuarterly = $dashboardSummary['trend_quarterly'] ?? [];
-        if (!empty($trendQuarterly)) {
-            $qLabels = array_column($trendQuarterly, 'label');
-            $qVals = array_column($trendQuarterly, 'overall');
-            if (count($qLabels) >= 3) {
-                $trendLineLabels = array_slice($qLabels, -8);
-                $trendLineValues = array_slice($qVals, -8);
-            } else {
-                $trendLineValues = [14.2, 13.8, 13.5, 12.9, 12.4, 11.8, 11.2, round(max(2.0, $residualAvg), 1)];
-            }
-        } else {
-            $trendLineValues = [14.2, 13.8, 13.5, 12.9, 12.4, 11.8, 11.2, round(max(2.0, $residualAvg), 1)];
-        }
-
-        $executiveMetrics = [
-            'est_loss_formatted' => $estLossFormatted,
-            'est_loss_raw' => $totalLossRaw,
-            'overall_rating' => $overallRating,
-            'overall_rating_color' => $overallRatingColor,
-            'overall_rating_note' => '▸ Unchanged from Q3',
-            'open_items_count' => $openItemsCount,
-            'open_items_subtext' => '↓ 6 from Q3',
-            'control_coverage_pct' => $coveragePct,
-            'control_coverage_subtext' => '↑ 6% from Q3',
-            'high_risk_count' => $highRiskCount,
-            'matrix_detail' => $matrixResidualDetail,
-            'yoy_baseline' => $yoyBaseline,
-            'yoy_current' => $yoyCurrent,
-            'yoy_reduction_pct' => $yoyReduction,
-            'resilience_score' => $resilienceScore,
-            'resilience_rating' => $resilienceRating,
-            'top_categories_labels' => $topCatLabels,
-            'top_categories_percentages' => $topCatPercentages,
-            'top_categories_counts' => $topCatValues,
-            'trend_line_labels' => $trendLineLabels,
-            'trend_line_values' => $trendLineValues,
-        ];
-
-        return [
-            'dashboardSummary' => $dashboardSummary,
-            'heatmapMatrix' => [
-                'residual' => $matrixResidual,
-                'inherent' => $matrixInherent,
-            ],
-            'strategicDecisions' => $strategicDecisions,
-            'operationalKriAlerts' => $operationalKriAlerts,
-            'operationalIncidents' => $operationalIncidents,
-            'riskAppetites' => $riskAppetites,
-            'categories' => $categories,
-            'causeCategories' => $causeCategories,
-            'executiveMetrics' => $executiveMetrics,
-        ];
+        return $matrix;
     }
 
     public function dashboardSummary(Request $request)
@@ -1794,8 +1568,8 @@ class RiskController extends Controller
         if ($request->input('post_submit_action') === 'bcm' && !is_null($createdRisk)) {
             return redirect()
                 ->route('risks.show', $createdRisk->id)
-                ->withFragment('bcm')
-                ->with('success', 'Risk created successfully. Continue with BCM (BIA/BCP).');
+                ->withFragment('services')
+                ->with('success', 'Risk created. Link it to the business services it can disrupt.');
         }
 
         return redirect()->route('risks.index')->with('success', 'Risk created successfully with all analysis data');
@@ -1818,7 +1592,10 @@ class RiskController extends Controller
                     ->oldest();
             },
             'inherentAnalysis.impactScale',
-            'bia.bcp',
+            'businessServices' => function ($query) {
+                \App\Support\ServiceAccess::applyVisibilityScope($query, auth()->user());
+                $query->with(['bia', 'bcp', 'latestTest'])->orderBy('business_services.code');
+            },
             'residualAnalysis.impactScale',
             'residualAnalysis.radarGroup',
             'statusChangeRequests' => function ($query) {
@@ -1826,7 +1603,6 @@ class RiskController extends Controller
                     ->with(['requester', 'reviewer'])
                     ->latest();
             },
-            'rcsaWorkspace.updater',
             'alerts' => function ($query) {
                 $query
                     ->with('treatment')
@@ -1847,7 +1623,15 @@ class RiskController extends Controller
             ->orderBy('username')
             ->get();
 
-        return view('risks.show', compact('risk', 'activityLogs', 'mentionUsers', 'appetiteEvaluation'));
+        // Services the viewer may link this risk to (those they can manage).
+        $linkableServices = \App\BusinessService::query()
+            ->whereIn('owner_unit', \App\Support\ServiceAccess::manageableUnits(auth()->user()))
+            ->where('status', '!=', 'retired')
+            ->whereNotIn('id', $risk->businessServices->pluck('id'))
+            ->orderBy('code')
+            ->get(['id', 'code', 'name']);
+
+        return view('risks.show', compact('risk', 'activityLogs', 'mentionUsers', 'appetiteEvaluation', 'linkableServices'));
     }
 
 
@@ -2324,8 +2108,8 @@ class RiskController extends Controller
         if ($request->input('post_submit_action') === 'bcm') {
             return redirect()
                 ->route('risks.show', $risk->id)
-                ->withFragment('bcm')
-                ->with('success', 'Risk updated successfully. Continue with BCM (BIA/BCP).');
+                ->withFragment('services')
+                ->with('success', 'Risk updated. Link it to the business services it can disrupt.');
         }
 
         return redirect()->route('risks.index')->with('success', 'Risk updated successfully with analysis data');
@@ -2851,12 +2635,10 @@ class RiskController extends Controller
 
     private function ensureCanManageRisk(Risk $risk): void
     {
-        $user = auth()->user();
-        $isCreator = !is_null($user) && (int) $risk->created_by > 0 && (int) $risk->created_by === (int) $user->id;
-        $allowOwnerManage = !is_null($user) && $user->canManageRiskOwner($risk->risk_owner);
-
+        // Same creator/owner scope as before, plus the RBAC rule: users with
+        // explicit role assignments also need the risks.manage permission.
         abort_unless(
-            !is_null($user) && !$user->isSuperadmin() && ($isCreator || $allowOwnerManage),
+            \App\Support\RiskAccess::canManage(auth()->user(), $risk),
             403,
             'You are not allowed to modify this risk.'
         );

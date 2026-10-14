@@ -53,6 +53,9 @@
             <div class="card-body">
                 <div class="subheader text-white">Total KRI Metrics</div>
                 <div class="h1 mt-2 mb-0">{{ $summary['total'] ?? 0 }}</div>
+                @if(($summary['no_data'] ?? 0) > 0)
+                    <div class="small mt-1">{{ $summary['no_data'] }} without a first reading</div>
+                @endif
             </div>
         </div>
     </div>
@@ -135,7 +138,9 @@
                             {{ $kri->current_value !== null ? $kri->current_value : '-' }}
                         </td>
                         <td>
-                            @if($kri->status === 'Red')
+                            @if($kri->current_value === null)
+                                <span class="badge bg-secondary-lt">No data yet</span>
+                            @elseif($kri->status === 'Red')
                                 <span class="badge bg-danger">Critical</span>
                             @elseif($kri->status === 'Amber')
                                 <span class="badge bg-warning text-dark">Warning</span>

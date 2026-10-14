@@ -62,27 +62,30 @@ class RiskAccessSecurityRegressionTest extends TestCase
         $this->assertNotContains('COMPLIANCE', $trendOwners);
     }
 
-    public function test_enterprise_executive_dashboard_renders_with_executive_metrics(): void
+    public function test_main_dashboard_renders_overview_sections_without_placeholder_figures(): void
     {
         $viewer = $this->createUser('CO - COMPLIANCE', false);
         $this->createRiskRecord($viewer, 'CO - COMPLIANCE', 'Executive Dashboard Risk');
 
         $this->actingAs($viewer);
 
-        $response = $this->get(route('dashboard'));
-        $response->assertOk();
-        $response->assertViewIs('risks.unified-dashboard');
-        $response->assertViewHas('executiveMetrics');
-        $response->assertSee('Enterprise Risk Dashboard');
-        $response->assertSee('EST. POTENTIAL LOSS');
-        $response->assertSee('OVERALL RISK RATING');
-        $response->assertSee('OPEN RISK ITEMS');
-        $response->assertSee('CONTROL COVERAGE');
-        $response->assertSee('RISK MATRIX');
-        $response->assertSee('YOY RISK REDUCTION');
-        $response->assertSee('ENTERPRISE RESILIENCE SCORE');
-        $response->assertSee('TOP RISK CATEGORIES');
-        $response->assertSee('RISK POSTURE OVER TIME');
+        foreach ([route('dashboard'), route('dashboard', ['view' => 'strategic']), route('management.dashboard'), route('risks.monitoring')] as $url) {
+            $response = $this->get($url);
+            $response->assertOk();
+            $response->assertViewIs('risks.unified-dashboard');
+            $response->assertViewHas('dashboardView', 'overview');
+            foreach (['summary', 'attention', 'heatmap', 'profile', 'top-risks', 'kris', 'losses', 'actions', 'assurance', 'trend'] as $section) {
+                $response->assertSee('data-section="' . $section . '"', false);
+            }
+            // Figures that used to be hard-coded fallbacks must never be rendered.
+            $response->assertDontSee('4.440.000.000');
+            $response->assertDontSee('from Q3');
+        }
+
+        $analytical = $this->get(route('dashboard', ['view' => 'analytical']));
+        $analytical->assertOk();
+        $analytical->assertViewHas('dashboardView', 'analytical');
+        $analytical->assertViewHas('heatmapMatrix');
     }
 
     public function test_non_compliance_user_cannot_comment_or_download_attachment_on_foreign_risk(): void

@@ -176,29 +176,17 @@ class Risk extends Model
         return $this->hasMany(Kri::class);
     }
 
-    public function rcsaWorkspace()
-    {
-        return $this->hasOne(RiskRcsaWorkspace::class);
-    }
-
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);
     }
 
-    public function controls()
+    /**
+     * Business services this risk can disrupt (business continuity is managed per service).
+     */
+    public function businessServices()
     {
-        return $this->hasMany(RiskControl::class);
-    }
-
-    public function acceptances()
-    {
-        return $this->hasMany(RiskAcceptance::class)->latest();
-    }
-
-    public function bia()
-    {
-        return $this->hasOne(Bia::class);
+        return $this->belongsToMany(BusinessService::class, 'business_service_risk')->withTimestamps();
     }
 
 }

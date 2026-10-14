@@ -157,7 +157,6 @@ class CorporateRiskAppetiteWorkflowTest extends TestCase
     {
         return RiskAppetite::create(array_merge([
             'name' => 'Appetite ' . Str::upper(Str::random(6)),
-            'risk_category' => 'Operational',
             'threshold_metric' => RiskAppetite::THRESHOLD_METRIC_QUALITATIVE,
             'appetite_statement' => 'Default appetite statement',
             'appetite_limit_value' => null,
@@ -172,7 +171,6 @@ class CorporateRiskAppetiteWorkflowTest extends TestCase
     {
         return [
             'name' => 'Unauthorized Appetite',
-            'risk_category' => 'Operational',
             'threshold_metric' => RiskAppetite::THRESHOLD_METRIC_QUALITATIVE,
             'appetite_statement' => 'Unauthorized attempt',
             'is_active' => '1',

@@ -25,15 +25,12 @@ use App\Http\Controllers\IncidentManagementController;
 use App\Http\Controllers\ThreatIntelligenceController;
 use App\Http\Controllers\OwnerWorkloadController;
 use App\Http\Controllers\RiskTreatmentTemplateController;
-use App\Http\Controllers\RiskRcsaWorkspaceController;
 use App\Http\Controllers\ParameterManagementController;
 use App\Http\Controllers\FrameworkController;
-use App\Http\Controllers\RiskGovernanceController;
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\IncidentLearningController;
 use App\Http\Controllers\EnterpriseRiskProfileController;
 use App\Http\Controllers\ThirdPartyRiskController;
-use App\Http\Controllers\ControlFrameworkMappingController;
 use App\Http\Controllers\StrategicRiskReviewController;
 use App\Http\Controllers\TwoFactorAuthenticationController;
 use App\Http\Controllers\OidcSingleSignOnController;
@@ -170,6 +167,13 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
     Route::get('/impact-scales/{id}', [AppEntryController::class, 'impactScales'])->whereNumber('id');
 
     Route::get('/dashboard', [RiskController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard/sections/{section}', [\App\Http\Controllers\DashboardSectionController::class, 'show'])
+        ->where('section', '[a-z-]+')
+        ->middleware('throttle:120,1')
+        ->name('dashboard.sections');
+    Route::get('/dashboard/heatmap-cell', [\App\Http\Controllers\DashboardSectionController::class, 'heatmapCell'])
+        ->middleware('throttle:120,1')
+        ->name('dashboard.heatmap-cell');
     Route::get('/risk-monitoring', [RiskController::class, 'monitoring'])->name('risks.monitoring');
     Route::get('/dashboard-monitoring', [RiskController::class, 'managementDashboard'])->name('management.dashboard');
     Route::get('/enterprise-risk-profile', [EnterpriseRiskProfileController::class, 'index'])->name('enterprise-risk-profile.index');
@@ -389,44 +393,25 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
     Route::delete('/mitigation-playbooks/{template}', [RiskTreatmentTemplateController::class, 'destroy'])
         ->whereNumber('template')
         ->name('treatment-templates.destroy');
-    Route::get('/risks/{risk}/rcsa', [RiskRcsaWorkspaceController::class, 'show'])
-        ->whereNumber('risk')
-        ->name('risks.rcsa.show');
-    Route::put('/risks/{risk}/rcsa', [RiskRcsaWorkspaceController::class, 'update'])
-        ->whereNumber('risk')
-        ->name('risks.rcsa.update');
-
-    Route::get('/risks/{risk}/governance', [RiskGovernanceController::class, 'show'])
-        ->whereNumber('risk')
-        ->name('risks.governance.show');
-    Route::post('/risks/{risk}/governance/controls', [RiskGovernanceController::class, 'storeControl'])
-        ->whereNumber('risk')
-        ->name('risks.governance.controls.store');
-    Route::post('/risks/{risk}/governance/controls/{control}/tests', [RiskGovernanceController::class, 'storeControlTest'])
-        ->whereNumber('risk')
-        ->whereNumber('control')
-        ->name('risks.governance.controls.tests.store');
-    Route::post('/risks/{risk}/governance/acceptances', [RiskGovernanceController::class, 'requestAcceptance'])
-        ->whereNumber('risk')
-        ->name('risks.governance.acceptances.store');
-    Route::put('/risks/{risk}/governance/acceptances/{acceptance}/decision', [RiskGovernanceController::class, 'decideAcceptance'])
-        ->whereNumber('risk')
-        ->whereNumber('acceptance')
-        ->name('risks.governance.acceptances.decision');
 
     // BCM Routes
-    Route::get('/bcm', [\App\Http\Controllers\BcmController::class, 'index'])->name('bcm.index');
-    Route::post('/risks/{risk}/bia', [\App\Http\Controllers\BiaController::class, 'update'])
+    Route::prefix('bcm')->name('bcm.')->group(function () {
+        $bcm = \App\Http\Controllers\BusinessContinuityController::class;
+        Route::get('/', [$bcm, 'index'])->name('index');
+        Route::post('/services', [$bcm, 'storeService'])->name('services.store');
+        Route::get('/services/{service}', [$bcm, 'show'])->whereNumber('service')->name('services.show');
+        Route::put('/services/{service}', [$bcm, 'updateService'])->whereNumber('service')->name('services.update');
+        Route::put('/services/{service}/bia', [$bcm, 'updateBia'])->whereNumber('service')->name('bia.update');
+        Route::post('/services/{service}/bia/approve', [$bcm, 'approveBia'])->whereNumber('service')->name('bia.approve');
+        Route::post('/services/{service}/risks', [$bcm, 'attachRisk'])->whereNumber('service')->name('risks.attach');
+        Route::delete('/services/{service}/risks/{risk}', [$bcm, 'detachRisk'])->whereNumber(['service', 'risk'])->name('risks.detach');
+        Route::put('/services/{service}/bcp', [$bcm, 'updateBcp'])->whereNumber('service')->name('bcp.update');
+        Route::post('/services/{service}/tests', [$bcm, 'storeTest'])->whereNumber('service')->name('tests.store');
+    });
+    Route::post('/risks/{risk}/business-services', [\App\Http\Controllers\BusinessContinuityController::class, 'attachFromRisk'])
         ->whereNumber('risk')
-        ->name('bia.store');
-    Route::post('/bias/{bia}/bcp', [\App\Http\Controllers\BcpController::class, 'update'])
-        ->whereNumber('bia')
-        ->name('bcp.store');
+        ->name('risks.business-services.attach');
 
-    Route::get('/control-framework-mappings', [ControlFrameworkMappingController::class, 'index'])->name('control-framework-mappings.index');
-    Route::post('/control-framework-mappings', [ControlFrameworkMappingController::class, 'store'])
-        ->middleware('compliance.division')
-        ->name('control-framework-mappings.store');
     Route::get('/vendors/{vendor}/third-party-risk', [ThirdPartyRiskController::class, 'show'])
         ->whereNumber('vendor')
         ->name('vendors.third-party-risk.show');
@@ -444,52 +429,8 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
     Route::resource('risk-appetites', \App\Http\Controllers\RiskAppetiteController::class);
     Route::resource('risks', RiskController::class);
 
-    // Sulteng Investigation Checklist & Evidence Routes
-    Route::prefix('sulteng-investigasi')->name('sulteng.')->middleware('regional.assessment')->group(function () {
-        Route::get('/dashboard', [\App\Http\Controllers\SultengInvestigationController::class, 'dashboard'])->name('dashboard');
-        Route::get('/items', [\App\Http\Controllers\SultengInvestigationController::class, 'items'])->name('items');
-        Route::post('/items/{item}/upload', [\App\Http\Controllers\SultengInvestigationController::class, 'uploadEvidence'])
-            ->middleware('throttle:30,1')
-            ->whereNumber('item')
-            ->name('items.upload');
-        Route::post('/items/{item}/update', [\App\Http\Controllers\SultengInvestigationController::class, 'updateItem'])
-            ->whereNumber('item')
-            ->name('items.update');
-        Route::get('/evidence/{evidence}/download', [\App\Http\Controllers\SultengInvestigationController::class, 'downloadEvidence'])
-            ->whereNumber('evidence')
-            ->name('evidence.download');
-        Route::get('/evidence/{evidence}/preview', [\App\Http\Controllers\SultengInvestigationController::class, 'previewEvidence'])
-            ->whereNumber('evidence')
-            ->name('evidence.preview');
-        Route::delete('/evidence/{evidence}', [\App\Http\Controllers\SultengInvestigationController::class, 'destroyEvidence'])
-            ->whereNumber('evidence')
-            ->name('evidence.destroy');
-        Route::get('/export-excel', [\App\Http\Controllers\SultengInvestigationController::class, 'exportExcel'])->name('export-excel');
-        Route::post('/sync-excel', [\App\Http\Controllers\SultengInvestigationController::class, 'syncFromExcel'])
-            ->middleware('superadmin')
-            ->name('sync-excel');
-    });
-
-    // Monitoring Assessment Multi-region Routes
-    // Sumut 27 Point Monitoring Routes
-    Route::prefix('sumut-monitoring')->name('sumut.')->middleware('regional.assessment')->group(function () {
-        Route::get('/dashboard', [\App\Http\Controllers\SumutMonitoringController::class, 'dashboard'])->name('dashboard');
-        Route::get('/items', [\App\Http\Controllers\SumutMonitoringController::class, 'items'])->name('items');
-        Route::post('/items/{item}/update', [\App\Http\Controllers\SumutMonitoringController::class, 'updateItem'])
-            ->whereNumber('item')
-            ->name('items.update');
-        Route::get('/evidence/{evidence}/download', [\App\Http\Controllers\SumutMonitoringController::class, 'downloadEvidence'])
-            ->whereNumber('evidence')
-            ->name('evidence.download');
-        Route::get('/evidence/{evidence}/preview', [\App\Http\Controllers\SumutMonitoringController::class, 'previewEvidence'])
-            ->whereNumber('evidence')
-            ->name('evidence.preview');
-        Route::get('/export-excel', [\App\Http\Controllers\SumutMonitoringController::class, 'exportExcel'])->name('export-excel');
-        Route::post('/sync-excel', [\App\Http\Controllers\SumutMonitoringController::class, 'syncFromExcel'])
-            ->middleware('superadmin')
-            ->name('sync-excel');
-    });
-
-    Route::get('/monitoring-assessment/sumut', [\App\Http\Controllers\SumutMonitoringController::class, 'dashboard'])->middleware('regional.assessment')->name('assessment.sumut');
-    Route::get('/monitoring-assessment/sulteng', [\App\Http\Controllers\SultengInvestigationController::class, 'dashboard'])->middleware('regional.assessment')->name('assessment.sulteng');
+    // Optional local-only routes (gitignored).
+    if (is_file(__DIR__ . '/local.php')) {
+        require __DIR__ . '/local.php';
+    }
 });

@@ -1,6 +1,6 @@
 <?php
 
-return [
+$config = [
     'status' => [
         'order' => ['Closed', 'Domain Bank', 'On Progress'],
         'colors' => [
@@ -14,50 +14,33 @@ return [
     ],
 
     'bank' => [
-        'default' => 'COLLEGA',
-        'fallback_coordinates' => ['lat' => -6.2596, 'lng' => 106.7972],
+        'default' => 'INTERNAL',
+        'fallback_coordinates' => ['lat' => -6.2088, 'lng' => 106.8456],
+        // Example mapping. Put your real client list in private/audit_dashboard.php.
         'mappings' => [
             [
-                'name' => 'BANK ACEH',
-                'keywords' => ['BANK ACEH', 'ACEH'],
-                'coordinates' => ['lat' => 5.5483, 'lng' => 95.3238],
-                'region' => 'Region 1',
-            ],
-            [
-                'name' => 'BANK BENGKULU',
-                'keywords' => ['BANK BENGKULU', 'BENGKULU'],
-                'coordinates' => ['lat' => -3.8004, 'lng' => 102.2655],
-                'region' => 'Region 1',
-            ],
-            [
-                'name' => 'BANK SUMUT',
-                'keywords' => ['BANK SUMUT', 'SUMUT'],
+                'name' => 'BANK CONTOH A',
+                'keywords' => ['BANK CONTOH A', 'CONTOH A'],
                 'coordinates' => ['lat' => 3.5952, 'lng' => 98.6722],
                 'region' => 'Region 1',
             ],
             [
-                'name' => 'BANK SULTENG',
-                'keywords' => ['BANK SULTENG', 'SULTENG'],
-                'coordinates' => ['lat' => -0.8986, 'lng' => 119.8506],
+                'name' => 'BANK CONTOH B',
+                'keywords' => ['BANK CONTOH B', 'CONTOH B'],
+                'coordinates' => ['lat' => -6.9175, 'lng' => 107.6191],
+                'region' => 'Region 1',
+            ],
+            [
+                'name' => 'BANK CONTOH C',
+                'keywords' => ['BANK CONTOH C', 'CONTOH C'],
+                'coordinates' => ['lat' => -5.1477, 'lng' => 119.4327],
                 'region' => 'Region 2',
             ],
             [
-                'name' => 'BANK KALTENG',
-                'keywords' => ['BANK KALTENG', 'KALTENG'],
-                'coordinates' => ['lat' => -2.2096, 'lng' => 113.9213],
-                'region' => 'Region 2',
-            ],
-            [
-                'name' => 'BANK SULUTGO',
-                'keywords' => ['BANK SULUTGO', 'SULUTGO', 'SULUT', 'GORONTALO'],
-                'coordinates' => ['lat' => 1.4748, 'lng' => 124.8421],
-                'region' => 'Region 2',
-            ],
-            [
-                'name' => 'COLLEGA',
-                'keywords' => ['COLLEGA', 'INTERNAL'],
-                'coordinates' => ['lat' => -6.2596, 'lng' => 106.7972],
-                'region' => 'Internal Collega',
+                'name' => 'INTERNAL',
+                'keywords' => ['INTERNAL'],
+                'coordinates' => ['lat' => -6.2088, 'lng' => 106.8456],
+                'region' => 'Internal',
             ],
         ],
     ],
@@ -81,9 +64,18 @@ return [
         'max_length' => 24,
     ],
 
+    // Snapshot shown before a spreadsheet is imported. Falls back to the
+    // fictional sample in resources/data/audit-dashboard-sample.php.
+    'snapshot_path' => dirname(__DIR__) . '/private/audit_dashboard_snapshot.php',
+
     'executive_actions' => [
         'Reminder (email, wa).',
         'Koordinasi meeting internal dengan divisi terkait.',
         'Koordinasi dengan klien.',
     ],
 ];
+
+// Organisation-specific values (real client list) can live in the gitignored private/ folder.
+$local = dirname(__DIR__) . '/private/audit_dashboard.php';
+
+return is_file($local) ? array_replace($config, require $local) : $config;

@@ -320,14 +320,15 @@ class IncidentManagementUnlinkedAndLossTest extends TestCase
     public function test_user_can_create_and_update_incident_with_affected_client(): void
     {
         $user = $this->createUser();
+        config(['incidents.affected_parties' => ['BANK CONTOH A', 'BANK CONTOH B']]);
 
-        // 1. Create incident with affected_client BANK SULTENG
+        // 1. Create incident with affected_client BANK CONTOH A
         $response = $this->actingAs($user)
             ->post(route('incidents.store'), [
                 'risk_id' => '',
                 'risk_owner' => 'BT - DIGITAL BANKING',
-                'affected_client' => 'BANK SULTENG',
-                'title' => 'Core Banking API Timeout at Bank Sulteng',
+                'affected_client' => 'BANK CONTOH A',
+                'title' => 'Core Banking API Timeout at Bank Contoh A',
                 'incident_description' => 'Response time from switching gateway spiked to 12s.',
                 'occurred_at' => now()->format('Y-m-d\TH:i'),
                 'severity' => 'High',
@@ -337,29 +338,29 @@ class IncidentManagementUnlinkedAndLossTest extends TestCase
             ]);
 
         $response->assertRedirect(route('incidents.index'));
-        $incident = RiskIncident::where('title', 'Core Banking API Timeout at Bank Sulteng')->first();
+        $incident = RiskIncident::where('title', 'Core Banking API Timeout at Bank Contoh A')->first();
         $this->assertNotNull($incident);
-        $this->assertEquals('BANK SULTENG', $incident->affected_client);
+        $this->assertEquals('BANK CONTOH A', $incident->affected_client);
 
         // 2. Check create and edit pages display affected client options
         $createResponse = $this->actingAs($user)->get(route('incidents.create'));
         $createResponse->assertOk();
         $createResponse->assertSee('Client Terdampak (Bank / Lembaga)');
-        $createResponse->assertSee('BANK SULTENG');
-        $createResponse->assertSee('BANK SUMUT');
+        $createResponse->assertSee('BANK CONTOH A');
+        $createResponse->assertSee('BANK CONTOH B');
 
         $editResponse = $this->actingAs($user)->get(route('incidents.edit', $incident->id));
         $editResponse->assertOk();
         $editResponse->assertSee('Client Terdampak (Bank / Lembaga)');
-        $editResponse->assertSee('BANK SULTENG');
+        $editResponse->assertSee('BANK CONTOH A');
 
-        // 3. Update affected client to BANK SUMUT
+        // 3. Update affected client to BANK CONTOH B
         $updateResponse = $this->actingAs($user)
             ->put(route('incidents.update', $incident->id), [
                 'risk_id' => '',
                 'risk_owner' => 'BT - DIGITAL BANKING',
-                'affected_client' => 'BANK SUMUT',
-                'title' => 'Core Banking API Timeout at Bank Sumut',
+                'affected_client' => 'BANK CONTOH B',
+                'title' => 'Core Banking API Timeout at Bank Contoh B',
                 'incident_description' => 'Response time issue resolved after failover.',
                 'occurred_at' => now()->format('Y-m-d\TH:i'),
                 'severity' => 'High',
@@ -370,13 +371,13 @@ class IncidentManagementUnlinkedAndLossTest extends TestCase
 
         $updateResponse->assertRedirect(route('incidents.index'));
         $incident->refresh();
-        $this->assertEquals('BANK SUMUT', $incident->affected_client);
+        $this->assertEquals('BANK CONTOH B', $incident->affected_client);
 
         // 4. Learning view displays affected client
         $learningResponse = $this->actingAs($user)->get(route('incidents.learning.show', $incident->id));
         $learningResponse->assertOk();
         $learningResponse->assertSee('Client Terdampak');
-        $learningResponse->assertSee('BANK SUMUT');
+        $learningResponse->assertSee('BANK CONTOH B');
     }
 
     public function test_user_can_filter_incidents_by_affected_client(): void
@@ -386,12 +387,12 @@ class IncidentManagementUnlinkedAndLossTest extends TestCase
         RiskIncident::createWithGeneratedIncidentCode([
             'risk_id' => null,
             'risk_owner' => 'BT - DIGITAL BANKING',
-            'affected_client' => 'BANK SULTENG',
+            'affected_client' => 'BANK CONTOH A',
             'is_new_finding' => true,
             'reported_by' => $user->id,
             'last_updated_by' => $user->id,
-            'title' => 'Incident for Sulteng',
-            'incident_description' => 'Sulteng specific incident',
+            'title' => 'Incident for Contoh A',
+            'incident_description' => 'Contoh A specific incident',
             'occurred_at' => now(),
             'severity' => 'Medium',
             'status' => 'Open',
@@ -402,12 +403,12 @@ class IncidentManagementUnlinkedAndLossTest extends TestCase
         RiskIncident::createWithGeneratedIncidentCode([
             'risk_id' => null,
             'risk_owner' => 'BT - DIGITAL BANKING',
-            'affected_client' => 'BANK ACEH',
+            'affected_client' => 'BANK CONTOH C',
             'is_new_finding' => true,
             'reported_by' => $user->id,
             'last_updated_by' => $user->id,
-            'title' => 'Incident for Aceh',
-            'incident_description' => 'Aceh specific incident',
+            'title' => 'Incident for Contoh C',
+            'incident_description' => 'Contoh C specific incident',
             'occurred_at' => now(),
             'severity' => 'Medium',
             'status' => 'Open',
@@ -418,14 +419,14 @@ class IncidentManagementUnlinkedAndLossTest extends TestCase
         // Unfiltered index sees both
         $unfilteredResponse = $this->actingAs($user)->get(route('incidents.index'));
         $unfilteredResponse->assertOk();
-        $unfilteredResponse->assertSee('Incident for Sulteng');
-        $unfilteredResponse->assertSee('Incident for Aceh');
+        $unfilteredResponse->assertSee('Incident for Contoh A');
+        $unfilteredResponse->assertSee('Incident for Contoh C');
 
-        // Filtered by BANK SULTENG
-        $filteredResponse = $this->actingAs($user)->get(route('incidents.index', ['affected_client' => 'BANK SULTENG']));
+        // Filtered by BANK CONTOH A
+        $filteredResponse = $this->actingAs($user)->get(route('incidents.index', ['affected_client' => 'BANK CONTOH A']));
         $filteredResponse->assertOk();
-        $filteredResponse->assertSee('Incident for Sulteng');
-        $filteredResponse->assertDontSee('Incident for Aceh');
+        $filteredResponse->assertSee('Incident for Contoh A');
+        $filteredResponse->assertDontSee('Incident for Contoh C');
     }
 
     private function createUser(): User
