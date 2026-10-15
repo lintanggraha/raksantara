@@ -8,6 +8,7 @@ use App\Risk;
 use App\RiskAppetite;
 use App\RiskCategory;
 use App\RiskIncident;
+use App\RiskInherentAnalysis;
 use App\RiskResidualAnalysis;
 use App\RiskTreatment;
 use App\Support\RiskAppetiteEvaluator;
@@ -31,7 +32,7 @@ class DashboardSectionsTest extends TestCase
         $viewer = $this->createUser(self::OWN);
         $this->createRisk($viewer, self::OWN, 'Section Smoke Risk');
 
-        foreach (['summary', 'attention', 'heatmap', 'profile', 'top-risks', 'kris', 'losses', 'actions', 'assurance', 'trend'] as $section) {
+        foreach (['summary', 'portfolio', 'attention', 'heatmap', 'profile', 'top-risks', 'kris', 'losses', 'actions', 'assurance', 'trend'] as $section) {
             $this->actingAs($viewer)
                 ->getJson(route('dashboard.sections', $section))
                 ->assertOk()
@@ -213,6 +214,88 @@ class DashboardSectionsTest extends TestCase
         $this->assertSame(1, $trend['series'][1]['breaches']);
 
         $this->artisan('risks:snapshot-scores', ['--period' => '2026/10'])->assertExitCode(2);
+    }
+
+    public function test_chart_payloads_for_tiles_top_risks_aging_and_level_migration(): void
+    {
+        $viewer = $this->createUser(self::OWN);
+        $appetite = $this->createAppetite(RiskAppetite::THRESHOLD_METRIC_RESIDUAL_SCORE, 10, 15);
+        $worse = $this->createRisk($viewer, self::OWN, 'Level went up', residual: [5, 4, 20]);
+        $worse->update(['risk_appetite_id' => $appetite->id]);
+        $same = $this->createRisk($viewer, self::OWN, 'Level unchanged', residual: [4, 4, 16]);
+        RiskInherentAnalysis::create(['risk_id' => $worse->id, 'probability_score' => 3, 'impact_score' => 3, 'inherent_risk_score' => 9, 'risk_level' => 'Moderate']);
+        RiskInherentAnalysis::create(['risk_id' => $same->id, 'probability_score' => 5, 'impact_score' => 5, 'inherent_risk_score' => 25, 'risk_level' => 'High']);
+        $this->createTreatment($worse, now()->subDays(10)->toDateString(), 'In Progress');
+        $this->createTreatment($worse, now()->subDays(100)->toDateString(), 'Not Started');
+
+        $this->actingAs($viewer);
+
+        $history = $this->getJson(route('dashboard.sections', 'summary'))->json('data.history');
+        $this->assertCount(12, $history['loss']);
+        $this->assertCount(12, $history['incidents']);
+        $this->assertSame([], $history['breaches']); // no snapshot yet
+
+        $top = collect($this->getJson(route('dashboard.sections', 'top-risks'))->json('data.items'))->firstWhere('title', 'Level went up');
+        $this->assertEquals(10, $top['appetite_limit']);
+        $this->assertEquals(15, $top['tolerance_limit']);
+
+        $aging = $this->getJson(route('dashboard.sections', 'actions'))->json('data.aging');
+        $this->assertSame(self::OWN, $aging['units'][0]['owner']);
+        $this->assertSame(['d30' => 1, 'd60' => 0, 'd90' => 0, 'd90_plus' => 1], $aging['units'][0]['counts']);
+        $this->assertSame(2, array_sum($aging['totals']));
+
+        $this->get(route('dashboard', ['view' => 'analytical']))
+            ->assertOk()
+            ->assertViewHas('levelMigration', function (array $migration) {
+                return $migration['total'] === 2
+                    && $migration['same'] === 1
+                    && $migration['up'] === 1
+                    && $migration['matrix']['Moderate']['High'] === 1;
+            });
+    }
+
+    public function test_portfolio_counts_risks_per_division_and_incidents_per_client(): void
+    {
+        $viewer = $this->createUser(self::FOREIGN); // Compliance sees every unit.
+        $own = $this->createRisk($viewer, self::OWN, 'Portfolio Own');
+        $this->createRisk($viewer, self::OWN, 'Portfolio Own Closed')->update(['status' => 'Closed']);
+        $this->createRisk($viewer, self::FOREIGN, 'Portfolio Foreign');
+        $this->createIncident($viewer, $own, 0)->update(['affected_client' => 'BANK A']);
+        $this->createIncident($viewer, $own, 0)->update(['affected_client' => 'BANK A', 'status' => 'Closed']);
+        $this->createIncident($viewer, $own, 0);
+
+        $this->actingAs($viewer);
+        $data = $this->getJson(route('dashboard.sections', 'portfolio'))->json('data');
+
+        $this->assertSame(3, $data['risks']['total']);
+        $this->assertSame(['active' => 2, 'closed' => 1], $data['risks']['totals']);
+        $this->assertSame(['name' => self::OWN, 'counts' => ['active' => 1, 'closed' => 1], 'total' => 2], $data['risks']['rows'][0]);
+
+        $this->assertSame(3, $data['incidents']['total']);
+        $clients = collect($data['incidents']['rows'])->keyBy('name');
+        $this->assertSame(['open' => 1, 'closed' => 1], $clients['BANK A']['counts']);
+        $this->assertSame(['open' => 1, 'closed' => 0], $clients['Belum diisi']['counts']);
+
+        // The owner filter narrows both cards.
+        $filtered = $this->getJson(route('dashboard.sections', ['section' => 'portfolio', 'owner' => self::FOREIGN]))->json('data');
+        $this->assertSame(1, $filtered['risks']['total']);
+        $this->assertSame(0, $filtered['incidents']['total']);
+    }
+
+    public function test_portfolio_folds_small_groups_into_other(): void
+    {
+        $viewer = $this->createUser(self::FOREIGN);
+        foreach (range(1, 10) as $i) {
+            $this->createRisk($viewer, 'UNIT ' . $i, 'Fold ' . $i);
+        }
+
+        $this->actingAs($viewer);
+        $risks = $this->getJson(route('dashboard.sections', 'portfolio'))->json('data.risks');
+
+        $this->assertCount(9, $risks['rows']); // 8 units + "Lainnya"
+        $this->assertSame('Lainnya (2)', $risks['rows'][8]['name']);
+        $this->assertSame(2, $risks['rows'][8]['total']);
+        $this->assertSame(10, $risks['groups_total']);
     }
 
     // ---------------------------------------------------------------------

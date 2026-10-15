@@ -28,6 +28,8 @@ class DashboardMetricsService
     private const OPEN_INCIDENT_ACTIONS = ['open', 'in_progress'];
     private const OPEN_INCIDENT_STATUSES = ['open', 'investigating'];
     private const ASSURANCE_HORIZON_DAYS = 30;
+    /** Days overdue, upper bound inclusive; null = open-ended. */
+    private const AGING_BUCKETS = ['d30' => 30, 'd60' => 60, 'd90' => 90, 'd90_plus' => null];
 
     private CarbonImmutable $now;
 
@@ -133,6 +135,82 @@ class DashboardMetricsService
                 'without_residual' => $withoutResidual,
                 'without_treatment' => $withoutTreatment,
             ],
+            'history' => $this->summaryHistory(),
+        ];
+    }
+
+    /**
+     * Monthly series behind the tile sparklines. Breaches come from month-end
+     * snapshots (empty until the first one exists); losses and incidents from
+     * the incident register.
+     */
+    private function summaryHistory(): array
+    {
+        $incidents = $this->monthlyIncidents(12);
+
+        return [
+            'breaches' => array_column($this->trend()['series'], 'breaches'),
+            'loss' => array_column($incidents, 'amount'),
+            'incidents' => array_column($incidents, 'events'),
+        ];
+    }
+
+    /**
+     * A2: portfolio at a glance. Risk register size per division and incidents
+     * per affected client; the detail lives on the register and incident pages.
+     */
+    public function portfolio(int $rows = 8): array
+    {
+        $risks = $this->riskBase(false)
+            ->selectRaw("COALESCE(NULLIF(risks.risk_owner, ''), 'Tanpa divisi') as owner,"
+                . " SUM(CASE WHEN LOWER(COALESCE(risks.status, 'open')) = 'closed' THEN 0 ELSE 1 END) as active,"
+                . " SUM(CASE WHEN LOWER(COALESCE(risks.status, 'open')) = 'closed' THEN 1 ELSE 0 END) as closed")
+            ->groupBy('owner')
+            ->get()
+            ->map(fn ($row) => ['name' => $row->owner, 'counts' => ['active' => (int) $row->active, 'closed' => (int) $row->closed]]);
+
+        $openStatuses = "'" . implode("', '", self::OPEN_INCIDENT_STATUSES) . "'";
+        $incidents = RiskIncident::query()
+            ->whereIn('id', $this->incidentIds())
+            ->selectRaw("COALESCE(NULLIF(affected_client, ''), 'Belum diisi') as client,"
+                . " SUM(CASE WHEN LOWER(status) IN ({$openStatuses}) THEN 1 ELSE 0 END) as open,"
+                . " SUM(CASE WHEN LOWER(status) IN ({$openStatuses}) THEN 0 ELSE 1 END) as closed")
+            ->groupBy('client')
+            ->get()
+            ->map(fn ($row) => ['name' => $row->client, 'counts' => ['open' => (int) $row->open, 'closed' => (int) $row->closed]]);
+
+        return [
+            'risks' => $this->topRowsWithRemainder($risks, $rows, ['active', 'closed']),
+            'incidents' => $this->topRowsWithRemainder($incidents, $rows, ['open', 'closed']),
+        ];
+    }
+
+    /**
+     * Largest groups first; everything past $limit folds into one "Lainnya" row.
+     */
+    private function topRowsWithRemainder($groups, int $limit, array $keys): array
+    {
+        $groups = $groups
+            ->map(fn ($row) => $row + ['total' => array_sum($row['counts'])])
+            ->sortByDesc('total')
+            ->values();
+
+        $shown = $groups->take($limit)->all();
+        $rest = $groups->slice($limit);
+        if ($rest->isNotEmpty()) {
+            $shown[] = [
+                'name' => 'Lainnya (' . $rest->count() . ')',
+                'other' => true,
+                'counts' => collect($keys)->mapWithKeys(fn ($key) => [$key => $rest->sum('counts.' . $key)])->all(),
+                'total' => $rest->sum('total'),
+            ];
+        }
+
+        return [
+            'total' => $groups->sum('total'),
+            'totals' => collect($keys)->mapWithKeys(fn ($key) => [$key => $groups->sum('counts.' . $key)])->all(),
+            'groups_total' => $groups->count(),
+            'rows' => $shown,
         ];
     }
 
@@ -366,6 +444,12 @@ class DashboardMetricsService
     public function topRisks(int $limit = 10): array
     {
         $today = $this->now->toDateString();
+        // Score limits only; loss-based appetites cannot be drawn on the score axis.
+        $scoreMetric = \App\RiskAppetite::THRESHOLD_METRIC_RESIDUAL_SCORE;
+        $appetiteLimit = "CASE WHEN ra.id IS NOT NULL AND ra.threshold_metric = '{$scoreMetric}' THEN ra.appetite_limit_value"
+            . ' WHEN ra.id IS NULL THEN qp.risk_appetite_score END';
+        $toleranceLimit = "CASE WHEN ra.id IS NOT NULL AND ra.threshold_metric = '{$scoreMetric}' THEN COALESCE(ra.tolerance_limit_value, ra.appetite_limit_value)"
+            . ' WHEN ra.id IS NULL THEN qp.risk_appetite_score END';
 
         $rows = $this->appetiteRiskQuery()
             ->leftJoin('risk_inherent_analyses as ir', 'ir.risk_id', '=', 'risks.id')
@@ -374,6 +458,8 @@ class DashboardMetricsService
                 DB::raw('ir.inherent_risk_score as inherent_score'),
                 DB::raw('rr.residual_risk_score as residual_score'),
                 DB::raw('(' . RiskAppetiteSql::statusExpression() . ') as appetite_status'),
+                DB::raw("({$appetiteLimit}) as appetite_limit"),
+                DB::raw("({$toleranceLimit}) as tolerance_limit"),
             ])
             ->withCount([
                 'treatments as treatments_total',
@@ -397,6 +483,8 @@ class DashboardMetricsService
                 'residual' => $risk->residual_score !== null ? (int) $risk->residual_score : null,
                 'level' => RiskScoreMatrix::getRiskLevel($risk->residual_score ?? $risk->inherent_score),
                 'appetite' => $risk->appetite_status,
+                'appetite_limit' => $risk->appetite_limit !== null ? (float) $risk->appetite_limit : null,
+                'tolerance_limit' => $risk->tolerance_limit !== null ? (float) $risk->tolerance_limit : null,
                 'treatments' => [
                     'total' => (int) $risk->treatments_total,
                     'completed' => (int) $risk->treatments_completed,
@@ -472,26 +560,7 @@ class DashboardMetricsService
     public function losses(int $months = 12): array
     {
         $start = $this->now->startOfMonth()->subMonthsNoOverflow($months - 1);
-        $monthExpression = $this->monthExpression('occurred_at');
-
-        $rows = RiskIncident::query()
-            ->whereIn('id', $this->incidentIds())
-            ->where('occurred_at', '>=', $start)
-            ->selectRaw("{$monthExpression} as month_key, COALESCE(SUM(loss_amount), 0) as amount, COUNT(*) as events")
-            ->groupBy('month_key')
-            ->get()
-            ->keyBy('month_key');
-
-        $series = [];
-        for ($cursor = $start; $cursor <= $this->now; $cursor = $cursor->addMonthNoOverflow()) {
-            $key = $cursor->format('Y-m');
-            $series[] = [
-                'month' => $key,
-                'label' => $cursor->locale('id')->translatedFormat('M y'),
-                'amount' => (float) ($rows[$key]->amount ?? 0),
-                'events' => (int) ($rows[$key]->events ?? 0),
-            ];
-        }
+        $series = $this->monthlyIncidents($months);
 
         $largest = RiskIncident::query()
             ->whereIn('id', $this->incidentIds())
@@ -557,7 +626,15 @@ class DashboardMetricsService
             ->limit(5)
             ->get(['id', 'risk_id', 'title', 'owner_name', 'due_at', 'status']);
 
+        $aging = $this->overdueAging();
+
         return [
+            'aging' => [
+                'units' => $aging->take($units)->values()->all(),
+                'units_total' => $aging->count(),
+                'totals' => collect(self::AGING_BUCKETS)->keys()
+                    ->mapWithKeys(fn ($key) => [$key => $aging->sum('counts.' . $key)])->all(),
+            ],
             'units' => $unitRows->take($units)->all(),
             'units_total' => $unitRows->count(),
             'totals' => [
@@ -584,7 +661,7 @@ class DashboardMetricsService
     /**
      * I: assurance work due in the next 30 days or already overdue.
      */
-    public function assurance(int $limit = 10): array
+    public function assurance(int $limit = 40): array
     {
         $today = $this->now->toDateString();
         $horizon = $this->now->addDays(self::ASSURANCE_HORIZON_DAYS)->toDateString();
@@ -675,6 +752,51 @@ class DashboardMetricsService
                 'breaches' => (int) $row->breaches,
                 'high_risks' => (int) $row->high_risks,
             ])->all(),
+        ];
+    }
+
+    /**
+     * Risks counted by inherent level (rows) against residual level (columns),
+     * for risks that have both analyses. Ordered from the highest level down.
+     */
+    public function levelMigration(): array
+    {
+        $rows = $this->riskBase()
+            ->join('risk_inherent_analyses as ir', 'ir.risk_id', '=', 'risks.id')
+            ->join('risk_residual_analyses as rr', 'rr.risk_id', '=', 'risks.id')
+            ->whereIn('ir.risk_level', self::LEVELS)
+            ->whereIn('rr.risk_level', self::LEVELS)
+            ->selectRaw('ir.risk_level as inherent_level, rr.risk_level as residual_level, COUNT(*) as total')
+            ->groupBy('inherent_level', 'residual_level')
+            ->get();
+
+        $matrix = array_fill_keys(self::LEVELS, array_fill_keys(self::LEVELS, 0));
+        foreach ($rows as $row) {
+            $matrix[$row->inherent_level][$row->residual_level] = (int) $row->total;
+        }
+
+        // Index 0 is the highest level, so a larger residual index means the risk moved down.
+        $down = $same = $up = 0;
+        foreach (self::LEVELS as $r => $inherent) {
+            foreach (self::LEVELS as $c => $residual) {
+                $count = $matrix[$inherent][$residual];
+                if ($c > $r) {
+                    $down += $count;
+                } elseif ($c === $r) {
+                    $same += $count;
+                } else {
+                    $up += $count;
+                }
+            }
+        }
+
+        return [
+            'levels' => self::LEVELS,
+            'matrix' => $matrix,
+            'total' => $down + $same + $up,
+            'down' => $down,
+            'same' => $same,
+            'up' => $up,
         ];
     }
 
@@ -822,6 +944,90 @@ class DashboardMetricsService
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
+
+    /**
+     * Overdue treatments, incident CAPA and committee decisions per unit,
+     * bucketed by how long they have been overdue. Same population as the
+     * "Aksi terlambat" tile.
+     */
+    private function overdueAging()
+    {
+        $today = $this->now->toDateString();
+
+        $treatments = DB::table('risk_treatments')
+            ->join('risks', 'risks.id', '=', 'risk_treatments.risk_id')
+            ->whereIn('risk_treatments.risk_id', $this->riskIds())
+            ->where('risk_treatments.deadline', '<', $today)
+            ->where(fn ($q) => $q->whereNull('risk_treatments.status')->orWhere('risk_treatments.status', '<>', 'Completed'))
+            ->get(['risks.risk_owner as owner', 'risk_treatments.deadline as due']);
+        $incidentActions = DB::table('risk_incident_actions')
+            ->join('risk_incidents', 'risk_incidents.id', '=', 'risk_incident_actions.risk_incident_id')
+            ->whereIn('risk_incident_actions.risk_incident_id', $this->incidentIds())
+            ->whereIn('risk_incident_actions.status', self::OPEN_INCIDENT_ACTIONS)
+            ->where('risk_incident_actions.due_at', '<', $today)
+            ->get(['risk_incidents.risk_owner as owner', 'risk_incident_actions.due_at as due']);
+        $decisions = $this->decisionBase()
+            ->where('due_at', '<', $today)
+            ->where('status', '<>', 'closed')
+            ->get(['risk_id', 'owner_name', 'due_at']);
+        $decisionOwners = Risk::query()->whereIn('id', $decisions->pluck('risk_id')->filter()->unique())->pluck('risk_owner', 'id');
+
+        $rows = $treatments->concat($incidentActions)->concat($decisions->map(fn ($decision) => (object) [
+            'owner' => $decisionOwners[$decision->risk_id] ?? $decision->owner_name,
+            'due' => $decision->due_at,
+        ]));
+
+        $todayDate = $this->now->startOfDay();
+        $byUnit = [];
+        foreach ($rows as $row) {
+            $owner = $row->owner ?: 'Tanpa unit';
+            $days = (int) CarbonImmutable::parse($row->due)->startOfDay()->diffInDays($todayDate);
+            $bucket = 'd90_plus';
+            foreach (self::AGING_BUCKETS as $key => $limit) {
+                if ($limit !== null && $days <= $limit) {
+                    $bucket = $key;
+                    break;
+                }
+            }
+            $byUnit[$owner] ??= array_fill_keys(array_keys(self::AGING_BUCKETS), 0);
+            $byUnit[$owner][$bucket]++;
+        }
+
+        return collect($byUnit)
+            ->map(fn ($counts, $owner) => ['owner' => $owner, 'counts' => $counts, 'total' => array_sum($counts)])
+            ->sortByDesc(fn ($row) => [$row['counts']['d90_plus'], $row['total']])
+            ->values();
+    }
+
+    /**
+     * Loss amount and incident count per month, oldest first, including empty months.
+     */
+    private function monthlyIncidents(int $months): array
+    {
+        $start = $this->now->startOfMonth()->subMonthsNoOverflow($months - 1);
+        $monthExpression = $this->monthExpression('occurred_at');
+
+        $rows = RiskIncident::query()
+            ->whereIn('id', $this->incidentIds())
+            ->where('occurred_at', '>=', $start)
+            ->selectRaw("{$monthExpression} as month_key, COALESCE(SUM(loss_amount), 0) as amount, COUNT(*) as events")
+            ->groupBy('month_key')
+            ->get()
+            ->keyBy('month_key');
+
+        $series = [];
+        for ($cursor = $start; $cursor <= $this->now; $cursor = $cursor->addMonthNoOverflow()) {
+            $key = $cursor->format('Y-m');
+            $series[] = [
+                'month' => $key,
+                'label' => $cursor->locale('id')->translatedFormat('M y'),
+                'amount' => (float) ($rows[$key]->amount ?? 0),
+                'events' => (int) ($rows[$key]->events ?? 0),
+            ];
+        }
+
+        return $series;
+    }
 
     private function lossBetween(CarbonImmutable $from, CarbonImmutable $to): array
     {

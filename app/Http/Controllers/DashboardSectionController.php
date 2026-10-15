@@ -20,6 +20,7 @@ class DashboardSectionController extends Controller
 
     private const SECTIONS = [
         'summary' => 'summary',
+        'portfolio' => 'portfolio',
         'attention' => 'attention',
         'heatmap' => 'heatmap',
         'profile' => 'profile',
@@ -44,7 +45,7 @@ class DashboardSectionController extends Controller
         $filters = DashboardFilters::fromRequest($request);
         $method = self::SECTIONS[$section];
         $key = implode(':', [
-            'dashboard', 'v2', RiskAnalyticsCacheVersion::current(), RiskAccess::scopeCacheKey($user), $filters->cacheKey(), $section,
+            'dashboard', 'v3', RiskAnalyticsCacheVersion::current(), RiskAccess::scopeCacheKey($user), $filters->cacheKey(), $section,
         ]);
 
         $data = Cache::remember($key, self::CACHE_TTL_SECONDS, function () use ($user, $filters, $method) {

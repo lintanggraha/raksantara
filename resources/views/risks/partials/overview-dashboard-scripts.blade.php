@@ -17,6 +17,10 @@
         'Low': 'Rendah',
         'Belum dinilai': 'Belum dinilai',
     };
+    const LEVEL_SWATCH = {
+        'High': 'var(--grc-critical)', 'Moderate to High': 'var(--grc-high)', 'Moderate': 'var(--grc-medium)',
+        'Low to Moderate': 'var(--grc-low-mod)', 'Low': 'var(--grc-low)', 'Belum dinilai': '#c5cad3',
+    };
     const TYPE_LABELS = {
         appetite: 'Appetite',
         kri: 'KRI',
@@ -24,16 +28,11 @@
         incident: 'Insiden',
         decision: 'Komite',
     };
-    const APPETITE_BADGES = {
-        breach: ['bg-red-lt', 'Melewati toleransi'],
-        warning: ['bg-orange-lt', 'Di atas target'],
-        within: ['bg-green-lt', 'Dalam appetite'],
-        qualitative: ['bg-secondary-lt', 'Kualitatif'],
-        unconfigured: ['bg-secondary-lt', 'Belum diatur'],
-    };
+    const AGING = [['d30', '≤30 hari'], ['d60', '31–60 hari'], ['d90', '61–90 hari'], ['d90_plus', '>90 hari']];
     const charts = {};
     const numberFormat = new Intl.NumberFormat('id-ID');
     const dateFormat = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    const dayMonth = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' });
     const timeFormat = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
     // ------------------------------------------------------------------
@@ -42,6 +41,11 @@
 
     function esc(value) {
         return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    /** data-tip attribute. `html` is trusted markup; escape user text inside it first. */
+    function tipAttr(html) {
+        return ' data-tip="' + esc(html) + '"';
     }
 
     function num(value) {
@@ -76,18 +80,46 @@
         return '<div class="grc-state"><strong>' + esc(title) + '</strong>' + (text ? esc(text) : '') + '</div>';
     }
 
-    /**
-     * Change versus a previous value. For risk measures an increase is bad.
-     */
-    function delta(current, previous, label, formatter) {
+    function legend(entries, extraClass) {
+        return '<div class="grc-heat-legend ' + (extraClass || '') + '">' + entries.map(([swatch, label, cls]) => (
+            '<span class="' + (cls || '') + '" style="--swatch: ' + swatch + '">' + esc(label) + '</span>'
+        )).join('') + '</div>';
+    }
+
+    /** Short change versus a previous value. For risk measures an increase is bad. */
+    function delta(current, previous, label, asPercent) {
         if (previous === null || previous === undefined) return '';
-        const fmt = formatter || num;
         const diff = Number(current) - Number(previous);
-        if (diff === 0) return 'Sama dengan ' + esc(label) + ' (' + fmt(previous) + ')';
+        if (diff === 0) return '= ' + esc(label);
         const cls = diff > 0 ? 'grc-delta-up' : 'grc-delta-down';
         const arrow = diff > 0 ? '▲' : '▼';
-        const amount = formatter ? fmt(Math.abs(diff)) : num(Math.abs(diff));
-        return '<span class="' + cls + '">' + arrow + ' ' + amount + '</span> vs ' + esc(label) + ' (' + fmt(previous) + ')';
+        const amount = asPercent
+            ? (previous ? Math.round(Math.abs(diff) / previous * 100) + '%' : 'baru')
+            : num(Math.abs(diff));
+        return '<span class="' + cls + '">' + arrow + ' ' + amount + '</span> vs ' + esc(label);
+    }
+
+    /** 12-point trend line with a wash and an emphasised endpoint. */
+    function spark(values, width, height, color) {
+        if (!values || values.length < 2) return '';
+        const nums = values.map(Number);
+        const min = Math.min(...nums), max = Math.max(...nums);
+        const pad = 5, span = max - min || 1;
+        const pts = nums.map((v, i) => [
+            pad + i * (width - pad * 2) / (nums.length - 1),
+            pad + (1 - (v - min) / span) * (height - pad * 2),
+        ]);
+        const line = pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+        const last = pts[pts.length - 1];
+        const area = 'M' + pts[0][0].toFixed(1) + ',' + (height - 1) + ' L' + line.split(' ').join(' L') + ' L' + last[0].toFixed(1) + ',' + (height - 1) + ' Z';
+        return '<svg class="grc-spark" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '" aria-hidden="true">'
+            + '<path d="' + area + '" style="fill:' + color + ';fill-opacity:.1"></path>'
+            + '<polyline points="' + line + '" style="fill:none;stroke:' + color + ';stroke-width:2;stroke-linejoin:round;stroke-linecap:round"></polyline>'
+            + '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="4" style="fill:' + color + ';stroke:#fff;stroke-width:2"></circle></svg>';
+    }
+
+    function clampPct(value, lo, hi) {
+        return Math.max(0, Math.min(100, (value - lo) / ((hi - lo) || 1) * 100));
     }
 
     function destroyChart(key) {
@@ -95,6 +127,10 @@
             charts[key].destroy();
             delete charts[key];
         }
+    }
+
+    function chartTooltip() {
+        return { backgroundColor: '#182433', titleColor: '#fff', bodyColor: '#fff', padding: 8, cornerRadius: 6, boxPadding: 4, usePointStyle: true };
     }
 
     function load(section, render) {
@@ -114,12 +150,13 @@
             .catch(() => {
                 const html = '<div class="grc-state"><strong>Bagian ini gagal dimuat.</strong>'
                     + 'Periksa koneksi lalu coba lagi.<br><button type="button" class="btn btn-sm btn-outline-secondary" data-retry>Coba lagi</button></div>';
-                if (host === body && section === 'summary') {
-                    body.innerHTML = '<div class="col-12"><div class="card">' + html + '</div></div>';
-                } else {
-                    body.innerHTML = html;
-                }
-                body.querySelector('[data-retry]')?.addEventListener('click', () => load(section, render));
+                const targets = host === body ? [body] : Array.from(host.querySelectorAll('[data-body]'));
+                targets.forEach((target) => {
+                    target.innerHTML = host === body && section === 'summary'
+                        ? '<div class="card" style="grid-column: 1 / -1;">' + html + '</div>'
+                        : html;
+                    target.querySelector('[data-retry]')?.addEventListener('click', () => load(section, render));
+                });
             });
     }
 
@@ -133,6 +170,15 @@
     function renderSummary(data, host, _host, payload) {
         const a = data.appetite, k = data.kri, o = data.overdue, l = data.loss, i = data.incidents, q = data.data_quality;
         const period = data.period;
+        const history = data.history || {};
+        const prevLabel = period.key === 'quarter' ? 'kuartal lalu' : 'bulan lalu';
+
+        const kriMix = k.total
+            ? '<span class="grc-tile-mix" aria-hidden="true">'
+                + [[k.red, 'var(--grc-critical)'], [k.amber, 'var(--grc-medium)'], [k.green, 'var(--grc-low)'], [k.no_data, '#c5cad3']]
+                    .filter(([n]) => n > 0).map(([n, color]) => '<span style="flex:' + n + ';background:' + color + '"></span>').join('')
+                + '</span>'
+            : '';
 
         const tiles = [
             {
@@ -140,79 +186,131 @@
                 label: 'Di luar appetite',
                 value: num(a.breach),
                 state: a.breach > 0 ? 'critical' : (a.warning > 0 ? 'warning' : ''),
-                detail: num(a.warning) + ' di atas target · ' + num(a.evaluated) + ' dari ' + num(q.active_risks) + ' risk punya appetite terukur',
-                compare: a.previous_breach === null
-                    ? 'Pembanding muncul setelah snapshot akhir bulan pertama'
-                    : delta(a.breach, a.previous_breach, 'akhir bulan lalu'),
+                visual: spark(history.breaches, 92, 40, a.breach > 0 ? 'var(--grc-critical)' : 'var(--grc-muted)'),
+                compare: a.previous_breach === null ? 'Belum ada pembanding' : delta(a.breach, a.previous_breach, 'akhir bulan lalu'),
+                tip: num(a.breach) + ' melewati toleransi · ' + num(a.warning) + ' di atas target<br>'
+                    + num(a.evaluated) + ' dari ' + num(q.active_risks) + ' risk punya appetite terukur'
+                    + (a.previous_breach === null ? '<br>Pembanding muncul setelah snapshot akhir bulan pertama.' : ''),
             },
             {
                 filter: 'kri',
                 label: 'KRI merah / kuning',
-                value: num(k.red) + ' / ' + num(k.amber),
+                value: num(k.red) + ' <small>/ ' + num(k.amber) + '</small>',
                 state: k.red > 0 ? 'critical' : (k.amber > 0 ? 'warning' : ''),
-                detail: num(k.total) + ' KRI dipantau' + (k.no_data > 0 ? ' · ' + num(k.no_data) + ' belum ada data' : ''),
-                compare: k.stale > 0
-                    ? '<span class="grc-delta-up">' + num(k.stale) + ' KRI basi</span>: belum diperbarui sesuai jadwal'
-                    : (k.total === k.no_data ? 'Belum ada nilai KRI yang dicatat' : 'Semua sumber data KRI terbaru'),
+                visual: kriMix,
+                compare: k.stale > 0 ? '<span class="grc-delta-up">' + num(k.stale) + ' basi</span> · ' + num(k.total) + ' KRI' : 'dari ' + num(k.total) + ' KRI',
+                tip: num(k.red) + ' merah · ' + num(k.amber) + ' kuning · ' + num(k.green) + ' hijau'
+                    + (k.no_data > 0 ? ' · ' + num(k.no_data) + ' belum ada data' : '')
+                    + (k.stale > 0 ? '<br>' + num(k.stale) + ' KRI belum diperbarui sesuai jadwal' : ''),
             },
             {
                 filter: 'overdue',
                 label: 'Aksi terlambat',
                 value: num(o.total),
                 state: o.total > 0 ? 'critical' : '',
-                detail: num(o.treatments) + ' treatment · ' + num(o.incident_actions) + ' CAPA insiden · ' + num(o.committee_decisions) + ' keputusan komite',
-                compare: 'Lewat tenggat dan belum selesai',
+                visual: '',
+                compare: 'lewat tenggat',
+                tip: num(o.treatments) + ' treatment · ' + num(o.incident_actions) + ' CAPA insiden · ' + num(o.committee_decisions) + ' keputusan komite',
             },
             {
                 filter: 'incident',
                 label: 'Loss event · ' + period.label,
                 value: rupiah(l.amount),
                 state: l.amount > l.previous_amount ? 'warning' : '',
-                detail: num(l.events) + ' kejadian',
-                compare: delta(l.amount, l.previous_amount, period.previous_label, rupiah),
+                visual: spark(history.loss, 92, 40, 'var(--grc-accent)'),
+                compare: delta(l.amount, l.previous_amount, prevLabel, true),
+                tip: num(l.events) + ' kejadian ' + esc(period.label) + '<br>' + esc(period.previous_label) + ': ' + rupiah(l.previous_amount) + ' · ' + num(l.previous_events) + ' kejadian',
             },
             {
                 filter: 'incident',
                 label: 'Insiden terbuka',
                 value: num(i.open),
                 state: i.open_severe > 0 ? 'critical' : (i.open > 0 ? 'warning' : ''),
-                detail: num(i.open_severe) + ' kritis/tinggi · ' + num(i.reported) + ' terjadi ' + period.label,
-                compare: delta(i.reported, i.previous_reported, period.previous_label),
+                visual: spark(history.incidents, 92, 40, 'var(--grc-muted)'),
+                compare: num(i.open_severe) + ' kritis/tinggi',
+                tip: num(i.reported) + ' terjadi ' + esc(period.label) + ' · ' + num(i.previous_reported) + ' ' + esc(period.previous_label)
+                    + '<br>Garis: insiden per bulan, 12 bulan',
             },
         ];
 
         host.innerHTML = tiles.map((tile) => (
-            '<div class="col-12 col-sm-6 col-lg">'
-            + '<button type="button" class="grc-tile" data-tile-filter="' + tile.filter + '" aria-pressed="false" data-state="' + tile.state + '"'
-            + ' title="Tampilkan item terkait di Perlu perhatian">'
+            '<button type="button" class="grc-tile" data-tile-filter="' + tile.filter + '" aria-pressed="false" data-state="' + tile.state + '"'
+            + tipAttr(tile.tip + '<br><em>Klik untuk melihat daftar terkait</em>') + '>'
             + '<span class="grc-tile-label">' + esc(tile.label) + '</span>'
-            + '<span class="grc-tile-value">' + esc(tile.value) + '</span>'
-            + '<span class="grc-tile-detail">' + esc(tile.detail) + '</span>'
+            + '<span class="grc-tile-value">' + tile.value + '</span>'
+            + (tile.visual ? '<span class="grc-tile-visual">' + tile.visual + '</span>' : '')
             + '<span class="grc-tile-compare">' + tile.compare + '</span>'
-            + '</button></div>'
+            + '</button>'
         )).join('');
 
         host.querySelectorAll('[data-tile-filter]').forEach((button) => {
             button.addEventListener('click', () => {
                 const target = button.dataset.tileFilter;
-                setAttentionFilter(attentionFilter === target ? 'all' : target);
-                document.querySelector('[data-section="attention"]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                setAttentionFilter(attentionFilter === target ? 'all' : target, true);
             });
         });
 
         const asof = document.querySelector('[data-asof]');
         if (asof) {
             const gaps = [];
-            if (q.without_residual > 0) gaps.push(num(q.without_residual) + ' risk belum punya analisis residual');
-            if (q.without_treatment > 0) gaps.push(num(q.without_treatment) + ' risk tanpa treatment');
+            if (q.without_residual > 0) gaps.push(['risk belum punya analisis residual, jadi tidak masuk heatmap residual dan perhitungan appetite.', num(q.without_residual) + ' tanpa residual']);
+            if (q.without_treatment > 0) gaps.push(['risk aktif tanpa satu pun rencana treatment.', num(q.without_treatment) + ' tanpa treatment']);
             asof.innerHTML = 'Data per ' + esc(timeFormat.format(new Date(payload.generated_at)))
-                + (gaps.length ? ' · <span class="grc-warn-text">' + esc(gaps.join(' · ')) + '</span>' : '');
+                + gaps.map(([tip, label]) => ' <span class="grc-pill is-warning"' + tipAttr(esc(label.split(' ')[0] + ' ' + tip)) + '>' + esc(label) + '</span>').join('');
             asof.hidden = false;
         }
     }
 
     // ------------------------------------------------------------------
-    // B: needs attention
+    // A2: portfolio at a glance
+    // ------------------------------------------------------------------
+
+    function portfolioCard(body, data, opts) {
+        if (!data.total) {
+            body.innerHTML = emptyState(opts.empty, '');
+            return;
+        }
+        const max = Math.max(1, ...data.rows.map((row) => row.total));
+        const [mainKey, restKey] = opts.keys;
+        const swatch = { [mainKey]: opts.mainColor, [restKey]: 'var(--grc-faint)' };
+
+        body.innerHTML = '<div class="grc-portfolio-head">'
+            + '<span class="grc-big">' + num(data.total) + '</span>'
+            + '<span class="grc-portfolio-sub">' + esc(opts.unit) + ' dari ' + num(data.groups_total) + ' ' + esc(opts.groupUnit) + '<br>'
+            + '<b>' + num(data.totals[mainKey]) + '</b> ' + esc(opts.labels[mainKey].toLowerCase()) + ' · ' + num(data.totals[restKey]) + ' ' + esc(opts.labels[restKey].toLowerCase()) + '</span>'
+            + '</div>'
+            + '<div class="grc-bars">' + data.rows.map((row) => (
+                '<div class="grc-bar-row' + (row.other ? ' is-other' : '') + '"><span class="name" title="' + esc(row.name) + '">' + esc(row.name) + '</span>'
+                + '<span><span class="grc-stack" style="width:' + (row.total / max * 100) + '%" role="img" aria-label="' + esc(row.name + ': ' + opts.keys.map((key) => opts.labels[key] + ' ' + row.counts[key]).join(', ')) + '">'
+                + opts.keys.filter((key) => row.counts[key] > 0).map((key) => (
+                    '<span style="flex:' + row.counts[key] + ';background:' + swatch[key] + '"' + tipAttr(esc(row.name) + ' · ' + esc(opts.labels[key]) + ': ' + num(row.counts[key])) + '></span>'
+                )).join('')
+                + '</span></span><span class="total">' + num(row.total) + '</span></div>'
+            )).join('') + '</div>'
+            + legend(opts.keys.map((key) => [swatch[key], opts.labels[key]]));
+    }
+
+    function renderPortfolio(data, _body, host) {
+        portfolioCard(host.querySelector('[data-portfolio="risks"] [data-body]'), data.risks, {
+            keys: ['active', 'closed'],
+            labels: { active: 'Aktif', closed: 'Ditutup' },
+            mainColor: 'var(--grc-accent)',
+            unit: 'risk',
+            groupUnit: 'divisi',
+            empty: 'Belum ada risk di register.',
+        });
+        portfolioCard(host.querySelector('[data-portfolio="incidents"] [data-body]'), data.incidents, {
+            keys: ['open', 'closed'],
+            labels: { open: 'Terbuka', closed: 'Selesai' },
+            mainColor: 'var(--grc-high)',
+            unit: 'insiden',
+            groupUnit: 'client',
+            empty: 'Belum ada insiden tercatat.',
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // B: follow-up drawer
     // ------------------------------------------------------------------
 
     const FILTER_TYPES = {
@@ -225,25 +323,37 @@
         decision: ['decision'],
     };
 
-    function setAttentionFilter(filter) {
+    function setAttentionFilter(filter, reveal) {
         attentionFilter = filter;
         document.querySelectorAll('[data-tile-filter]').forEach((tile) => {
             tile.setAttribute('aria-pressed', String(tile.dataset.tileFilter === filter));
         });
-        if (attentionState) drawAttention();
+        if (!attentionState) return;
+        if (reveal) attentionState.open = true;
+        drawAttention();
+        if (reveal) {
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            attentionState.host.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+        }
     }
 
     function renderAttention(data, body, host) {
-        attentionState = { data, body, host };
+        attentionState = { data, body, host, open: attentionState?.open || attentionFilter !== 'all' };
+        host.querySelector('[data-attention-toggle]').addEventListener('click', () => {
+            attentionState.open = !attentionState.open;
+            drawAttention();
+        });
         drawAttention();
     }
 
     function drawAttention() {
-        const { data, body, host } = attentionState;
+        const { data, body, host, open } = attentionState;
         const chipsHost = host.querySelector('[data-attention-filters]');
+        const toggle = host.querySelector('[data-attention-toggle]');
 
         if (!data.items.length) {
             chipsHost.hidden = true;
+            toggle.hidden = true;
             body.innerHTML = emptyState('Tidak ada pengecualian.', 'Semua risk berada dalam appetite, tidak ada KRI merah, dan tidak ada aksi yang lewat tenggat.');
             return;
         }
@@ -256,7 +366,16 @@
             + esc(label) + ' ' + num(count) + '</button>'
         )).join('');
         chipsHost.hidden = false;
-        chipsHost.querySelectorAll('[data-chip]').forEach((chip) => chip.addEventListener('click', () => setAttentionFilter(chip.dataset.chip)));
+        chipsHost.querySelectorAll('[data-chip]').forEach((chip) => chip.addEventListener('click', () => setAttentionFilter(chip.dataset.chip, true)));
+
+        toggle.hidden = false;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.textContent = open ? 'Sembunyikan' : 'Tampilkan daftar';
+
+        if (!open) {
+            body.innerHTML = '';
+            return;
+        }
 
         const types = FILTER_TYPES[attentionFilter];
         const visible = data.items.filter((item) => !types || types.includes(item.type));
@@ -280,46 +399,55 @@
     }
 
     // ------------------------------------------------------------------
-    // C: heatmaps
+    // C: heatmap (one grid, residual/inherent toggle)
     // ------------------------------------------------------------------
 
-    function renderHeatmap(data, body) {
+    function renderHeatmap(data, body, host) {
         if (!data.inherent.total && !data.residual.total) {
             body.innerHTML = emptyState('Belum ada risk yang dinilai.', 'Heatmap terisi setelah analisis inheren atau residual dicatat.');
             return;
         }
 
-        const grid = (kind, matrix) => {
-            let html = '<div><div class="grc-heat-title">' + (kind === 'inherent' ? 'Inheren' : 'Residual') + ' <span class="text-muted fw-normal">· ' + num(matrix.total) + ' risk</span></div><div class="grc-heat">';
+        const toggle = host.querySelector('[data-heat-toggle]');
+        let kind = data.residual.total ? 'residual' : 'inherent';
+
+        const draw = () => {
+            const matrix = data[kind];
+            let grid = '';
             matrix.rows.forEach((row) => {
-                html += '<span class="axis">' + row[0].p + '</span>';
+                grid += '<span class="axis">' + row[0].p + '</span>';
                 row.forEach((cell) => {
                     const empty = cell.count === 0;
-                    html += '<button type="button" class="' + levelClass(cell.level) + (empty ? ' empty' : '') + '"'
-                        + (empty ? ' disabled' : '')
-                        + ' data-cell data-kind="' + kind + '" data-p="' + cell.p + '" data-i="' + cell.i + '"'
+                    grid += '<button type="button" class="' + levelClass(cell.level) + (empty ? ' empty' : '') + '"'
+                        + (empty ? ' disabled' : tipAttr(num(cell.count) + ' risk · ' + esc(LEVEL_LABELS[cell.level] || cell.level) + '<br>Kemungkinan ' + cell.p + ' × dampak ' + cell.i))
+                        + ' data-cell data-p="' + cell.p + '" data-i="' + cell.i + '"'
                         + ' aria-label="' + kind + ' kemungkinan ' + cell.p + ' dampak ' + cell.i + ': ' + cell.count + ' risk"'
                         + ' aria-pressed="false">' + (empty ? '' : cell.count) + '</button>';
                 });
             });
-            html += '<span></span>' + [1, 2, 3, 4, 5].map((i) => '<span class="axis">' + i + '</span>').join('');
-            html += '</div><div class="grc-heat-axis-label">Kemungkinan (baris) × Dampak (kolom)</div></div>';
-            return html;
+            grid += '<span></span>' + [1, 2, 3, 4, 5].map((i) => '<span class="axis">' + i + '</span>').join('');
+
+            body.innerHTML = '<div class="grc-heat-wrap"><div class="grc-heat-ylab">Kemungkinan</div>'
+                + '<div><div class="grc-heat">' + grid + '</div><div class="grc-heat-axis-label">Dampak · ' + num(matrix.total) + ' risk dinilai</div></div></div>'
+                + legend(LEVELS.map((level) => [LEVEL_SWATCH[level], LEVEL_LABELS[level]]), 'center')
+                + '<div class="grc-cell-detail" data-cell-detail hidden></div>';
+
+            body.querySelectorAll('[data-cell]').forEach((button) => button.addEventListener('click', () => openCell(body, button, kind)));
         };
 
-        body.innerHTML = '<div class="grc-heat-pair">' + grid('inherent', data.inherent) + grid('residual', data.residual) + '</div>'
-            + '<div class="grc-heat-legend">' + LEVELS.map((level) => (
-                '<span style="--swatch: var(' + ({
-                    'High': '--grc-critical', 'Moderate to High': '--grc-high', 'Moderate': '--grc-medium',
-                    'Low to Moderate': '--grc-low-mod', 'Low': '--grc-low',
-                })[level] + ')">' + esc(LEVEL_LABELS[level]) + '</span>'
-            )).join('') + '</div>'
-            + '<div class="grc-cell-detail" data-cell-detail hidden></div>';
-
-        body.querySelectorAll('[data-cell]').forEach((button) => button.addEventListener('click', () => openCell(body, button)));
+        toggle.hidden = false;
+        toggle.querySelectorAll('[data-heat-kind]').forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.heatKind === kind));
+            button.onclick = () => {
+                kind = button.dataset.heatKind;
+                toggle.querySelectorAll('[data-heat-kind]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+                draw();
+            };
+        });
+        draw();
     }
 
-    function openCell(body, button) {
+    function openCell(body, button, kind) {
         const detail = body.querySelector('[data-cell-detail]');
         const wasPressed = button.getAttribute('aria-pressed') === 'true';
         body.querySelectorAll('[data-cell]').forEach((cell) => cell.setAttribute('aria-pressed', 'false'));
@@ -332,7 +460,7 @@
         detail.innerHTML = '<div class="placeholder-glow"><span class="placeholder col-12 mb-2"></span><span class="placeholder col-10"></span></div>';
 
         const params = new URLSearchParams({
-            kind: button.dataset.kind, p: button.dataset.p, i: button.dataset.i,
+            kind, p: button.dataset.p, i: button.dataset.i,
             ...(config.query.owner ? { owner: config.query.owner } : {}),
             ...(config.query.category ? { category: config.query.category } : {}),
         });
@@ -366,58 +494,99 @@
         const max = Math.max(...data.categories.map((row) => row.total));
         body.innerHTML = '<div class="grc-bars">' + data.categories.map((row) => {
             const segments = data.levels.filter((level) => row.counts[level] > 0).map((level) => (
-                '<span class="' + levelClass(level) + '" style="width:' + (row.counts[level] / max * 100) + '%"'
-                + ' title="' + esc(LEVEL_LABELS[level] || level) + ': ' + row.counts[level] + '"></span>'
+                '<span class="' + levelClass(level) + '" style="flex:' + row.counts[level] + '"'
+                + tipAttr(esc(row.category) + ' · ' + esc(LEVEL_LABELS[level] || level) + ': ' + num(row.counts[level]) + ' risk') + '></span>'
             )).join('');
             return '<div class="grc-bar-row"><span class="name" title="' + esc(row.category) + '">' + esc(row.category) + '</span>'
-                + '<span class="grc-stack" role="img" aria-label="' + esc(row.category + ': ' + data.levels.map((level) => (LEVEL_LABELS[level] || level) + ' ' + row.counts[level]).join(', ')) + '">' + segments + '</span>'
+                + '<span><span class="grc-stack" style="width:' + (row.total / max * 100) + '%" role="img" aria-label="' + esc(row.category + ': ' + data.levels.map((level) => (LEVEL_LABELS[level] || level) + ' ' + row.counts[level]).join(', ')) + '">' + segments + '</span></span>'
                 + '<span class="total">' + num(row.total) + '</span></div>';
         }).join('') + '</div>'
-            + '<div class="grc-heat-legend">' + data.levels.map((level) => (
-                '<span style="--swatch: ' + ({
-                    'High': 'var(--grc-critical)', 'Moderate to High': 'var(--grc-high)', 'Moderate': 'var(--grc-medium)',
-                    'Low to Moderate': 'var(--grc-low-mod)', 'Low': 'var(--grc-low)',
-                }[level] || '#c5cad3') + '">' + esc(LEVEL_LABELS[level] || level) + '</span>'
-            )).join('') + '</div>';
+            + legend(data.levels.map((level) => [LEVEL_SWATCH[level] || '#c5cad3', LEVEL_LABELS[level] || level]));
     }
 
     // ------------------------------------------------------------------
-    // E: top risks
+    // E: top risks (residual bar over a faded inherent bar, appetite line)
     // ------------------------------------------------------------------
+
+    const SCORE_MAX = 25;
+    const APPETITE_PILLS = {
+        breach: ['is-critical', 'Lewat toleransi'],
+        warning: ['is-warning', 'Di atas appetite'],
+        within: ['is-ok', 'Dalam appetite'],
+        qualitative: ['is-muted', 'Kualitatif'],
+        unconfigured: ['is-muted', 'Belum diatur'],
+    };
 
     function renderTopRisks(data, body) {
         if (!data.items.length) {
             body.innerHTML = emptyState('Belum ada risk aktif.', '');
             return;
         }
-        body.innerHTML = '<div class="table-responsive"><table class="table table-vcenter card-table grc-table"><thead><tr>'
-            + '<th>Risk</th><th>Skor</th><th>Appetite</th><th>Treatment</th><th>KRI</th></tr></thead><tbody>'
-            + data.items.map((risk) => {
-                const badge = APPETITE_BADGES[risk.appetite] || APPETITE_BADGES.unconfigured;
-                const t = risk.treatments;
-                const treatment = t.total === 0
-                    ? '<span class="text-danger small">Belum ada</span>'
-                    : '<span class="grc-progress">' + t.completed + '/' + t.total + ' selesai</span>'
-                        + (t.overdue ? ' <span class="badge bg-red-lt">' + t.overdue + ' terlambat</span>' : '');
-                const kri = (risk.kri.red ? '<span class="badge bg-red-lt">' + risk.kri.red + ' merah</span> ' : '')
-                    + (risk.kri.amber ? '<span class="badge bg-yellow-lt">' + risk.kri.amber + ' kuning</span>' : '')
-                    || '<span class="text-muted small">–</span>';
-                return '<tr>'
-                    + '<td><a href="' + esc(risk.url) + '" class="fw-medium">' + esc(risk.code) + '</a>'
-                    + '<div class="small text-truncate" style="max-width: 260px" title="' + esc(risk.title) + '">' + esc(risk.title) + '</div>'
-                    + '<div class="small text-muted">' + esc(risk.owner) + '</div></td>'
-                    + '<td><span class="grc-score">' + (risk.inherent ?? '–') + ' <span class="arrow">→</span> <strong>' + (risk.residual ?? '–') + '</strong></span>'
-                    + (risk.level ? '<div class="small text-muted">' + esc(LEVEL_LABELS[risk.level] || risk.level) + '</div>' : '') + '</td>'
-                    + '<td><span class="badge ' + badge[0] + '">' + esc(badge[1]) + '</span></td>'
-                    + '<td>' + treatment + '</td>'
-                    + '<td>' + kri + '</td>'
-                    + '</tr>';
-            }).join('') + '</tbody></table></div>';
+        const pct = (value) => clampPct(value, 0, SCORE_MAX);
+
+        body.innerHTML = '<div class="grc-rank">' + data.items.map((risk) => {
+            const inherent = risk.inherent, residual = risk.residual;
+            const appetite = risk.appetite_limit, tolerance = risk.tolerance_limit;
+            const hasAppetite = appetite !== null && appetite !== undefined;
+            const pill = APPETITE_PILLS[risk.appetite] || APPETITE_PILLS.unconfigured;
+
+            const tip = esc(risk.code) + ' · ' + esc(risk.title) + '<br>' + esc(risk.owner || '')
+                + '<br>Skor inheren ' + num(inherent) + ' → residual ' + num(residual)
+                + (hasAppetite
+                    ? '<br>Batas appetite ' + num(appetite) + (tolerance !== null && tolerance !== appetite ? ' · toleransi ' + num(tolerance) : '')
+                    : '<br>Appetite tidak berbasis skor')
+                + '<br>Treatment ' + risk.treatments.completed + '/' + risk.treatments.total + ' selesai'
+                + (risk.treatments.overdue ? ' · ' + risk.treatments.overdue + ' terlambat' : '')
+                + (risk.kri.red || risk.kri.amber ? '<br>KRI: ' + risk.kri.red + ' merah · ' + risk.kri.amber + ' kuning' : '');
+
+            const bars = (inherent !== null ? '<span class="grc-rank-inherent" style="width:' + pct(inherent) + '%"></span>' : '')
+                + (residual !== null ? '<span class="grc-rank-residual ' + levelClass(risk.level) + '" style="width:' + pct(residual) + '%"></span>' : '')
+                + (hasAppetite ? '<span class="grc-rank-appetite" style="left:' + pct(appetite) + '%"></span>' : '');
+
+            return '<div class="grc-rank-row"' + tipAttr(tip) + '>'
+                + '<div class="grc-rank-head">'
+                + '<a href="' + esc(risk.url) + '" class="grc-rank-title" title="' + esc(risk.title) + '"><span class="code">' + esc(risk.code) + '</span> ' + esc(risk.title) + '</a>'
+                + '<span class="grc-pill ' + pill[0] + '">' + pill[1] + '</span>'
+                + '</div>'
+                + '<div class="grc-rank-body">'
+                + '<div class="grc-rank-track" role="img" aria-label="' + esc(risk.code + ': skor residual ' + (residual ?? '–') + ' dari inheren ' + (inherent ?? '–') + (hasAppetite ? ', batas appetite ' + appetite : '')) + '">' + bars + '</div>'
+                + '<span class="grc-rank-score"><b>' + num(residual) + '</b>' + (inherent !== null ? ' <span>dari ' + num(inherent) + '</span>' : '') + '</span>'
+                + '</div>'
+                + '</div>';
+        }).join('') + '</div>'
+            + legend([
+                ['var(--grc-medium)', 'Skor residual (warna = level)'],
+                ['#dfe3e9', 'Skor inheren'],
+                ['', 'Batas appetite', 'tick'],
+            ]);
     }
 
     // ------------------------------------------------------------------
-    // F: KRI watchlist
+    // F: KRI watchlist (bullet graphs)
     // ------------------------------------------------------------------
+
+    function bullet(kri) {
+        const higherIsBetter = kri.direction === 'higher_is_better';
+        const values = [kri.value, kri.warn, kri.critical].concat(kri.history.map((point) => point.value)).filter((v) => v !== null && v !== undefined);
+        const lo = Math.min(0, ...values);
+        const hi = Math.max(...values) * 1.2 || 1;
+        const pct = (v) => clampPct(v, lo, hi);
+        const band = (cls, from, to) => to > from ? '<span class="band ' + cls + '" style="left:' + from + '%;width:' + (to - from) + '%"></span>' : '';
+
+        let bands;
+        if (higherIsBetter) {
+            const crit = kri.critical !== null ? pct(kri.critical) : 0;
+            const warn = kri.warn !== null ? pct(kri.warn) : crit;
+            bands = band('band-crit', 0, crit) + band('band-warn', crit, warn) + band('band-ok', warn, 100);
+        } else {
+            const warn = kri.warn !== null ? pct(kri.warn) : (kri.critical !== null ? pct(kri.critical) : 100);
+            const crit = kri.critical !== null ? pct(kri.critical) : 100;
+            bands = band('band-ok', 0, warn) + band('band-warn', warn, crit) + band('band-crit', crit, 100);
+        }
+
+        return '<div class="grc-bullet" role="img" aria-label="' + esc(kri.metric + ': ' + num(kri.value)) + '">'
+            + bands + '<span class="val" style="width:' + pct(kri.value) + '%"></span></div>';
+    }
 
     function thresholdText(kri) {
         // lower_is_better turns red as the value rises; higher_is_better as it falls.
@@ -429,9 +598,8 @@
     }
 
     function renderKris(data, body) {
-        Object.keys(charts).filter((key) => key.startsWith('kri-')).forEach(destroyChart);
         const noDataNote = data.no_data_total > 0
-            ? '<div class="grc-card-sub px-3 py-2 border-top">' + num(data.no_data_total) + ' KRI belum punya nilai pertama. Isi nilainya di halaman KRI agar ikut dipantau.</div>'
+            ? '<div class="grc-card-sub pt-2">' + num(data.no_data_total) + ' KRI belum punya nilai pertama. Isi nilainya di halaman KRI agar ikut dipantau.</div>'
             : '';
         if (!data.items.length) {
             body.innerHTML = (data.no_data_total > 0
@@ -439,39 +607,25 @@
                 : emptyState('Semua KRI hijau dan datanya terbaru.', '')) + noDataNote;
             return;
         }
-        body.innerHTML = '<div class="table-responsive"><table class="table table-vcenter card-table grc-table"><thead><tr>'
-            + '<th>KRI</th><th>Nilai</th><th>Tren</th><th>Status</th></tr></thead><tbody>'
-            + data.items.map((kri, index) => {
-                const status = String(kri.status).toLowerCase();
-                const badge = status === 'red' ? 'bg-red-lt">Merah' : (status === 'amber' ? 'bg-yellow-lt">Kuning' : 'bg-green-lt">Hijau');
-                return '<tr>'
-                    + '<td><a href="' + esc(kri.url) + '" class="fw-medium">' + esc(kri.metric) + '</a>'
-                    + '<div class="small text-muted">' + esc(kri.code) + ' · ' + esc(kri.owner) + '</div></td>'
-                    + '<td class="num"><strong>' + num(kri.value) + '</strong><div class="small text-muted">' + esc(thresholdText(kri)) + '</div></td>'
-                    + '<td>' + (kri.history.length > 1 ? '<canvas class="grc-spark" data-spark="' + index + '" role="img" aria-label="Tren ' + esc(kri.metric) + '"></canvas>' : '<span class="small text-muted">Belum cukup data</span>') + '</td>'
-                    + '<td><span class="badge ' + badge + '</span>'
-                    + (kri.stale ? ' <span class="badge bg-secondary-lt" title="Diperbarui ' + esc(shortDate(kri.updated_at)) + '">Basi</span>' : '') + '</td>'
-                    + '</tr>';
-            }).join('') + '</tbody></table></div>' + noDataNote;
 
-        if (typeof Chart === 'undefined') return;
-        body.querySelectorAll('[data-spark]').forEach((canvas) => {
-            const kri = data.items[Number(canvas.dataset.spark)];
-            const status = String(kri.status).toLowerCase();
-            const color = status === 'red' ? '#d63939' : (status === 'amber' ? '#f59f00' : '#667382');
-            charts['kri-' + canvas.dataset.spark] = new Chart(canvas, {
-                type: 'line',
-                data: {
-                    labels: kri.history.map((point) => point.at),
-                    datasets: [{ data: kri.history.map((point) => point.value), borderColor: color, borderWidth: 1.5, pointRadius: 0, tension: 0.25, fill: false }],
-                },
-                options: {
-                    responsive: false, animation: false, events: [],
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                    scales: { x: { display: false }, y: { display: false } },
-                },
-            });
-        });
+        body.innerHTML = '<div class="grc-kri-head"><span>KRI</span><span>Posisi terhadap threshold</span><span>Nilai</span><span>12 data terakhir</span><span>Status</span></div>'
+            + data.items.map((kri) => {
+                const status = String(kri.status).toLowerCase();
+                const color = status === 'red' ? 'var(--grc-critical)' : (status === 'amber' ? 'var(--grc-medium)' : 'var(--grc-muted)');
+                const pill = status === 'red' ? '<span class="grc-pill is-critical">Merah</span>'
+                    : (status === 'amber' ? '<span class="grc-pill is-warning">Kuning</span>' : '<span class="grc-pill is-ok">Hijau</span>');
+                const tip = esc(kri.metric) + ': <b>' + num(kri.value) + '</b>'
+                    + (thresholdText(kri) ? '<br>' + esc(thresholdText(kri)) : '')
+                    + (kri.direction === 'higher_is_better' ? '<br>Makin tinggi makin baik' : '')
+                    + '<br>Diperbarui ' + esc(shortDate(kri.updated_at));
+                return '<div class="grc-kri-row"' + tipAttr(tip) + '>'
+                    + '<div class="grc-kri-name"><a href="' + esc(kri.url) + '">' + esc(kri.metric) + '</a><span class="meta">' + esc(kri.code) + ' · ' + esc(kri.owner) + '</span></div>'
+                    + bullet(kri)
+                    + '<div class="grc-kri-value">' + num(kri.value) + '</div>'
+                    + '<div class="spark-cell">' + (kri.history.length > 1 ? spark(kri.history.map((point) => point.value), 84, 26, color) : '<span class="small text-muted">Belum cukup data</span>') + '</div>'
+                    + '<div class="grc-kri-status">' + (kri.stale ? '<span class="grc-pill is-muted">Basi</span>' : pill) + '</div>'
+                    + '</div>';
+            }).join('') + noDataNote;
     }
 
     // ------------------------------------------------------------------
@@ -484,94 +638,131 @@
             body.innerHTML = emptyState('Tidak ada loss event dalam 12 bulan.', 'Insiden dengan nilai kerugian akan tampil di sini.');
             return;
         }
-        body.innerHTML = '<div class="d-flex gap-4 mb-2 small"><div><div class="text-muted">Total 12 bulan</div><strong>' + esc(rupiah(data.total_amount)) + '</strong></div>'
-            + '<div><div class="text-muted">Kejadian</div><strong>' + num(data.total_events) + '</strong></div></div>'
-            + '<div class="grc-chart"><canvas data-loss-chart role="img" aria-label="Loss event per bulan"></canvas></div>'
-            + (data.largest.length ? '<div class="grc-heat-title mt-3">Loss terbesar</div><ul class="list-unstyled grc-largest mb-0">' + data.largest.map((event) => (
-                '<li><a href="' + esc(event.url) + '" class="text-truncate">' + esc(event.code) + ' · ' + esc(event.title) + '</a>'
-                + '<span class="num text-nowrap">' + esc(rupiah(event.amount)) + '</span></li>'
-            )).join('') + '</ul>' : '');
+        const largest = data.largest[0];
+        body.innerHTML = '<div class="grc-stat-pair"><div>Total 12 bulan<b>' + esc(rupiah(data.total_amount)) + '</b></div>'
+            + '<div>Kejadian<b>' + num(data.total_events) + '</b></div>'
+            + (largest ? '<div' + tipAttr(esc(largest.code) + ' · ' + esc(largest.title) + '<br>' + esc(shortDate(largest.date))) + '>Terbesar<b><a href="' + esc(largest.url) + '">' + esc(rupiah(largest.amount)) + '</a></b></div>' : '')
+            + '</div>'
+            + '<div class="grc-chart sm"><canvas data-loss-chart role="img" aria-label="Loss event per bulan"></canvas></div>';
 
         if (typeof Chart === 'undefined') return;
+        const last = data.series.length - 1;
         charts.losses = new Chart(body.querySelector('[data-loss-chart]'), {
             type: 'bar',
             data: {
                 labels: data.series.map((point) => point.label),
-                datasets: [{ label: 'Loss', data: data.series.map((point) => point.amount), backgroundColor: '#1e3a8a', borderRadius: 3, maxBarThickness: 28 }],
+                datasets: [{
+                    label: 'Loss',
+                    data: data.series.map((point) => point.amount),
+                    backgroundColor: data.series.map((_, index) => index === last ? '#1e3a8a' : 'rgba(30, 58, 138, .5)'),
+                    borderRadius: { topLeft: 4, topRight: 4 },
+                    borderSkipped: 'bottom',
+                    maxBarThickness: 22,
+                }],
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: { callbacks: { label: (ctx) => rupiah(ctx.parsed.y) + ' · ' + data.series[ctx.dataIndex].events + ' kejadian' } },
+                    tooltip: Object.assign(chartTooltip(), { callbacks: { label: (ctx) => rupiah(ctx.parsed.y) + ' · ' + data.series[ctx.dataIndex].events + ' kejadian' } }),
                 },
                 scales: {
-                    x: { grid: { display: false }, ticks: { color: '#667382', font: { size: 11 } } },
-                    y: { beginAtZero: true, grid: { color: '#eef0f3' }, ticks: { color: '#667382', font: { size: 11 }, callback: (value) => rupiah(value) } },
+                    x: { grid: { display: false }, ticks: { color: '#667382', font: { size: 11 }, maxRotation: 0, autoSkip: true } },
+                    y: { beginAtZero: true, grid: { color: '#eef0f3', drawBorder: false }, ticks: { color: '#667382', font: { size: 11 }, maxTicksLimit: 5, callback: (value) => rupiah(value) } },
                 },
             },
         });
     }
 
     // ------------------------------------------------------------------
-    // H: follow-up progress
+    // H: overdue action age per unit + committee decisions
     // ------------------------------------------------------------------
 
     function renderActions(data, body) {
         const d = data.decisions;
-        if (!data.units.length && !(d.open + d.overdue + d.closed)) {
-            body.innerHTML = emptyState('Belum ada treatment atau keputusan komite.', '');
-            return;
-        }
-        const buckets = [['completed', 'Selesai'], ['on_track', 'Berjalan'], ['blocked', 'Terhambat'], ['overdue', 'Terlambat']];
-        const max = Math.max(1, ...data.units.map((unit) => unit.total));
-
+        const aging = data.aging || { units: [], units_total: 0, totals: {} };
         let html = '';
-        if (data.units.length) {
-            html += '<div class="grc-bars">' + data.units.map((unit) => (
+
+        if (aging.units.length) {
+            const max = Math.max(1, ...aging.units.map((unit) => unit.total));
+            html += '<div class="grc-bars">' + aging.units.map((unit) => (
                 '<div class="grc-bar-row"><span class="name" title="' + esc(unit.owner) + '">' + esc(unit.owner) + '</span>'
-                + '<span class="grc-stack" role="img" aria-label="' + esc(unit.owner + ': ' + buckets.map(([key, label]) => label + ' ' + unit.counts[key]).join(', ')) + '">'
-                + buckets.filter(([key]) => unit.counts[key] > 0).map(([key, label]) => (
-                    '<span class="seg-' + key + '" style="width:' + (unit.counts[key] / max * 100) + '%" title="' + label + ': ' + unit.counts[key] + '"></span>'
-                )).join('') + '</span><span class="total">' + num(unit.total) + '</span></div>'
+                + '<span><span class="grc-stack" style="width:' + (unit.total / max * 100) + '%" role="img" aria-label="' + esc(unit.owner + ': ' + AGING.map(([key, label]) => label + ' ' + unit.counts[key]).join(', ')) + '">'
+                + AGING.filter(([key]) => unit.counts[key] > 0).map(([key, label]) => (
+                    '<span class="age-' + key + '" style="flex:' + unit.counts[key] + '"' + tipAttr(esc(unit.owner) + ' · terlambat ' + label + ': ' + num(unit.counts[key]) + ' aksi') + '></span>'
+                )).join('') + '</span></span><span class="total">' + num(unit.total) + '</span></div>'
             )).join('') + '</div>'
-                + '<div class="grc-heat-legend">' + buckets.map(([key, label]) => (
-                    '<span style="--swatch: var(' + ({ completed: '--grc-low', on_track: '--grc-muted', blocked: '--grc-medium', overdue: '--grc-critical' })[key] + ')">' + label + ' ' + num(data.totals[key]) + '</span>'
-                )).join('') + '</div>'
-                + (data.units_total > data.units.length ? '<div class="grc-card-sub mt-1">' + (data.units_total - data.units.length) + ' unit lain tidak ditampilkan.</div>' : '');
+                + legend(AGING.map(([key, label], index) => ['var(--grc-age' + (index + 1) + ')', label + ' · ' + num(aging.totals[key] || 0)]))
+                + (aging.units_total > aging.units.length ? '<div class="grc-card-sub mt-1">' + (aging.units_total - aging.units.length) + ' unit lain tidak ditampilkan.</div>' : '');
+        } else {
+            html += emptyState('Tidak ada aksi yang terlambat.', '');
         }
 
-        html += '<div class="grc-heat-title mt-3">Keputusan komite</div>'
-            + '<div class="small mb-2">' + num(d.open) + ' terbuka · <span class="' + (d.overdue ? 'text-danger fw-medium' : '') + '">' + num(d.overdue) + ' terlambat</span> · ' + num(d.closed) + ' selesai</div>'
-            + (d.next.length ? '<ul class="list-unstyled small mb-0">' + d.next.map((decision) => (
-                '<li class="py-1 d-flex justify-content-between gap-2"><a href="' + esc(decision.url) + '" class="text-truncate">' + esc(decision.title) + '</a>'
-                + '<span class="text-nowrap ' + (decision.overdue ? 'text-danger' : 'text-muted') + '">' + (decision.due_at ? shortDate(decision.due_at) : 'Tanpa tenggat') + '</span></li>'
-            )).join('') + '</ul>' : '');
+        const decisionTotal = d.open + d.overdue + d.closed;
+        html += '<div class="grc-heat-title mt-3">Keputusan komite</div>';
+        if (decisionTotal) {
+            html += '<div class="grc-split" role="img" aria-label="Keputusan komite: ' + d.closed + ' selesai, ' + d.open + ' terbuka, ' + d.overdue + ' terlambat">'
+                + [[d.closed, 'var(--grc-low)', 'selesai'], [d.open, 'var(--grc-faint)', 'terbuka'], [d.overdue, 'var(--grc-critical)', 'terlambat']]
+                    .filter(([n]) => n > 0)
+                    .map(([n, color, label]) => '<span style="flex:' + n + ';background:' + color + '"' + tipAttr(num(n) + ' keputusan ' + label) + '></span>').join('')
+                + '</div>'
+                + legend([['var(--grc-low)', 'Selesai ' + num(d.closed)], ['var(--grc-faint)', 'Terbuka ' + num(d.open)], ['var(--grc-critical)', 'Terlambat ' + num(d.overdue)]]);
+        } else {
+            html += '<div class="small text-muted">Belum ada keputusan komite.</div>';
+        }
 
         body.innerHTML = html;
     }
 
     // ------------------------------------------------------------------
-    // I: assurance due
+    // I: assurance timeline
     // ------------------------------------------------------------------
 
-    function renderAssurance(data, body) {
+    const ASSURANCE_LANES = [['vendor', 'Review vendor'], ['bia', 'Review BIA'], ['bcp', 'Uji BCP']];
+    const TIMELINE_PAST_DAYS = 30;
+
+    function renderAssurance(data, body, host) {
+        const counts = host.querySelector('[data-assurance-counts]');
+        counts.innerHTML = data.items.length
+            ? (data.counts.overdue ? '<span class="grc-pill is-critical">' + num(data.counts.overdue) + ' terlambat</span>' : '')
+                + '<span class="grc-pill is-muted">' + num(data.counts.upcoming) + ' akan datang</span>'
+            : '';
+
         if (!data.items.length) {
             body.innerHTML = emptyState('Tidak ada assurance yang jatuh tempo.', 'Dalam ' + data.horizon_days + ' hari ke depan semua jadwal review dan uji aman.');
             return;
         }
+
+        const lo = -TIMELINE_PAST_DAYS, hi = data.horizon_days;
+        const pct = (days) => clampPct(days, lo, hi);
         const today = new Date(); today.setHours(0, 0, 0, 0);
-        body.innerHTML = '<div class="grc-card-sub px-3 pt-3">' + num(data.counts.overdue) + ' terlambat · ' + num(data.counts.upcoming) + ' dalam ' + data.horizon_days + ' hari</div>'
-            + '<ul class="grc-attn">' + data.items.map((item) => {
-                let when = 'Belum pernah';
-                if (item.due) {
-                    const days = Math.round((new Date(item.due + 'T00:00:00') - today) / 86400000);
-                    when = days < 0 ? Math.abs(days) + ' hari lalu' : (days === 0 ? 'Hari ini' : days + ' hari lagi');
-                }
-                return '<li><span class="sev ' + (item.overdue ? 'sev-critical' : 'sev-medium') + '"></span>'
-                    + '<div><a class="title" href="' + esc(item.url) + '">' + esc(item.label) + '</a><div class="meta">' + esc(item.subject) + '</div></div>'
-                    + '<span class="age ' + (item.overdue ? 'text-danger' : 'text-muted') + '">' + esc(when) + '</span></li>';
-            }).join('') + '</ul>';
+        const dateAt = (days) => { const d = new Date(today); d.setDate(d.getDate() + days); return dayMonth.format(d); };
+
+        let html = '<div class="grc-tl">';
+        ASSURANCE_LANES.forEach(([type, label]) => {
+            const items = data.items.filter((item) => item.type === type);
+            html += '<div class="grc-tl-label">' + esc(label) + ' <span class="text-muted">· ' + num(items.length) + '</span></div>'
+                + '<div class="grc-tl-lane"><span class="grc-tl-past" style="width:' + pct(0) + '%"></span><span class="grc-tl-today" style="left:' + pct(0) + '%"></span>'
+                + items.map((item) => {
+                    let days = null, when = 'Belum pernah dilakukan';
+                    if (item.due) {
+                        days = Math.round((new Date(item.due + 'T00:00:00') - today) / 86400000);
+                        when = days < 0 ? Math.abs(days) + ' hari lalu' : (days === 0 ? 'Hari ini' : days + ' hari lagi');
+                    }
+                    const position = days === null ? 0 : pct(days);
+                    const color = item.overdue ? 'var(--grc-critical)' : 'var(--grc-medium)';
+                    const tip = esc(item.label) + ' · ' + esc(item.subject) + '<br>' + (item.due ? esc(shortDate(item.due)) + ' · ' : '') + esc(when)
+                        + (days !== null && days < lo ? '<br>(di luar rentang, ditaruh di tepi kiri)' : '');
+                    return '<a class="grc-tl-dot' + (days === null ? ' never' : '') + '" href="' + esc(item.url) + '" style="left:' + position + '%;background:' + color + '"'
+                        + tipAttr(tip) + ' aria-label="' + esc(item.label + ' ' + item.subject + ', ' + when) + '"></a>';
+                }).join('')
+                + '</div>';
+        });
+        html += '<div></div><div class="grc-tl-axis">'
+            + [lo, -15, 0, 7, 14, 21, hi].map((d) => '<span style="left:' + pct(d) + '%">' + (d === 0 ? '<b class="text-body">Hari ini</b>' : esc(dateAt(d))) + '</span>').join('')
+            + '</div></div>';
+
+        body.innerHTML = html;
     }
 
     // ------------------------------------------------------------------
@@ -584,30 +775,40 @@
             body.innerHTML = emptyState('Tren belum tersedia.', 'Snapshot skor diambil otomatis setiap akhir bulan. Grafik terisi mulai snapshot pertama; riwayat sebelum itu tidak direkonstruksi.');
             return;
         }
-        const last = data.series[data.series.length - 1];
-        body.innerHTML = '<div class="d-flex gap-4 mb-2 small">'
-            + '<div><div class="text-muted">Melewati toleransi</div><strong>' + num(last.breaches) + '</strong></div>'
-            + '<div><div class="text-muted">Risk tinggi</div><strong>' + num(last.high_risks) + '</strong></div>'
-            + '<div><div class="text-muted">Rata-rata residual</div><strong>' + (last.avg_residual ?? '–') + '</strong></div></div>'
-            + '<div class="grc-chart"><canvas data-trend-chart role="img" aria-label="Tren postur risiko per akhir bulan"></canvas></div>'
+        body.innerHTML = '<div class="grc-chart"><canvas data-trend-chart role="img" aria-label="Tren postur risiko per akhir bulan"></canvas></div>'
             + '<div class="grc-card-sub mt-1">Snapshot pertama: ' + esc(shortDate(data.first_period)) + '</div>';
 
         if (typeof Chart === 'undefined') return;
+        const last = data.series.length - 1;
+        const endpoint = (ctx) => ctx.dataIndex === last ? 4 : 0;
+        const line = (label, key, color, fill) => ({
+            label, data: data.series.map((point) => point[key]),
+            borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0.25,
+            pointRadius: endpoint, pointHoverRadius: 5, pointBorderColor: '#fff', pointBorderWidth: 2,
+            fill: fill ? { target: 'origin', above: 'rgba(214, 57, 57, .08)' } : false,
+        });
+
         charts.trend = new Chart(body.querySelector('[data-trend-chart]'), {
             type: 'line',
             data: {
                 labels: data.series.map((point) => point.label),
                 datasets: [
-                    { label: 'Melewati toleransi', data: data.series.map((point) => point.breaches), borderColor: '#d63939', backgroundColor: '#d63939', tension: 0.2, pointRadius: 3 },
-                    { label: 'Risk tinggi', data: data.series.map((point) => point.high_risks), borderColor: '#f76707', backgroundColor: '#f76707', tension: 0.2, pointRadius: 3 },
+                    line('Risk tinggi (residual)', 'high_risks', '#f76707', false),
+                    line('Melewati toleransi', 'breaches', '#d63939', true),
                 ],
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'line', boxWidth: 18, color: '#667382', font: { size: 11 } } },
+                    tooltip: Object.assign(chartTooltip(), {
+                        callbacks: { footer: (items) => { const p = data.series[items[0].dataIndex]; return p.avg_residual !== null ? 'Rata-rata residual ' + p.avg_residual : ''; } },
+                    }),
+                },
                 scales: {
                     x: { grid: { display: false }, ticks: { color: '#667382', font: { size: 11 } } },
-                    y: { beginAtZero: true, ticks: { precision: 0, color: '#667382', font: { size: 11 } }, grid: { color: '#eef0f3' } },
+                    y: { beginAtZero: true, ticks: { precision: 0, color: '#667382', font: { size: 11 } }, grid: { color: '#eef0f3', drawBorder: false } },
                 },
             },
         });
@@ -616,14 +817,15 @@
     // ------------------------------------------------------------------
 
     load('summary', renderSummary);
-    load('attention', renderAttention);
+    load('portfolio', renderPortfolio);
     load('heatmap', renderHeatmap);
-    load('profile', renderProfile);
-    load('top-risks', renderTopRisks);
+    load('trend', renderTrend);
     load('kris', renderKris);
+    load('top-risks', renderTopRisks);
+    load('profile', renderProfile);
     load('losses', renderLosses);
     load('actions', renderActions);
     load('assurance', renderAssurance);
-    load('trend', renderTrend);
+    load('attention', renderAttention);
 })();
 </script>

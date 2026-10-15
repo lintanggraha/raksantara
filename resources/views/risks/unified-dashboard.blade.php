@@ -75,7 +75,7 @@
     @if($isAnalytical)
         @include('risks.partials.analytical-dashboard', [
             'dashboardSummary' => $dashboardSummary,
-            'heatmapMatrix' => $heatmapMatrix,
+            'levelMigration' => $levelMigration,
         ])
     @else
         @include('risks.partials.overview-dashboard')
@@ -84,8 +84,9 @@
 @endsection
 
 @section('js')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+@include('risks.partials.dashboard-tooltip')
 @unless($isAnalytical)
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     @include('risks.partials.overview-dashboard-scripts', ['filterQuery' => $filterQuery])
 @endunless
 @endsection

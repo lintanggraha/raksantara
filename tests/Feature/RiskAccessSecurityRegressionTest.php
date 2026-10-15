@@ -85,7 +85,7 @@ class RiskAccessSecurityRegressionTest extends TestCase
         $analytical = $this->get(route('dashboard', ['view' => 'analytical']));
         $analytical->assertOk();
         $analytical->assertViewHas('dashboardView', 'analytical');
-        $analytical->assertViewHas('heatmapMatrix');
+        $analytical->assertViewHas('levelMigration');
     }
 
     public function test_non_compliance_user_cannot_comment_or_download_attachment_on_foreign_risk(): void

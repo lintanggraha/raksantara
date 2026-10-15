@@ -1147,31 +1147,12 @@ class RiskController extends Controller
                 $request->merge(['risk_category_id' => $filters->categoryId]);
             }
             $trendGranularity = $this->resolvePreferredTrendGranularity($request);
-            $heatmap = $metrics->heatmap();
 
             $context['dashboardSummary'] = $this->getCachedDashboardSummary($request, $trendGranularity);
-            $context['heatmapMatrix'] = [
-                'residual' => $this->heatmapRowsToMatrix($heatmap['residual']['rows']),
-                'inherent' => $this->heatmapRowsToMatrix($heatmap['inherent']['rows']),
-            ];
+            $context['levelMigration'] = $metrics->levelMigration();
         }
 
         return view('risks.unified-dashboard', $context);
-    }
-
-    /**
-     * @return array<int, array<int, int>> counts indexed [probability][impact]
-     */
-    private function heatmapRowsToMatrix(array $rows): array
-    {
-        $matrix = array_fill(1, 5, array_fill(1, 5, 0));
-        foreach ($rows as $row) {
-            foreach ($row as $cell) {
-                $matrix[$cell['p']][$cell['i']] = $cell['count'];
-            }
-        }
-
-        return $matrix;
     }
 
     public function dashboardSummary(Request $request)
