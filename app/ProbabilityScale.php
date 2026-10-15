@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProbabilityScale extends Model
 {
+    use \App\Support\Auditable;
+
+    protected string $auditEvent = 'parameter.probability_scale';
+
     protected $fillable = [
         'score',
         'description',

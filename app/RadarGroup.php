@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class RadarGroup extends Model
 {
+    use \App\Support\Auditable;
+
+    protected string $auditEvent = 'parameter.radar_group';
+
     protected $fillable = [
         'code',
         'description',

@@ -159,6 +159,9 @@ Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function
             ->name('risk-alerts.resolve');
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export'])
+            ->middleware('throttle:10,1')
+            ->name('audit-logs.export');
     });
 });
 

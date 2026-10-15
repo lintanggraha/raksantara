@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Vendor extends Model
 {
+    use \App\Support\Auditable;
+
+    protected string $auditEvent = 'vendor';
+
     use HasFactory;
 
     protected $fillable = [

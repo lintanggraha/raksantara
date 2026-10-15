@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class RiskTreatment extends Model
 {
+    use \App\Support\Auditable;
+
+    protected string $auditEvent = 'treatment';
+
     use HasFactory;
     
     protected $fillable = [

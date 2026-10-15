@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class ComplianceWorkProgram extends Model
 {
+    use \App\Support\Auditable;
+
+    protected string $auditEvent = 'compliance_program';
+
     use HasFactory;
 
     public const SECTION_INTERNAL_AUDIT = 'internal_audit';

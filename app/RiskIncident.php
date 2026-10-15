@@ -8,6 +8,10 @@ use Illuminate\Database\QueryException;
 
 class RiskIncident extends Model
 {
+    use \App\Support\Auditable;
+
+    protected string $auditEvent = 'incident';
+
     public const SEVERITY_LEVELS = [
         'Low',
         'Medium',

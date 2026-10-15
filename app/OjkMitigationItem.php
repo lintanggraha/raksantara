@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class OjkMitigationItem extends Model
 {
+    use \App\Support\Auditable;
+
+    protected string $auditEvent = 'ojk_mitigation';
+
     protected $fillable = [
         'item_number',
         'action_plan',

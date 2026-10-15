@@ -166,6 +166,13 @@ class ScheduledReportController extends Controller
         $this->authorizeSchedule($scheduledReport);
 
         $result = $dispatchService->dispatchSchedule($scheduledReport->loadMissing('user'), $reportDataService, 'manual');
+        \App\Support\AuditLogger::logModelEvent('scheduled_report.run_manually', $scheduledReport, null, [
+            'name' => $scheduledReport->name,
+            'user_id' => $scheduledReport->user_id,
+            'success' => (bool) ($result['success'] ?? false),
+            'recipient_count' => (int) ($result['recipient_count'] ?? 0),
+            'error' => $result['error'] ?? null,
+        ]);
         if ($result['success'] ?? false) {
             return redirect()->route('reports.scheduled.index')->with(
                 'success',

@@ -56,7 +56,9 @@ class OjkMitigationController extends Controller
             $result = $this->importService->parse($absolutePath);
             $rows = (array) ($result['rows'] ?? []);
 
-            DB::transaction(function () use ($rows) {
+            $previousCount = OjkMitigationItem::query()->count();
+            // The import replaces the whole list: one summary entry, not one per row.
+            OjkMitigationItem::withoutAuditing(fn () => DB::transaction(function () use ($rows) {
                 OjkMitigationItem::query()->delete();
 
                 foreach ($rows as $row) {
@@ -78,7 +80,13 @@ class OjkMitigationController extends Controller
                         'sort_order' => (int) ($row['sort_order'] ?? 0),
                     ]);
                 }
-            });
+            }));
+
+            \App\Support\AuditLogger::logModelEvent('ojk_mitigation.imported', new OjkMitigationItem(), null, [
+                'file_name' => $uploadedFile->getClientOriginalName(),
+                'rows_loaded' => count($rows),
+                'rows_replaced' => $previousCount,
+            ]);
 
             return redirect()
                 ->route('ojk-mitigation.index')

@@ -3,193 +3,140 @@
 namespace App\Http\Controllers;
 
 use App\AuditLog;
+use App\Support\AuditLogger;
+use App\Support\AuditTrail;
+use App\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Audit trail for superadmins: every recorded event, filterable, with the
+ * exact field changes and the people involved in approvals.
+ */
 class AuditLogController extends Controller
 {
-    private const EVENTS = [
-        'auth.login.succeeded',
-        'auth.logout',
-        'risk.created',
-        'risk.updated',
-        'risk.deleted',
-        'risk.import.completed',
-        'risk.import.failed',
-        'report.export.generated',
-        'report.export.failed',
-    ];
+    private const PER_PAGE = 50;
+    private const EXPORT_LIMIT = 20000;
 
     public function index(Request $request)
     {
-        $request->validate([
+        $filters = $this->filters($request);
+        $logs = $this->query($filters)->paginate(self::PER_PAGE)->withQueryString();
+        $rows = AuditTrail::present($logs->getCollection());
+
+        $events = AuditLog::query()->distinct()->orderBy('event')->pluck('event');
+        $modules = $events->map(fn ($event) => AuditTrail::moduleOf($event))->unique()
+            ->mapWithKeys(fn ($module) => [$module => AuditTrail::moduleLabel($module)])->sort();
+        $actors = User::query()
+            ->whereIn('id', AuditLog::query()->whereNotNull('actor_id')->distinct()->select('actor_id'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'username']);
+
+        return view('audit.index', [
+            'logs' => $logs,
+            'rows' => $rows,
+            'filters' => $filters,
+            'events' => $events->mapWithKeys(fn ($event) => [$event => AuditTrail::eventLabel($event)]),
+            'modules' => $modules,
+            'actors' => $actors,
+            'timezoneLabel' => AuditTrail::DISPLAY_TIMEZONE_LABEL,
+        ]);
+    }
+
+    public function export(Request $request)
+    {
+        $filters = $this->filters($request);
+        $total = $this->query($filters)->count();
+
+        AuditLogger::logModelEvent('audit.exported', new AuditLog(), null, array_filter($filters) + [
+            'rows' => min($total, self::EXPORT_LIMIT),
+        ]);
+
+        $fileName = 'audit-log-' . now(AuditTrail::DISPLAY_TIMEZONE)->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($filters) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // Excel reads UTF-8 with a BOM
+            fputcsv($out, ['Hari', 'Tanggal & jam (' . AuditTrail::DISPLAY_TIMEZONE_LABEL . ')', 'Pengguna', 'Username / divisi', 'Modul', 'Aktivitas', 'Objek', 'Persetujuan', 'Perubahan', 'IP', 'Browser']);
+
+            // chunk() would drop a limit(), so cap the lazy stream instead.
+            $this->query($filters)->lazy(500)->take(self::EXPORT_LIMIT)->chunk(500)->each(function ($chunk) use ($out) {
+                foreach (AuditTrail::present(collect($chunk->all())->values()) as $row) {
+                    $changes = collect($row['changes'])->map(fn ($change) => $change['field'] . ': '
+                        . ($change['before'] ?? '-') . ' → ' . ($change['after'] ?? '-'))->implode("\n");
+                    fputcsv($out, [
+                        $row['day'], $row['timestamp'], $row['actor'], $row['actor_detail'], $row['module'], $row['activity'],
+                        $row['object'], $row['approval'], $changes, $row['ip'], $row['user_agent'],
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $fileName, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    private function filters(Request $request): array
+    {
+        $validated = $request->validate([
+            'from' => 'nullable|date',
+            'to' => 'nullable|date',
+            'actor' => 'nullable|integer',
+            'module' => 'nullable|string|max:60',
             'event' => 'nullable|string|max:80',
+            'q' => 'nullable|string|max:120',
+            'ip' => 'nullable|string|max:45',
         ]);
 
-        $event = trim((string) $request->input('event', ''));
-        if ($event !== '' && !in_array($event, self::EVENTS, true)) {
-            $event = '';
-        }
-
-        $query = AuditLog::with('actor')
-            ->whereIn('event', self::EVENTS)
-            ->orderByDesc('created_at');
-
-        if ($event !== '') {
-            $query->where('event', $event);
-        }
-
-        $logs = $query->paginate(40)->appends([
-            'event' => $event,
-        ]);
-
-        $logs->setCollection(
-            $logs->getCollection()->map(function (AuditLog $log) {
-                return [
-                    'time' => optional($log->created_at)->format('d-m-Y H:i:s') ?? '-',
-                    'actor' => optional($log->actor)->name ?? 'System',
-                    'activity' => $this->activityLabel((string) $log->event),
-                    'details' => $this->activityDetails($log),
-                ];
-            })
-        );
-
-        $events = collect(self::EVENTS)->mapWithKeys(function (string $name) {
-            return [$name => $this->activityLabel($name)];
-        });
-
-        return view('audit.index', compact('logs', 'events', 'event'));
-    }
-
-    private function activityLabel(string $event): string
-    {
-        $map = [
-            'auth.login.succeeded' => 'Login',
-            'auth.logout' => 'Logout',
-            'risk.created' => 'Add Risk',
-            'risk.updated' => 'Edit Risk',
-            'risk.deleted' => 'Delete Risk',
-            'risk.import.completed' => 'Import Risk',
-            'risk.import.failed' => 'Import Risk (Failed)',
-            'report.export.generated' => 'Export Report',
-            'report.export.failed' => 'Export Report (Failed)',
+        return [
+            'from' => $validated['from'] ?? null,
+            'to' => $validated['to'] ?? null,
+            'actor' => isset($validated['actor']) ? (int) $validated['actor'] : null,
+            'module' => $validated['module'] ?? null,
+            'event' => $validated['event'] ?? null,
+            'q' => isset($validated['q']) ? trim($validated['q']) : null,
+            'ip' => $validated['ip'] ?? null,
         ];
-
-        return $map[$event] ?? $event;
     }
 
-    private function activityDetails(AuditLog $log): string
+    private function query(array $filters): Builder
     {
-        switch ((string) $log->event) {
-            case 'auth.login.succeeded':
-                return 'Login berhasil' . $this->ipSuffix($log);
-            case 'auth.logout':
-                return 'Logout' . $this->ipSuffix($log);
-            case 'risk.created':
-            case 'risk.updated':
-            case 'risk.deleted':
-                return $this->riskSummary($log);
-            case 'risk.import.completed':
-            case 'risk.import.failed':
-                return $this->importSummary($log);
-            case 'report.export.generated':
-            case 'report.export.failed':
-                return $this->exportSummary($log);
-            default:
-                return '-';
-        }
-    }
+        $query = AuditLog::query()->with('actor:id,name,username,division')->orderByDesc('created_at')->orderByDesc('id');
 
-    private function riskSummary(AuditLog $log): string
-    {
-        $after = is_array($log->after_state) ? $log->after_state : [];
-        $before = is_array($log->before_state) ? $log->before_state : [];
-        $state = !empty($after) ? $after : $before;
-
-        $riskId = trim((string) ($state['risk_id'] ?? ''));
-        $title = trim((string) ($state['risk_title'] ?? ''));
-        $status = trim((string) ($state['status'] ?? ''));
-
-        $parts = [];
-        if ($riskId !== '') {
-            $parts[] = 'Risk: ' . $riskId;
+        // Dates are picked in local time; the table stores UTC.
+        if ($filters['from']) {
+            $query->where('created_at', '>=', CarbonImmutable::parse($filters['from'], AuditTrail::DISPLAY_TIMEZONE)->startOfDay()->utc());
         }
-        if ($title !== '') {
-            $parts[] = 'Title: ' . Str::limit($title, 80, '...');
+        if ($filters['to']) {
+            $query->where('created_at', '<=', CarbonImmutable::parse($filters['to'], AuditTrail::DISPLAY_TIMEZONE)->endOfDay()->utc());
         }
-        if ($status !== '') {
-            $parts[] = 'Status: ' . $status;
+        if ($filters['actor']) {
+            $query->where('actor_id', $filters['actor']);
+        }
+        if ($filters['module']) {
+            $query->where(fn ($q) => $q->where('event', $filters['module'])->orWhere('event', 'like', $filters['module'] . '.%'));
+        }
+        if ($filters['event']) {
+            $query->where('event', $filters['event']);
+        }
+        if ($filters['ip']) {
+            $query->where('ip_address', $filters['ip']);
+        }
+        if ($filters['q']) {
+            $term = '%' . str_replace(['%', '_'], ['\%', '\_'], $filters['q']) . '%';
+            $cast = DB::connection()->getDriverName() === 'mysql' ? 'CHAR' : 'TEXT';
+            $query->where(function ($q) use ($term, $cast, $filters) {
+                $q->where('event', 'like', $term)
+                    ->orWhereRaw("CAST(before_state AS {$cast}) LIKE ?", [$term])
+                    ->orWhereRaw("CAST(after_state AS {$cast}) LIKE ?", [$term])
+                    ->orWhereHas('actor', fn ($a) => $a->where('name', 'like', $term)->orWhere('username', 'like', $term));
+                if (ctype_digit($filters['q'])) {
+                    $q->orWhere('auditable_id', (int) $filters['q']);
+                }
+            });
         }
 
-        if (empty($parts)) {
-            $parts[] = class_basename((string) $log->auditable_type) . '#' . (string) $log->auditable_id;
-        }
-
-        return implode(' | ', $parts);
-    }
-
-    private function importSummary(AuditLog $log): string
-    {
-        $after = is_array($log->after_state) ? $log->after_state : [];
-
-        $fileName = (string) ($after['file_name'] ?? '-');
-        $year = $after['year'] ?? null;
-        $dryRun = (bool) ($after['dry_run'] ?? false);
-
-        $parts = ['File: ' . $fileName];
-        if (!is_null($year) && $year !== '') {
-            $parts[] = 'Year: ' . $year;
-        }
-        if ($dryRun) {
-            $parts[] = 'Mode: dry-run';
-        }
-
-        if ((string) $log->event === 'risk.import.failed') {
-            $reason = (string) ($after['reason'] ?? 'failed');
-            $parts[] = 'Status: gagal (' . $reason . ')';
-        } else {
-            $parts[] = 'Status: sukses';
-        }
-
-        return implode(' | ', $parts);
-    }
-
-    private function exportSummary(AuditLog $log): string
-    {
-        $after = is_array($log->after_state) ? $log->after_state : [];
-
-        $scope = (string) ($after['scope'] ?? '-');
-        $format = strtoupper((string) ($after['format'] ?? '-'));
-        $year = $after['year'] ?? null;
-        $riskOwner = trim((string) ($after['risk_owner'] ?? ''));
-
-        $parts = [
-            'Scope: ' . $scope,
-            'Format: ' . $format,
-        ];
-
-        if (!is_null($year) && $year !== '') {
-            $parts[] = 'Year: ' . $year;
-        }
-
-        if ($riskOwner !== '') {
-            $parts[] = 'Owner: ' . $riskOwner;
-        }
-
-        $parts[] = (string) $log->event === 'report.export.failed'
-            ? 'Status: gagal'
-            : 'Status: sukses';
-
-        return implode(' | ', $parts);
-    }
-
-    private function ipSuffix(AuditLog $log): string
-    {
-        $ip = trim((string) $log->ip_address);
-        if ($ip === '') {
-            return '';
-        }
-
-        return ' | IP: ' . $ip;
+        return $query;
     }
 }

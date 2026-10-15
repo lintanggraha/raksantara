@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class ScheduledReport extends Model
 {
+    use \App\Support\Auditable;
+
+    protected string $auditEvent = 'scheduled_report';
+    protected array $auditIgnore = ['last_run_at', 'next_run_at'];
+
     protected $fillable = [
         'user_id',
         'name',
