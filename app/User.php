@@ -167,7 +167,8 @@ class User extends Authenticatable
 
     public function hasPermission(string $permission): bool
     {
-        if ($this->isSuperadmin()) {
+        // Compliance owns the application: role assignments never restrict it.
+        if ($this->isSuperadmin() || $this->isComplianceDivision()) {
             return true;
         }
 

@@ -793,11 +793,12 @@ thead th {
 <td style="white-space: nowrap; text-align: center;">
 @php
     $viewer = auth()->user();
-    $isRiskCreator = (int) ($risk->created_by ?? 0) > 0
-        && (int) $risk->created_by === (int) $viewer->id;
-    $canManageLegacyRisk = (int) ($risk->created_by ?? 0) <= 0
-        && $viewer->canManageRiskOwner($risk->risk_owner);
-    $canManage = !$viewer->isSuperadmin() && ($isRiskCreator || $canManageLegacyRisk);
+    // Mirrors RiskAccess::canManage (creator or owner-unit scope, which includes
+    // Compliance), with the RBAC permission resolved once for the whole list.
+    $viewerHasManagePermission ??= !$viewer->hasRoleAssignments() || $viewer->hasPermission('risks.manage');
+    $canManage = !$viewer->isSuperadmin()
+        && $viewerHasManagePermission
+        && ((int) ($risk->created_by ?? 0) === (int) $viewer->id || $viewer->canManageRiskOwner($risk->risk_owner));
 @endphp
 @php
     $kriTotal = (int) ($risk->kris_count ?? 0);

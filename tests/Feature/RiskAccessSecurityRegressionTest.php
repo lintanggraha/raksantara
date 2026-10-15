@@ -88,6 +88,22 @@ class RiskAccessSecurityRegressionTest extends TestCase
         $analytical->assertViewHas('levelMigration');
     }
 
+    public function test_compliance_sees_edit_actions_on_risks_created_by_other_divisions(): void
+    {
+        $owner = $this->createUser('BT - DIGITAL BANKING', false);
+        $risk = $this->createRiskRecord($owner, 'BT - DIGITAL BANKING', 'Risk Created By Another Division');
+        $editUrl = route('risks.edit', $risk->id);
+
+        $this->actingAs($this->createUser('CO - COMPLIANCE', false));
+        $this->get(route('risks.index'))->assertOk()->assertSee($editUrl, false);
+        $this->get(route('risks.show', $risk->id))->assertOk()->assertSee($editUrl, false);
+        $this->get($editUrl)->assertOk();
+
+        // A superadmin stays read-only.
+        $this->actingAs($this->createUser('CO - COMPLIANCE', true));
+        $this->get(route('risks.show', $risk->id))->assertOk()->assertDontSee($editUrl, false);
+    }
+
     public function test_non_compliance_user_cannot_comment_or_download_attachment_on_foreign_risk(): void
     {
         Storage::fake('local');

@@ -92,7 +92,8 @@ Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function
         ->middleware('throttle:10,1')
         ->name('profile.changePassword');
 
-    Route::middleware('superadmin')->group(function () {
+    // Shared with Compliance, the application owner.
+    Route::middleware('superadmin.or.compliance')->group(function () {
         Route::get('/parameters', [ParameterManagementController::class, 'index'])->name('parameters.index');
         Route::post('/parameters/risk-categories', [ParameterManagementController::class, 'storeRiskCategory'])->name('parameters.risk-categories.store');
         Route::put('/parameters/risk-categories/{riskCategory}', [ParameterManagementController::class, 'updateRiskCategory'])
@@ -123,6 +124,18 @@ Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function
             ->whereNumber('radarGroup')
             ->name('parameters.radar-groups.update');
 
+        // Maker-checker: the controller refuses a reviewer's own request.
+        Route::get('/risk-status-approvals', [RiskStatusApprovalController::class, 'index'])
+            ->name('risk-status-approvals.index');
+        Route::put('/risk-status-approvals/{statusRequest}/approve', [RiskStatusApprovalController::class, 'approve'])
+            ->whereNumber('statusRequest')
+            ->name('risk-status-approvals.approve');
+        Route::put('/risk-status-approvals/{statusRequest}/reject', [RiskStatusApprovalController::class, 'reject'])
+            ->whereNumber('statusRequest')
+            ->name('risk-status-approvals.reject');
+    });
+
+    Route::middleware('superadmin')->group(function () {
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
         Route::get('/access-control', [AccessControlController::class, 'index'])->name('access-control.index');
@@ -139,15 +152,6 @@ Route::middleware(['auth', 'password.changed', 'mfa.completed'])->group(function
         Route::put('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])
             ->whereNumber('user')
             ->name('users.resetPassword');
-
-        Route::get('/risk-status-approvals', [RiskStatusApprovalController::class, 'index'])
-            ->name('risk-status-approvals.index');
-        Route::put('/risk-status-approvals/{statusRequest}/approve', [RiskStatusApprovalController::class, 'approve'])
-            ->whereNumber('statusRequest')
-            ->name('risk-status-approvals.approve');
-        Route::put('/risk-status-approvals/{statusRequest}/reject', [RiskStatusApprovalController::class, 'reject'])
-            ->whereNumber('statusRequest')
-            ->name('risk-status-approvals.reject');
 
         Route::get('/risk-alerts', [RiskAlertController::class, 'index'])->name('risk-alerts.index');
         Route::put('/risk-alerts/{alert}/resolve', [RiskAlertController::class, 'resolve'])

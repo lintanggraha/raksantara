@@ -145,7 +145,7 @@ class EvidenceAttachmentController extends Controller
                 && !$user->isSuperadmin()
                 && !is_null($comment->risk)
                 && RiskAccess::canView($user, $comment->risk)
-                && (int) $comment->user_id === (int) $user->id,
+                && ((int) $comment->user_id === (int) $user->id || $user->isComplianceDivision()),
             403,
             'You are not allowed to modify this comment evidence.'
         );

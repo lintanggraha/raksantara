@@ -241,6 +241,9 @@
                                     | DOM {{ $schedule->day_of_month }}
                                 @endif
                             </small>
+                            @if((int) $schedule->user_id !== (int) auth()->id())
+                                <div class="small text-muted">Milik {{ optional($schedule->user)->name ?? 'user lain' }}</div>
+                            @endif
                         </td>
                         <td>{{ strtoupper($schedule->scope) }}</td>
                         <td>{{ strtoupper($schedule->format) }}</td>

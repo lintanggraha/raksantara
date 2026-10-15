@@ -1389,7 +1389,7 @@
                                 </a>
                             </li>
                             @if(auth()->user()->isComplianceDivision())
-                                @php($isComplianceMenuActive = request()->routeIs('compliance.*'))
+                                @php($isComplianceMenuActive = request()->routeIs('compliance.*') || request()->routeIs('risk-status-approvals.*') || request()->routeIs('parameters.*'))
                                 <li class="nav-item dropdown {{ $isComplianceMenuActive ? 'active show' : '' }}" data-compliance-nav>
                                     <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="{{ $isComplianceMenuActive ? 'true' : 'false' }}">
                                         <span class="nav-link-icon"><i class="fas fa-balance-scale"></i></span>
@@ -1404,6 +1404,12 @@
                                         </a>
                                         <a class="dropdown-item {{ request()->routeIs('compliance.compliance*') ? 'active' : '' }}" href="{{ route('compliance.compliance') }}">
                                             <i class="fas fa-balance-scale"></i><span>Governance &amp; Compliance</span>
+                                        </a>
+                                        <a class="dropdown-item {{ request()->routeIs('risk-status-approvals.*') ? 'active' : '' }}" href="{{ route('risk-status-approvals.index') }}">
+                                            <i class="fas fa-check-double"></i><span>Persetujuan Status Risk</span>
+                                        </a>
+                                        <a class="dropdown-item {{ request()->routeIs('parameters.*') ? 'active' : '' }}" href="{{ route('parameters.index') }}">
+                                            <i class="fas fa-sliders-h"></i><span>Parameter Risk</span>
                                         </a>
                                     </div>
                                 </li>

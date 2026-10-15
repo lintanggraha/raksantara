@@ -36,6 +36,7 @@ class RiskStatusApprovalController extends Controller
         ]);
 
         abort_unless($statusRequest->status === 'pending', 422, 'Request already reviewed.');
+        $this->ensureNotOwnRequest($statusRequest);
 
         DB::transaction(function () use ($statusRequest, $validated) {
             $risk = $statusRequest->risk()->lockForUpdate()->firstOrFail();
@@ -77,6 +78,7 @@ class RiskStatusApprovalController extends Controller
         ]);
 
         abort_unless($statusRequest->status === 'pending', 422, 'Request already reviewed.');
+        $this->ensureNotOwnRequest($statusRequest);
 
         $statusRequest->update([
             'status' => 'rejected',
@@ -93,6 +95,18 @@ class RiskStatusApprovalController extends Controller
         );
 
         return redirect()->back()->with('success', 'Status request rejected.');
+    }
+
+    /**
+     * Maker-checker: nobody reviews a status change they asked for themselves.
+     */
+    private function ensureNotOwnRequest(RiskStatusChangeRequest $statusRequest): void
+    {
+        abort_if(
+            (int) $statusRequest->requested_by === (int) auth()->id(),
+            403,
+            'Permintaan perubahan status Anda sendiri harus ditinjau oleh orang lain.'
+        );
     }
 }
 

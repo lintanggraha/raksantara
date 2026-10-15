@@ -65,6 +65,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'compliance.division' => \App\Http\Middleware\EnsureComplianceDivision::class,
+        'superadmin.or.compliance' => \App\Http\Middleware\EnsureSuperadminOrCompliance::class,
         'approved.user' => \App\Http\Middleware\EnsureApprovedUser::class,
         'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
         'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,

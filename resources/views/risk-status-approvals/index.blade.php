@@ -77,7 +77,9 @@
                             @endif
                         </td>
                         <td>
-                            @if($requestRow->status === 'pending')
+                            @if($requestRow->status === 'pending' && (int) $requestRow->requested_by === (int) auth()->id())
+                                <span class="text-muted small">Permintaan Anda sendiri, menunggu peninjau lain.</span>
+                            @elseif($requestRow->status === 'pending')
                                 <form action="{{ route('risk-status-approvals.approve', $requestRow->id) }}" method="POST" class="mb-1">
                                     @csrf
                                     @method('PUT')

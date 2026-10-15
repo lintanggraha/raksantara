@@ -155,12 +155,13 @@ class SuperadminParameterManagementTest extends TestCase
             ->assertSee('3. Probabilitas uji superadmin');
     }
 
-    public function test_non_superadmin_cannot_open_parameter_management_page(): void
+    public function test_only_superadmin_and_compliance_can_open_parameter_management_page(): void
     {
-        $viewer = $this->createUser('CO - COMPLIANCE', false);
+        // Compliance owns the application and manages risk parameters too.
+        $this->actingAs($this->createUser('CO - COMPLIANCE', false));
+        $this->get(route('parameters.index'))->assertOk();
 
-        $this->actingAs($viewer);
-
+        $this->actingAs($this->createUser('BT - DIGITAL BANKING', false));
         $this->get(route('parameters.index'))->assertForbidden();
     }
 

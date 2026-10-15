@@ -6,11 +6,7 @@
 @php
     $currentUser = auth()->user();
     $isSuperadmin = $currentUser->isSuperadmin();
-    $isRiskCreator = (int) ($risk->created_by ?? 0) > 0
-        && (int) $risk->created_by === (int) $currentUser->id;
-    $canManageLegacyRisk = (int) ($risk->created_by ?? 0) <= 0
-        && $currentUser->canManageRiskOwner($risk->risk_owner);
-    $canManage = !$isSuperadmin && ($isRiskCreator || $canManageLegacyRisk);
+    $canManage = \App\Support\RiskAccess::canManage($currentUser, $risk);
     $canComment = !$isSuperadmin;
 @endphp
 <div class="d-flex justify-content-between align-items-center">
@@ -883,7 +879,7 @@
                                 $escapedContent
                             );
                             $canManageComment = $canComment
-                                && (int) ($comment->user_id ?? 0) === (int) $currentUser->id;
+                                && ((int) ($comment->user_id ?? 0) === (int) $currentUser->id || $currentUser->isComplianceDivision());
                         @endphp
                         <div class="border rounded p-2 mb-2">
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">

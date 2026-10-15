@@ -21,8 +21,10 @@ class ScheduledReportController extends Controller
     {
         $this->ensureSchedulerAllowed();
 
+        // Compliance owns the application and manages every user's schedules.
         $schedules = ScheduledReport::query()
-            ->where('user_id', auth()->id())
+            ->with('user:id,name')
+            ->when(!auth()->user()->isComplianceDivision(), fn ($query) => $query->where('user_id', auth()->id()))
             ->orderByDesc('created_at')
             ->get();
 
@@ -190,7 +192,10 @@ class ScheduledReportController extends Controller
 
     private function authorizeSchedule(ScheduledReport $scheduledReport): void
     {
-        abort_unless((int) $scheduledReport->user_id === (int) auth()->id(), 403);
+        abort_unless(
+            (int) $scheduledReport->user_id === (int) auth()->id() || auth()->user()->isComplianceDivision(),
+            403
+        );
     }
 
     private function ensureSchedulerAllowed(): void

@@ -46,8 +46,12 @@ class ServiceAccess
 
     public static function canManageUnit(?User $user, ?string $unit): bool
     {
-        if (is_null($user) || $user->isSuperadmin() || trim((string) $unit) === '') {
+        if (is_null($user) || $user->isSuperadmin()) {
             return false;
+        }
+        if (trim((string) $unit) === '') {
+            // A service without an owner unit can only be fixed by Compliance.
+            return $user->isComplianceDivision();
         }
 
         return $user->canManageRiskOwner($unit)
