@@ -240,7 +240,7 @@
             </div>
         </div>
         <div class="col-6 col-md-4 col-xl">
-            <div class="small-box bg-purple" style="background-color: #6366f1 !important; color: #fff;">
+            <div class="small-box bg-purple">
                 <div class="inner">
                     <h3>{{ $summary['unlinked_findings'] ?? 0 }}</h3>
                     <p>Temuan Baru (Unlinked)</p>

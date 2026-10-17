@@ -204,14 +204,14 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Risk ID</label>
-                                <input type="text" class="form-control" value="Auto Generate" readonly style="font-size: 12px;">
+                                <input type="text" class="form-control" value="Auto Generate" readonly>
                             </div>
                         </div>
 
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Year</label>
-                                <input type="text" class="form-control" value="{{ date('Y') }}" readonly style="font-size: 12px;">
+                                <input type="text" class="form-control" value="{{ date('Y') }}" readonly>
                             </div>
                         </div>
 

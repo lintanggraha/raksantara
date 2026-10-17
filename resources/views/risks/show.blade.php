@@ -13,12 +13,12 @@
     <h1>Risk Details - {{ $risk->risk_id }}</h1>
     <div class="d-flex gap-2">
         @if($canManage)
-            <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-warning btn-sm with-icon">
-                <i class="fas fa-edit"></i> Edit
+            <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-primary btn-sm with-icon">
+                <i class="fas fa-edit" aria-hidden="true"></i> Edit
             </a>
         @endif
         <a href="{{ route('risks.index') }}" class="btn btn-secondary btn-sm with-icon">
-            <i class="fas fa-arrow-left"></i> Back
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Back
         </a>
     </div>
 </div>

@@ -12,8 +12,8 @@
         min-height: calc(100vh - 220px);
     }
     .kanban-column {
-        flex: 1;
-        min-width: 320px;
+        flex: 1 1 0;
+        min-width: 250px;
         background: #f8fafc;
         border-radius: 12px;
         padding: 1rem;
@@ -39,6 +39,8 @@
         min-height: 120px;
     }
     .kanban-card {
+        min-width: 0;
+        overflow: hidden;
         background: #ffffff;
         border-radius: 10px;
         padding: 0.95rem;
@@ -186,7 +188,7 @@
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
                                 <div class="fw-bold text-truncate" title="{{ $treatment->option }}">{{ $treatment->option }}</div>
-                                <div class="text-muted small text-truncate mt-1">
+                                <div class="text-muted small text-truncate mt-1" title="{{ $treatment->risk->risk_id }} - {{ $treatment->risk->risk_title }}">
                                     <a href="{{ route('risks.show', $treatment->risk_id) }}">Risk #{{ $treatment->risk->risk_id }}</a> - {{ $treatment->risk->risk_title }}
                                 </div>
                             </div>

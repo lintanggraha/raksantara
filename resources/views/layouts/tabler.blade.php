@@ -1067,12 +1067,16 @@
         th.is-sortable:focus-visible { outline: 2px solid var(--tblr-primary, #206bc4); outline-offset: -2px; }
         table.dataTable th.is-sortable::after { content: none; }
     </style>
+    {{-- Design system layer; remove this line to return to the previous look. --}}
+    <link rel="preload" href="{{ asset('vendor/fonts/ibm-plex-sans/ibm-plex-sans-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ asset('css/raksantara-ui.css') }}?v={{ @filemtime(public_path('css/raksantara-ui.css')) }}">
 
     @yield('css')
     @yield('styles')
     @stack('styles')
 </head>
 <body>
+<a class="rk-skip-link" href="#main-content">Lewati ke konten utama</a>
 <div class="page">
     <header class="navbar navbar-expand-md d-print-none app-sidebar" aria-label="Main navigation">
         <div class="container-xl">
@@ -1430,7 +1434,7 @@
         </div>
     </header>
 
-    <div class="page-wrapper">
+    <main class="page-wrapper" id="main-content" tabindex="-1">
         @if (trim($__env->yieldContent('content_header')))
             <div class="page-header d-print-none">
                 <div class="container-xl">
@@ -1460,7 +1464,7 @@
                 @yield('content')
             </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>

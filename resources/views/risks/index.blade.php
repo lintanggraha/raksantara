@@ -373,11 +373,40 @@ thead th {
 }
 
 .risk-action-stack {
-    display: inline-flex;
-    flex-direction: column;
+    display: inline-grid;
+    grid-template-columns: repeat(3, 1.75rem);
+    justify-items: center;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.25rem;
 }
+.risk-action-stack .chip-kri,
+.risk-action-stack .kri-breakdown { grid-column: 1 / -1; }
+/* Quiet icon buttons; colour appears on hover so the column does not shout. */
+.risk-action-stack .btn-xs {
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--rk-surface, #fff);
+    border: 1px solid var(--rk-border-strong, #cbd5e1);
+    color: var(--rk-ink-2, #334155);
+    border-radius: var(--rk-radius, 6px);
+}
+.risk-action-stack .btn-xs:hover,
+.risk-action-stack .btn-xs:focus-visible {
+    background: var(--rk-primary-soft, #e8edf8);
+    border-color: var(--rk-primary, #1e3a8a);
+    color: var(--rk-primary, #1e3a8a);
+}
+.risk-action-stack .btn-xs.btn-danger:hover,
+.risk-action-stack .btn-xs.btn-danger:focus-visible {
+    background: #fef2f2;
+    border-color: var(--rk-danger, #b91c1c);
+    color: var(--rk-danger, #b91c1c);
+}
+.risk-action-stack .kri-breakdown { flex-basis: 100%; text-align: center; }
 
 #riskTable_wrapper .dataTables_paginate .pagination {
     display: inline-flex !important;
@@ -810,12 +839,12 @@ thead th {
         : ($kriRedCount > 0 ? 'chip-kri-alert' : ($kriAmberCount > 0 ? 'chip-kri-watch' : 'chip-kri-ok'));
 @endphp
 <div class="risk-action-stack">
-    <a href="{{ route('risks.show', $risk->id) }}" class="btn btn-info btn-xs" title="View" data-toggle="tooltip">
-    <i class="fas fa-eye"></i>
+    <a href="{{ route('risks.show', $risk->id) }}" class="btn btn-info btn-xs" title="Lihat" aria-label="Lihat {{ $risk->risk_id }}" data-toggle="tooltip">
+    <i class="fas fa-eye" aria-hidden="true"></i>
     </a>
     @if($canManage)
-        <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-warning btn-xs" title="Edit" data-toggle="tooltip">
-        <i class="fas fa-edit"></i>
+        <a href="{{ route('risks.edit', $risk->id) }}" class="btn btn-warning btn-xs" title="Ubah" aria-label="Ubah {{ $risk->risk_id }}" data-toggle="tooltip">
+        <i class="fas fa-edit" aria-hidden="true"></i>
         </a>
         <button type="button" class="btn btn-danger btn-xs" onclick="if(confirm('Are you sure you want to permanently delete risk [{{ $risk->risk_id }}] - {{ addslashes($risk->risk_title) }}?\n\nWarning: Associated treatments, KRI links, and historical analyses will be removed.')) { document.getElementById('form-delete-{{ $risk->id }}').submit(); }" title="Delete Risk {{ $risk->risk_id }}" aria-label="Delete Risk {{ $risk->risk_id }}" data-toggle="tooltip">
         <i class="fas fa-trash"></i>

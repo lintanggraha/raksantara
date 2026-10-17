@@ -202,14 +202,14 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Risk ID</label>
-                                <input type="text" class="form-control" value="{{ $risk->risk_id }}" readonly style="font-size: 12px;">
+                                <input type="text" class="form-control" value="{{ $risk->risk_id }}" readonly>
                             </div>
                         </div>
 
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Year</label>
-                                <input type="text" class="form-control" value="{{ $risk->year }}" readonly style="font-size: 12px;">
+                                <input type="text" class="form-control" value="{{ $risk->year }}" readonly>
                             </div>
                         </div>
 
