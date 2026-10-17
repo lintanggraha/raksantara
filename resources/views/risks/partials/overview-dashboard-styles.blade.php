@@ -7,7 +7,7 @@
         --grc-line: #e6e8ec;
         --grc-surface: #ffffff;
         --grc-soft: #f6f8fb;
-        --grc-accent: #1e3a8a;
+        --grc-accent: #2563eb;
         --grc-critical: #d63939;
         --grc-high: #f76707;
         --grc-medium: #f59f00;

@@ -1075,7 +1075,7 @@
     @yield('styles')
     @stack('styles')
 </head>
-<body>
+<body class="rk-shell">
 <a class="rk-skip-link" href="#main-content">Lewati ke konten utama</a>
 <div class="page">
     <header class="navbar navbar-expand-md d-print-none app-sidebar" aria-label="Main navigation">
@@ -1435,6 +1435,9 @@
     </header>
 
     <main class="page-wrapper" id="main-content" tabindex="-1">
+        @auth
+            @include('partials.rk-topbar')
+        @endauth
         @if (trim($__env->yieldContent('content_header')))
             <div class="page-header d-print-none">
                 <div class="container-xl">
@@ -1445,12 +1448,7 @@
 
         <div class="page-body">
             <div class="container-xl">
-                @if (session('success'))
-                    <div class="alert alert-success">{{ session('success') }}</div>
-                @endif
-                @if (session('error'))
-                    <div class="alert alert-danger">{{ session('error') }}</div>
-                @endif
+                {{-- session('success') / session('error') are shown as toasts (partials.rk-overlays). --}}
                 @if ($errors->any())
                     <div class="alert alert-danger">
                         <ul class="mb-0">
@@ -1775,5 +1773,7 @@
 @stack('scripts')
 @stack('scripts_body')
 @stack('script_ckeditor')
+@include('partials.rk-overlays')
+<script src="{{ asset('js/raksantara-ui.js') }}?v={{ @filemtime(public_path('js/raksantara-ui.js')) }}"></script>
 </body>
 </html>

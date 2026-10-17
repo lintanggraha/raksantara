@@ -654,7 +654,7 @@
                 datasets: [{
                     label: 'Loss',
                     data: data.series.map((point) => point.amount),
-                    backgroundColor: data.series.map((_, index) => index === last ? '#1e3a8a' : 'rgba(30, 58, 138, .5)'),
+                    backgroundColor: data.series.map((_, index) => index === last ? '#2563eb' : 'rgba(37, 99, 235, .45)'),
                     borderRadius: { topLeft: 4, topRight: 4 },
                     borderSkipped: 'bottom',
                     maxBarThickness: 22,
