@@ -265,29 +265,155 @@
     // A2: portfolio at a glance
     // ------------------------------------------------------------------
 
+    function parseGroupName(name) {
+        if (!name) return { code: '–', label: 'Tanpa nama' };
+        const match = name.match(/^([A-Za-z0-9]{2,5})\s*[-–—:]\s*(.+)$/);
+        if (match) {
+            return { code: match[1].toUpperCase(), label: match[2].trim() };
+        }
+        const words = name.trim().split(/\s+/);
+        if (words.length >= 2) {
+            const code = (words[0][0] + words[1][0]).toUpperCase();
+            return { code, label: name };
+        }
+        return { code: name.substring(0, 2).toUpperCase(), label: name };
+    }
+
     function portfolioCard(body, data, opts) {
-        if (!data.total) {
+        if (!data || !data.total) {
             body.innerHTML = emptyState(opts.empty, '');
             return;
         }
-        const max = Math.max(1, ...data.rows.map((row) => row.total));
-        const [mainKey, restKey] = opts.keys;
-        const swatch = { [mainKey]: opts.mainColor, [restKey]: 'var(--grc-faint)' };
 
-        body.innerHTML = '<div class="grc-portfolio-head">'
-            + '<span class="grc-big">' + num(data.total) + '</span>'
-            + '<span class="grc-portfolio-sub">' + esc(opts.unit) + ' dari ' + num(data.groups_total) + ' ' + esc(opts.groupUnit) + '<br>'
-            + '<b>' + num(data.totals[mainKey]) + '</b> ' + esc(opts.labels[mainKey].toLowerCase()) + ' · ' + num(data.totals[restKey]) + ' ' + esc(opts.labels[restKey].toLowerCase()) + '</span>'
+        const [mainKey, restKey] = opts.keys;
+        const mainCount = (data.totals && data.totals[mainKey]) || 0;
+        const restCount = (data.totals && data.totals[restKey]) || 0;
+        const mainPct = data.total > 0 ? Math.round((mainCount / data.total) * 100) : 0;
+        const allItems = (data.all_rows && data.all_rows.length > 0) ? data.all_rows : data.rows;
+        const realItems = allItems.filter((r) => !r.other);
+        const maxSingle = Math.max(1, ...realItems.map((r) => r.total));
+
+        function renderRows(items) {
+            if (!items.length) {
+                return '<div class="text-center text-muted py-3 small">Tidak ada ' + esc(opts.groupUnit) + ' yang sesuai dengan pencarian.</div>';
+            }
+            return items.map((row) => {
+                const parsed = parseGroupName(row.name);
+                const pctOfTotal = data.total > 0 ? ((row.total / data.total) * 100).toFixed(1) : '0';
+                const mainVal = (row.counts && row.counts[mainKey]) || 0;
+                const restVal = (row.counts && row.counts[restKey]) || 0;
+                const barWidth = Math.max(4, Math.min(100, (row.total / maxSingle) * 100)).toFixed(1);
+                const mainWidth = (row.total > 0 ? (mainVal / row.total) * 100 : 100).toFixed(1);
+                const restWidth = (100 - mainWidth).toFixed(1);
+
+                const tip = esc(row.name) + '<br>'
+                    + esc(opts.labels[mainKey]) + ': <b>' + num(mainVal) + '</b><br>'
+                    + esc(opts.labels[restKey]) + ': <b>' + num(restVal) + '</b><br>'
+                    + 'Total: <b>' + num(row.total) + ' ' + esc(opts.unit) + '</b> (' + pctOfTotal + '% dari portofolio)';
+
+                return '<div class="grc-portfolio-item mb-2 p-2 rounded-2 border bg-light-subtle" ' + tipAttr(tip) + '>'
+                    + '<div class="d-flex justify-content-between align-items-center mb-1 gap-2">'
+                    +   '<div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1">'
+                    +     '<span class="badge bg-primary-lt text-primary fw-bold px-2 py-0 fs-6" style="min-width: 34px; text-align: center;">' + esc(parsed.code) + '</span>'
+                    +     '<span class="fw-semibold text-dark text-truncate" title="' + esc(row.name) + '">' + esc(parsed.label) + '</span>'
+                    +   '</div>'
+                    +   '<div class="text-nowrap text-end ms-2">'
+                    +     '<span class="fw-bold text-dark fs-5">' + num(row.total) + '</span>'
+                    +     '<span class="text-muted small ms-1">' + esc(opts.unit) + ' (' + pctOfTotal + '%)</span>'
+                    +   '</div>'
+                    + '</div>'
+                    + '<div class="progress" style="height: 6px; background-color: #e2e8f0; border-radius: 9999px;">'
+                    +   '<div class="progress-bar" style="width:' + (barWidth * (mainVal / (row.total || 1))).toFixed(1) + '%;background:' + opts.mainColor + ';border-radius: 9999px;"></div>'
+                    +   (restVal > 0 ? '<div class="progress-bar bg-secondary opacity-50" style="width:' + (barWidth * (restVal / (row.total || 1))).toFixed(1) + '%;border-radius: 9999px;"></div>' : '')
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+        }
+
+        const initialLimit = 6;
+        let isExpanded = false;
+        let searchQuery = '';
+
+        function updateView() {
+            let filtered = realItems;
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase().trim();
+                filtered = realItems.filter((r) => r.name.toLowerCase().includes(q));
+            } else if (!isExpanded && realItems.length > initialLimit) {
+                filtered = realItems.slice(0, initialLimit);
+            }
+
+            const listEl = body.querySelector('[data-portfolio-list]');
+            const countEl = body.querySelector('[data-portfolio-count]');
+            const toggleBtn = body.querySelector('[data-portfolio-toggle]');
+
+            if (listEl) listEl.innerHTML = renderRows(filtered);
+            if (countEl) {
+                countEl.textContent = 'Menampilkan ' + filtered.length + ' dari ' + realItems.length + ' ' + esc(opts.groupUnit);
+            }
+            if (toggleBtn) {
+                if (searchQuery.trim() || realItems.length <= initialLimit) {
+                    toggleBtn.style.display = 'none';
+                } else {
+                    toggleBtn.style.display = 'block';
+                    toggleBtn.innerHTML = isExpanded
+                        ? '<i class="fas fa-chevron-up me-1"></i> Tampilkan ringkas (Top ' + initialLimit + ')'
+                        : '<i class="fas fa-chevron-down me-1"></i> Tampilkan semua ' + realItems.length + ' ' + esc(opts.groupUnit) + ' (' + (realItems.length - initialLimit) + ' lainnya)';
+                }
+            }
+        }
+
+        const headHtml = '<div class="d-flex align-items-center justify-content-between p-3 mb-3 rounded-3 bg-light border border-light">'
+            + '<div class="d-flex align-items-baseline gap-2">'
+            +   '<span class="fs-1 fw-bold text-dark lh-1">' + num(data.total) + '</span>'
+            +   '<span class="text-muted small">' + esc(opts.unit) + ' dari <strong class="text-dark">' + num(data.groups_total) + '</strong> ' + esc(opts.groupUnit) + '</span>'
             + '</div>'
-            + '<div class="grc-bars">' + data.rows.map((row) => (
-                '<div class="grc-bar-row' + (row.other ? ' is-other' : '') + '"><span class="name" title="' + esc(row.name) + '">' + esc(row.name) + '</span>'
-                + '<span><span class="grc-stack" style="width:' + (row.total / max * 100) + '%" role="img" aria-label="' + esc(row.name + ': ' + opts.keys.map((key) => opts.labels[key] + ' ' + row.counts[key]).join(', ')) + '">'
-                + opts.keys.filter((key) => row.counts[key] > 0).map((key) => (
-                    '<span style="flex:' + row.counts[key] + ';background:' + swatch[key] + '"' + tipAttr(esc(row.name) + ' · ' + esc(opts.labels[key]) + ': ' + num(row.counts[key])) + '></span>'
-                )).join('')
-                + '</span></span><span class="total">' + num(row.total) + '</span></div>'
-            )).join('') + '</div>'
-            + legend(opts.keys.map((key) => [swatch[key], opts.labels[key]]));
+            + '<div class="d-flex gap-2">'
+            +   '<span class="badge bg-blue-lt text-primary px-2 py-1 fs-6">'
+            +     '<i class="fas fa-check-circle me-1"></i> ' + num(mainCount) + ' ' + esc(opts.labels[mainKey]) + ' (' + mainPct + '%)'
+            +   '</span>'
+            +   (restCount > 0 ? '<span class="badge bg-secondary-lt text-muted px-2 py-1 fs-6">' + num(restCount) + ' ' + esc(opts.labels[restKey]) + '</span>' : '')
+            + '</div>'
+            + '</div>';
+
+        const filterHtml = realItems.length > 4 ? (
+            '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
+            + '<div class="input-icon flex-grow-1">'
+            +   '<span class="input-icon-addon"><i class="fas fa-search text-muted"></i></span>'
+            +   '<input type="text" class="form-control form-control-sm" placeholder="Cari ' + esc(opts.groupUnit) + '..." data-portfolio-search>'
+            + '</div>'
+            + '<span class="text-muted small text-nowrap" data-portfolio-count></span>'
+            + '</div>'
+        ) : '';
+
+        const listContainerHtml = '<div class="grc-portfolio-scroll" style="max-height: 380px; overflow-y: auto; padding-right: 4px;" data-portfolio-list></div>';
+        const toggleHtml = realItems.length > initialLimit ? (
+            '<button type="button" class="btn btn-sm btn-ghost-primary w-100 mt-2 py-2" data-portfolio-toggle></button>'
+        ) : '';
+        const legendHtml = '<div class="d-flex justify-content-center gap-3 mt-3 pt-2 border-top border-light small text-muted">'
+            + '<span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: ' + opts.mainColor + ';"></span>' + esc(opts.labels[mainKey]) + '</span>'
+            + '<span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: var(--grc-faint);"></span>' + esc(opts.labels[restKey]) + '</span>'
+            + '</div>';
+
+        body.innerHTML = headHtml + filterHtml + listContainerHtml + toggleHtml + legendHtml;
+
+        const searchInput = body.querySelector('[data-portfolio-search]');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                updateView();
+            });
+        }
+
+        const toggleBtn = body.querySelector('[data-portfolio-toggle]');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                isExpanded = !isExpanded;
+                updateView();
+            });
+        }
+
+        updateView();
     }
 
     function renderPortfolio(data, _body, host) {

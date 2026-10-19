@@ -1168,27 +1168,89 @@
                                 </div>
                             </li>
                             
-                            {{-- Framework Explorer Menu --}}
-                            <li class="nav-item dropdown {{ (request()->routeIs('frameworks.*')) ? 'active show' : '' }}" data-framework-nav>
-                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ (request()->routeIs('frameworks.*')) ? 'true' : 'false' }}">
-                                    <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
-                                    <span>Frameworks</span>
+                            {{-- Regulasi Nasional Menu --}}
+                            @php($isNasionalActive = request()->routeIs('frameworks.pojk') || request()->routeIs('frameworks.padk') || request()->routeIs('frameworks.seojk') || request()->routeIs('frameworks.cis') || request()->routeIs('frameworks.pbi') || request()->routeIs('frameworks.padg') || request()->routeIs('frameworks.padg24') || request()->routeIs('frameworks.pdp'))
+                            <li class="nav-item dropdown {{ $isNasionalActive ? 'active show' : '' }}" data-compliance-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="{{ $isNasionalActive ? 'true' : 'false' }}">
+                                    <span class="nav-link-icon"><i class="fas fa-landmark"></i></span>
+                                    <span>Regulasi Nasional</span>
                                 </a>
-                                <div class="dropdown-menu {{ (request()->routeIs('frameworks.*')) ? 'show' : '' }}" data-framework-menu>
+                                <div class="dropdown-menu {{ $isNasionalActive ? 'show' : '' }}" data-compliance-menu>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.pojk') ? 'active' : '' }}" href="{{ route('frameworks.pojk') }}">
+                                        <i class="fas fa-university"></i><span>POJK 11/2022</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.padk') ? 'active' : '' }}" href="{{ route('frameworks.padk') }}">
+                                        <i class="fas fa-file-signature"></i><span>PADK 1/2026</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.seojk') ? 'active' : '' }}" href="{{ route('frameworks.seojk') }}">
+                                        <i class="fas fa-file-contract"></i><span>SEOJK 29/2022</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.cis') ? 'active' : '' }}" href="{{ route('frameworks.cis') }}">
+                                        <i class="fas fa-heartbeat"></i><span>Panduan Resiliensi OJK</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
+                                        <i class="fas fa-gavel"></i><span>PBI 02/2024</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.padg') ? 'active' : '' }}" href="{{ route('frameworks.padg') }}">
+                                        <i class="fas fa-credit-card"></i><span>PADG 32/2025</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.padg24') ? 'active' : '' }}" href="{{ route('frameworks.padg24') }}">
+                                        <i class="fas fa-exchange-alt"></i><span>PADG 24/2024</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.pdp') ? 'active' : '' }}" href="{{ route('frameworks.pdp') }}">
+                                        <i class="fas fa-user-shield"></i><span>UU PDP No. 27/2022</span>
+                                    </a>
+                                </div>
+                            </li>
+
+                            {{-- Standar Internasional Menu --}}
+                            @php($isInternasionalActive = request()->routeIs('frameworks.iso27001') || request()->routeIs('frameworks.iso37001') || request()->routeIs('frameworks.nist') || request()->routeIs('frameworks.cobit') || request()->routeIs('frameworks.owasp-top10') || request()->routeIs('frameworks.owasp-asvs'))
+                            <li class="nav-item dropdown {{ $isInternasionalActive ? 'active show' : '' }}" data-framework-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ $isInternasionalActive ? 'true' : 'false' }}">
+                                    <span class="nav-link-icon"><i class="fas fa-globe"></i></span>
+                                    <span>Standar Global</span>
+                                </a>
+                                <div class="dropdown-menu {{ $isInternasionalActive ? 'show' : '' }}" data-framework-menu>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
-                                        <i class="fas fa-shield-alt"></i><span>ISO 27001</span>
+                                        <i class="fas fa-shield-alt"></i><span>ISO 27001:2022</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.iso37001') ? 'active' : '' }}" href="{{ route('frameworks.iso37001') }}">
+                                        <i class="fas fa-handshake"></i><span>ISO 37001:2016 (ABMS)</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.nist') ? 'active' : '' }}" href="{{ route('frameworks.nist') }}">
                                         <i class="fas fa-sitemap"></i><span>NIST CSF 2.0</span>
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('frameworks.seojk') ? 'active' : '' }}" href="{{ route('frameworks.seojk') }}">
-                                        <i class="fas fa-file-contract"></i><span>SEOJK 29 SEOJK.03 2022</span>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.cobit') ? 'active' : '' }}" href="{{ route('frameworks.cobit') }}">
+                                        <i class="fas fa-project-diagram"></i><span>COBIT 2019</span>
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('frameworks.cis') ? 'active' : '' }}" href="{{ route('frameworks.cis') }}">
-                                        <i class="fas fa-landmark"></i><span>Panduan Resiliensi OJK</span>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.owasp-top10') ? 'active' : '' }}" href="{{ route('frameworks.owasp-top10') }}">
+                                        <i class="fas fa-bug"></i><span>OWASP Top 10 (2025)</span>
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
-                                        <i class="fas fa-gavel"></i><span>PBI 02/2024</span>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.owasp-asvs') ? 'active' : '' }}" href="{{ route('frameworks.owasp-asvs') }}">
+                                        <i class="fas fa-check-double"></i><span>OWASP ASVS (5.0.0)</span>
+                                    </a>
+                                </div>
+                            </li>
+
+                            {{-- Analisis Kepatuhan Menu --}}
+                            @php($isAnalisisActive = request()->routeIs('analysis.*'))
+                            <li class="nav-item dropdown {{ $isAnalisisActive ? 'active show' : '' }}" data-analysis-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-analysis-toggle role="button" aria-expanded="{{ $isAnalisisActive ? 'true' : 'false' }}">
+                                    <span class="nav-link-icon"><i class="fas fa-chart-line"></i></span>
+                                    <span>Analisis Kepatuhan</span>
+                                </a>
+                                <div class="dropdown-menu {{ $isAnalisisActive ? 'show' : '' }}" data-analysis-menu>
+                                    <a class="dropdown-item {{ request()->routeIs('analysis.cross-mapping') ? 'active' : '' }}" href="{{ route('analysis.cross-mapping') }}">
+                                        <i class="fas fa-network-wired"></i><span>Cross-Mapping Regulasi</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('analysis.comparison') ? 'active' : '' }}" href="{{ route('analysis.comparison') }}">
+                                        <i class="fas fa-columns"></i><span>Komparasi & Gap Analysis</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('analysis.checklist') ? 'active' : '' }}" href="{{ route('analysis.checklist') }}">
+                                        <i class="fas fa-clipboard-check"></i><span>Checklist Evaluasi Mandiri</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('analysis.simulator') ? 'active' : '' }}" href="{{ route('analysis.simulator') }}">
+                                        <i class="fas fa-calculator"></i><span>"What-If" Simulator</span>
                                     </a>
                                 </div>
                             </li>
@@ -1331,30 +1393,94 @@
                                     </div>
                                 </div>
                             </li>
-                            {{-- Framework Explorer Menu --}}
-                            <li class="nav-item dropdown {{ (request()->routeIs('frameworks.*')) ? 'active show' : '' }}" data-framework-nav>
-                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ (request()->routeIs('frameworks.*')) ? 'true' : 'false' }}">
-                                    <span class="nav-link-icon"><i class="fas fa-layer-group"></i></span>
-                                    <span>Frameworks</span>
+                            {{-- Regulasi Nasional Menu --}}
+                            @php($isDivNasionalActive = request()->routeIs('frameworks.pojk') || request()->routeIs('frameworks.padk') || request()->routeIs('frameworks.seojk') || request()->routeIs('frameworks.cis') || request()->routeIs('frameworks.pbi') || request()->routeIs('frameworks.padg') || request()->routeIs('frameworks.padg24') || request()->routeIs('frameworks.pdp'))
+                            <li class="nav-item dropdown {{ $isDivNasionalActive ? 'active show' : '' }}" data-compliance-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-compliance-toggle role="button" aria-expanded="{{ $isDivNasionalActive ? 'true' : 'false' }}">
+                                    <span class="nav-link-icon"><i class="fas fa-landmark"></i></span>
+                                    <span>Regulasi Nasional</span>
                                 </a>
-                                <div class="dropdown-menu {{ (request()->routeIs('frameworks.*')) ? 'show' : '' }}" data-framework-menu>
-                                    <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
-                                        <i class="fas fa-shield-alt"></i><span>ISO 27001</span>
+                                <div class="dropdown-menu {{ $isDivNasionalActive ? 'show' : '' }}" data-compliance-menu>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.pojk') ? 'active' : '' }}" href="{{ route('frameworks.pojk') }}">
+                                        <i class="fas fa-university"></i><span>POJK 11/2022</span>
                                     </a>
-                                    <a class="dropdown-item {{ request()->routeIs('frameworks.nist') ? 'active' : '' }}" href="{{ route('frameworks.nist') }}">
-                                        <i class="fas fa-sitemap"></i><span>NIST CSF 2.0</span>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.padk') ? 'active' : '' }}" href="{{ route('frameworks.padk') }}">
+                                        <i class="fas fa-file-signature"></i><span>PADK 1/2026</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.seojk') ? 'active' : '' }}" href="{{ route('frameworks.seojk') }}">
-                                        <i class="fas fa-file-contract"></i><span>SEOJK 29 SEOJK.03 2022</span>
+                                        <i class="fas fa-file-contract"></i><span>SEOJK 29/2022</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.cis') ? 'active' : '' }}" href="{{ route('frameworks.cis') }}">
-                                        <i class="fas fa-landmark"></i><span>Panduan Resiliensi OJK</span>
+                                        <i class="fas fa-heartbeat"></i><span>Panduan Resiliensi OJK</span>
                                     </a>
                                     <a class="dropdown-item {{ request()->routeIs('frameworks.pbi') ? 'active' : '' }}" href="{{ route('frameworks.pbi') }}">
                                         <i class="fas fa-gavel"></i><span>PBI 02/2024</span>
                                     </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.padg') ? 'active' : '' }}" href="{{ route('frameworks.padg') }}">
+                                        <i class="fas fa-credit-card"></i><span>PADG 32/2025</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.padg24') ? 'active' : '' }}" href="{{ route('frameworks.padg24') }}">
+                                        <i class="fas fa-exchange-alt"></i><span>PADG 24/2024</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.pdp') ? 'active' : '' }}" href="{{ route('frameworks.pdp') }}">
+                                        <i class="fas fa-user-shield"></i><span>UU PDP No. 27/2022</span>
+                                    </a>
                                 </div>
                             </li>
+
+                            {{-- Standar Internasional Menu --}}
+                            @php($isDivInternasionalActive = request()->routeIs('frameworks.iso27001') || request()->routeIs('frameworks.iso37001') || request()->routeIs('frameworks.nist') || request()->routeIs('frameworks.cobit') || request()->routeIs('frameworks.owasp-top10') || request()->routeIs('frameworks.owasp-asvs'))
+                            <li class="nav-item dropdown {{ $isDivInternasionalActive ? 'active show' : '' }}" data-framework-nav>
+                                <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-framework-toggle role="button" aria-expanded="{{ $isDivInternasionalActive ? 'true' : 'false' }}">
+                                    <span class="nav-link-icon"><i class="fas fa-globe"></i></span>
+                                    <span>Standar Global</span>
+                                </a>
+                                <div class="dropdown-menu {{ $isDivInternasionalActive ? 'show' : '' }}" data-framework-menu>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.iso27001') ? 'active' : '' }}" href="{{ route('frameworks.iso27001') }}">
+                                        <i class="fas fa-shield-alt"></i><span>ISO 27001:2022</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.iso37001') ? 'active' : '' }}" href="{{ route('frameworks.iso37001') }}">
+                                        <i class="fas fa-handshake"></i><span>ISO 37001:2016 (ABMS)</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.nist') ? 'active' : '' }}" href="{{ route('frameworks.nist') }}">
+                                        <i class="fas fa-sitemap"></i><span>NIST CSF 2.0</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.cobit') ? 'active' : '' }}" href="{{ route('frameworks.cobit') }}">
+                                        <i class="fas fa-project-diagram"></i><span>COBIT 2019</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.owasp-top10') ? 'active' : '' }}" href="{{ route('frameworks.owasp-top10') }}">
+                                        <i class="fas fa-bug"></i><span>OWASP Top 10 (2025)</span>
+                                    </a>
+                                    <a class="dropdown-item {{ request()->routeIs('frameworks.owasp-asvs') ? 'active' : '' }}" href="{{ route('frameworks.owasp-asvs') }}">
+                                        <i class="fas fa-check-double"></i><span>OWASP ASVS (5.0.0)</span>
+                                    </a>
+                                </div>
+                            </li>
+
+                            {{-- Analisis Kepatuhan Menu (Hanya Superadmin & Compliance) --}}
+                            @if(auth()->user()->isComplianceDivision())
+                                @php($isDivAnalisisActive = request()->routeIs('analysis.*'))
+                                <li class="nav-item dropdown {{ $isDivAnalisisActive ? 'active show' : '' }}" data-analysis-nav>
+                                    <a class="nav-link nav-link-main dropdown-toggle" href="#" data-bs-toggle="dropdown" data-toggle="dropdown" data-analysis-toggle role="button" aria-expanded="{{ $isDivAnalisisActive ? 'true' : 'false' }}">
+                                        <span class="nav-link-icon"><i class="fas fa-chart-line"></i></span>
+                                        <span>Analisis Kepatuhan</span>
+                                    </a>
+                                    <div class="dropdown-menu {{ $isDivAnalisisActive ? 'show' : '' }}" data-analysis-menu>
+                                        <a class="dropdown-item {{ request()->routeIs('analysis.cross-mapping') ? 'active' : '' }}" href="{{ route('analysis.cross-mapping') }}">
+                                            <i class="fas fa-network-wired"></i><span>Cross-Mapping Regulasi</span>
+                                        </a>
+                                        <a class="dropdown-item {{ request()->routeIs('analysis.comparison') ? 'active' : '' }}" href="{{ route('analysis.comparison') }}">
+                                            <i class="fas fa-columns"></i><span>Komparasi & Gap Analysis</span>
+                                        </a>
+                                        <a class="dropdown-item {{ request()->routeIs('analysis.checklist') ? 'active' : '' }}" href="{{ route('analysis.checklist') }}">
+                                            <i class="fas fa-clipboard-check"></i><span>Checklist Evaluasi Mandiri</span>
+                                        </a>
+                                        <a class="dropdown-item {{ request()->routeIs('analysis.simulator') ? 'active' : '' }}" href="{{ route('analysis.simulator') }}">
+                                            <i class="fas fa-calculator"></i><span>"What-If" Simulator</span>
+                                        </a>
+                                    </div>
+                                </li>
+                            @endif
 
                             <li class="nav-item {{ request()->routeIs('vendors.*') ? 'active' : '' }}">
                                 <a class="nav-link nav-link-main" href="{{ route('vendors.index') }}">
@@ -1377,7 +1503,9 @@
                                     <span>Threat Intel</span>
                                 </a>
                             </li>
-                            @includeIf('local.sidebar-extra', ['variant' => 'division'])
+                            @if(auth()->user()->isComplianceDivision())
+                                @includeIf('local.sidebar-extra', ['variant' => 'division'])
+                            @endif
                             @if(auth()->user()->isComplianceDivision() && config('features.show_ojk_mitigation', false))
                                 <li class="nav-item {{ request()->routeIs('ojk-mitigation.*') ? 'active' : '' }}">
                                     <a class="nav-link nav-link-main" href="{{ route('ojk-mitigation.index') }}">
@@ -1732,6 +1860,7 @@
             '.app-sidebar .navbar-collapse [data-risk-toggle], ' +
             '.app-sidebar .navbar-collapse [data-framework-toggle], ' +
             '.app-sidebar .navbar-collapse [data-compliance-toggle], ' +
+            '.app-sidebar .navbar-collapse [data-analysis-toggle], ' +
             '.app-sidebar .navbar-collapse [data-assessment-toggle], ' +
             '.app-sidebar .navbar-collapse [data-app-management-toggle]'
         );

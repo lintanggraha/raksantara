@@ -55,40 +55,168 @@
     <div class="col-lg-7">
         <div class="card grc-card">
             <div class="card-header">
-                <h3 class="card-title">Efektivitas kontrol per kategori</h3>
-                {!! $info('Rata-rata skor inheren dan residual per kategori. Angka kanan = penurunan skor berkat kontrol. Diurutkan dari efek terbesar.') !!}
+                <div class="d-flex align-items-center gap-2">
+                    <span class="avatar avatar-sm bg-success-lt text-success rounded-circle"><i class="fas fa-shield-alt"></i></span>
+                    <div>
+                        <h3 class="card-title mb-0">Efektivitas Kontrol per Kategori</h3>
+                        <div class="text-muted small">Tingkat penurunan risiko dari inheren (awal) ke residual (setelah kontrol)</div>
+                    </div>
+                </div>
+                {!! $info('Menampilkan perbandingan skor risiko inheren (sebelum mitigasi) vs residual (setelah mitigasi) per kategori, beserta persentase efektivitas kontrol mitigasi yang diterapkan.') !!}
                 @if(isset($summary['variance']['global']))
-                    <span class="grc-pill is-muted ms-auto" {!! $tip('Rata-rata penurunan skor inheren → residual di seluruh portofolio') !!}>Rata-rata −{{ $fmt($summary['variance']['global'], 2) }}</span>
+                    <span class="badge bg-success-lt text-success fs-5 px-2 py-1 ms-auto" {!! $tip('Rata-rata penurunan skor inheren → residual di seluruh portofolio') !!}>
+                        <i class="fas fa-arrow-down me-1"></i> Rata-rata Turun {{ $fmt($summary['variance']['global'], 1) }} Poin
+                    </span>
                 @endif
             </div>
             <div class="card-body">
-                @forelse($varianceRows as $row)
+                @if($varianceRows->isNotEmpty())
+                    @php
+                        $totalRisksInCategories = $varianceRows->sum('risk_count');
+                        $avgReduction = $varianceRows->avg(fn ($r) => (float)($r['avg_inherent'] ?? 0) - (float)($r['avg_residual'] ?? 0));
+                        $avgInherentTotal = $varianceRows->avg(fn ($r) => (float)($r['avg_inherent'] ?? 0));
+                        $portfolioEffPct = $avgInherentTotal > 0 ? round(($avgReduction / $avgInherentTotal) * 100, 1) : 0;
+                    @endphp
+                    <!-- Executive KPI Summary Strip -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-4">
+                            <div class="p-2 rounded bg-light border border-light text-center">
+                                <div class="text-muted small">Rata-rata Efektivitas</div>
+                                <div class="fs-2 fw-bold text-success">{{ $fmt($portfolioEffPct, 1) }}%</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">Penurunan risiko agregat</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-2 rounded bg-light border border-light text-center">
+                                <div class="text-muted small">Rata-rata Reduksi Skor</div>
+                                <div class="fs-2 fw-bold text-primary">↓ {{ $fmt($avgReduction, 1) }} <span class="fs-6 fw-normal text-muted">/ 25</span></div>
+                                <div class="text-muted" style="font-size: 0.72rem;">Efek mitigasi kontrol</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-2 rounded bg-light border border-light text-center">
+                                <div class="text-muted small">Kategori Teranalisis</div>
+                                <div class="fs-2 fw-bold text-dark">{{ count($varianceRows) }} <span class="fs-6 fw-normal text-muted">kategori</span></div>
+                                <div class="text-muted" style="font-size: 0.72rem;">{{ $totalRisksInCategories }} total risk</div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @forelse($varianceRows as $index => $row)
                     @php
                         $inherent = (float) ($row['avg_inherent'] ?? 0);
                         $residual = (float) ($row['avg_residual'] ?? 0);
                         $reduction = $inherent - $residual;
+                        $effPct = $inherent > 0 ? max(0, min(100, round(($reduction / $inherent) * 100, 1))) : 0;
+
+                        [$statusBadge, $statusText, $statusIcon] = match (true) {
+                            $effPct >= 75 => ['bg-success-lt text-success border-success-subtle', 'Sangat Efektif', 'fas fa-shield-alt'],
+                            $effPct >= 50 => ['bg-primary-lt text-primary border-primary-subtle', 'Efektif', 'fas fa-check-circle'],
+                            $effPct >= 30 => ['bg-warning-lt text-warning border-warning-subtle', 'Cukup Efektif', 'fas fa-exclamation-triangle'],
+                            default       => ['bg-danger-lt text-danger border-danger-subtle', 'Perlu Evaluasi', 'fas fa-times-circle'],
+                        };
+
+                        $inherentLevel = match (true) {
+                            $inherent >= 20 => 'Sangat Tinggi',
+                            $inherent >= 15 => 'Tinggi',
+                            $inherent >= 10 => 'Menengah',
+                            $inherent >= 5  => 'Rendah-Menengah',
+                            default         => 'Rendah',
+                        };
+
+                        $residualLevel = match (true) {
+                            $residual >= 20 => 'Sangat Tinggi',
+                            $residual >= 15 => 'Tinggi',
+                            $residual >= 10 => 'Menengah',
+                            $residual >= 5  => 'Rendah-Menengah',
+                            default         => 'Rendah',
+                        };
                     @endphp
-                    <div class="grc-db-row">
-                        <div class="lbl" title="{{ $row['category'] }}">{{ $row['category'] }}</div>
-                        <div class="grc-db-track" {!! $tip(e($row['category']) . '<br>' . (int) $row['risk_count'] . ' risk<br>Inheren ' . $fmt($inherent, 2) . ' → residual ' . $fmt($residual, 2)) !!}
-                             role="img" aria-label="{{ $row['category'] }}: inheren {{ $fmt($inherent, 2) }}, residual {{ $fmt($residual, 2) }}">
-                            <span class="grc-db-line" style="left: {{ min($pct($inherent), $pct($residual)) }}%; width: {{ abs($pct($inherent) - $pct($residual)) }}%"></span>
-                            <span class="grc-db-dot inherent" style="left: {{ $pct($inherent) }}%"></span>
-                            <span class="grc-db-dot" style="left: {{ $pct($residual) }}%; background: var(--grc-accent)"></span>
+
+                    <div class="grc-eff-item p-3 mb-2 rounded-3 border bg-white shadow-none" data-category-item @if($index >= 6) style="display: none;" @endif>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="avatar avatar-xs bg-blue-lt text-primary rounded"><i class="fas fa-layer-group"></i></span>
+                                <span class="fw-bold text-dark fs-3">{{ $row['category'] }}</span>
+                                <span class="badge bg-secondary-lt text-muted">{{ $row['risk_count'] }} Risk</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge {{ $statusBadge }} border px-2 py-1 fs-5 fw-bold">
+                                    <i class="{{ $statusIcon }} me-1"></i> {{ $fmt($effPct, 1) }}% {{ $statusText }}
+                                </span>
+                            </div>
                         </div>
-                        <span class="grc-db-delta {{ $reduction < 0 ? 'is-critical' : '' }}">{{ $reduction >= 0 ? '−' : '+' }}{{ $fmt(abs($reduction)) }}</span>
+
+                        <!-- Dual Progress Comparison Bars -->
+                        <div class="grc-eff-bars bg-light p-2 rounded-2">
+                            <!-- Inherent Row -->
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <div class="small text-muted" style="width: 150px; min-width: 150px;">
+                                    <span class="d-block fw-semibold text-secondary">Inheren (Sebelum)</span>
+                                    <span class="text-muted" style="font-size: 0.72rem;">Level: {{ $inherentLevel }}</span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="progress" style="height: 10px; background-color: #e2e8f0; border-radius: 9999px;">
+                                        <div class="progress-bar bg-secondary" style="width: {{ $pct($inherent) }}%; opacity: 0.7; border-radius: 9999px;" title="Skor Inheren: {{ $fmt($inherent, 2) }}"></div>
+                                    </div>
+                                </div>
+                                <div class="text-end fw-bold text-secondary" style="width: 65px; min-width: 65px;">
+                                    {{ $fmt($inherent, 1) }} <span class="small fw-normal text-muted">/25</span>
+                                </div>
+                            </div>
+
+                            <!-- Residual Row -->
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="small text-muted" style="width: 150px; min-width: 150px;">
+                                    <span class="d-block fw-semibold text-primary">Residual (Setelah)</span>
+                                    <span class="text-muted" style="font-size: 0.72rem;">Level: {{ $residualLevel }}</span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="progress" style="height: 10px; background-color: #e2e8f0; border-radius: 9999px;">
+                                        <div class="progress-bar bg-primary" style="width: {{ $pct($residual) }}%; border-radius: 9999px;" title="Skor Residual: {{ $fmt($residual, 2) }}"></div>
+                                    </div>
+                                </div>
+                                <div class="text-end fw-bold text-primary" style="width: 65px; min-width: 65px;">
+                                    {{ $fmt($residual, 1) }} <span class="small fw-normal text-muted">/25</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reduction Summary Footer -->
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light text-muted small">
+                            <span>
+                                <i class="fas fa-arrow-circle-down text-success me-1"></i>
+                                Kontrol berhasil menurunkan risiko sebesar <strong class="text-success">{{ $fmt($reduction, 1) }} poin</strong>
+                            </span>
+                            <span class="badge bg-success-lt text-success fw-bold">
+                                <i class="fas fa-shield-alt me-1"></i> Efektivitas {{ $fmt($effPct, 1) }}%
+                            </span>
+                        </div>
                     </div>
                 @empty
                     <div class="grc-state"><strong>Belum ada data efektivitas kontrol.</strong>Terisi setelah risk punya analisis inheren dan residual.</div>
                 @endforelse
-                @if($varianceRows->isNotEmpty())
-                    <div class="grc-db-axis"><span></span><div class="ticks">
-                        @foreach([0, 5, 10, 15, 20, 25] as $t)<span style="left: {{ $pct($t) }}%">{{ $t }}</span>@endforeach
-                    </div><span></span></div>
-                    <div class="grc-heat-legend">
-                        <span class="ring">Rata-rata inheren</span>
-                        <span class="dot" style="--swatch: var(--grc-accent)">Rata-rata residual</span>
-                    </div>
+
+                @if($varianceRows->count() > 6)
+                    <button type="button" class="btn btn-sm btn-ghost-primary w-100 mt-2 py-2" id="btnToggleAllCategories" onclick="toggleCategories(this)" data-expanded="false">
+                        <i class="fas fa-chevron-down me-1"></i> Tampilkan Semua Kategori ({{ $varianceRows->count() }} Kategori)
+                    </button>
+                    <script>
+                        function toggleCategories(btn) {
+                            const items = document.querySelectorAll('[data-category-item]');
+                            const isExpanded = btn.getAttribute('data-expanded') === 'true';
+                            if (isExpanded) {
+                                items.forEach((item, idx) => { if (idx >= 6) item.style.display = 'none'; });
+                                btn.innerHTML = '<i class="fas fa-chevron-down me-1"></i> Tampilkan Semua Kategori ({{ $varianceRows->count() }} Kategori)';
+                                btn.setAttribute('data-expanded', 'false');
+                            } else {
+                                items.forEach((item) => { item.style.display = 'block'; });
+                                btn.innerHTML = '<i class="fas fa-chevron-up me-1"></i> Tampilkan Lebih Sedikit (Top 6)';
+                                btn.setAttribute('data-expanded', 'true');
+                            }
+                        }
+                    </script>
                 @endif
             </div>
         </div>

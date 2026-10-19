@@ -5,9 +5,14 @@
 @section('content_header')
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <h1 class="mb-0">User Management</h1>
-    <a href="{{ route('risks.index') }}" class="btn btn-secondary btn-sm with-icon">
-        <i class="fas fa-arrow-left"></i> Back to Risk Register
-    </a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ route('access-control.index') }}" class="btn btn-outline-primary btn-sm with-icon">
+            <i class="fas fa-user-shield me-1"></i> Role &amp; Access Control
+        </a>
+        <a href="{{ route('risks.index') }}" class="btn btn-secondary btn-sm with-icon">
+            <i class="fas fa-arrow-left me-1"></i> Back to Risk Register
+        </a>
+    </div>
 </div>
 @stop
 

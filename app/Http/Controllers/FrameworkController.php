@@ -3,9 +3,28 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class FrameworkController extends Controller
 {
+    /**
+     * Load JSON file with disk caching based on file path and modification time.
+     */
+    protected function loadJson(string $absolutePath): array
+    {
+        if (!file_exists($absolutePath)) {
+            return [];
+        }
+
+        $mtime = filemtime($absolutePath);
+        $cacheKey = 'fw_json_' . md5($absolutePath) . '_' . $mtime;
+
+        return Cache::remember($cacheKey, 86400, function () use ($absolutePath) {
+            $content = file_get_contents($absolutePath);
+            return json_decode($content, true) ?? [];
+        });
+    }
+
     public function iso27001()
     {
         $domainStats = [
@@ -15,13 +34,7 @@ class FrameworkController extends Controller
             ['id' => 'TEC', 'name' => 'Teknologi', 'count' => 34, 'color' => '#f59e0b'],
         ];
 
-        $jsonPath = storage_path('app/iso27001.json');
-        if (file_exists($jsonPath)) {
-            $controls = json_decode(file_get_contents($jsonPath), true) ?? [];
-        } else {
-            $controls = [];
-        }
-
+        $controls = $this->loadJson(storage_path('app/iso27001.json'));
         $controls = array_map(fn ($control) => $this->normalizeIsoControl($control), $controls);
 
         return view('frameworks.iso27001', compact('domainStats', 'controls'));
@@ -29,45 +42,27 @@ class FrameworkController extends Controller
 
     public function nist()
     {
-        $jsonPath = public_path('data/nist_csf.json');
-        $controls = file_exists($jsonPath)
-            ? (json_decode(file_get_contents($jsonPath), true) ?? [])
-            : [];
-
+        $controls = $this->loadJson(public_path('data/nist_csf.json'));
         $controls = array_map(fn ($control) => $this->normalizeNistControl($control), $controls);
 
-        $sp800Path = public_path('data/sp800_53.json');
-        $sp800Controls = file_exists($sp800Path)
-            ? (json_decode(file_get_contents($sp800Path), true) ?? [])
-            : [];
+        $sp800Controls = $this->loadJson(public_path('data/sp800_53.json'));
 
         return view('frameworks.nist', compact('controls', 'sp800Controls'));
     }
 
     public function seojk()
     {
-        $requirementsPath = public_path('data/seojk_requirements.json');
-        $requirements = file_exists($requirementsPath)
-            ? (json_decode(file_get_contents($requirementsPath), true) ?? [])
-            : [];
-
+        $requirements = $this->loadJson(public_path('data/seojk_requirements.json'));
         $requirements = array_map(fn ($requirement) => $this->normalizeSeojkRequirement($requirement), $requirements);
 
-        $appendicesPath = public_path('data/seojk_appendices.json');
-        $appendices = file_exists($appendicesPath)
-            ? (json_decode(file_get_contents($appendicesPath), true) ?? [])
-            : [];
+        $appendices = $this->loadJson(public_path('data/seojk_appendices.json'));
 
         return view('frameworks.seojk', compact('requirements', 'appendices'));
     }
 
     public function cis()
     {
-        $guidancePath = public_path('data/seojk_resilience_guidance.json');
-        $guidanceThemes = file_exists($guidancePath)
-            ? (json_decode(file_get_contents($guidancePath), true) ?? [])
-            : [];
-
+        $guidanceThemes = $this->loadJson(public_path('data/seojk_resilience_guidance.json'));
         $guidanceThemes = array_map(fn ($guidance) => $this->normalizeResilienceGuidance($guidance), $guidanceThemes);
 
         return view('frameworks.ojk-resilience', compact('guidanceThemes'));
@@ -75,18 +70,10 @@ class FrameworkController extends Controller
 
     public function pbi()
     {
-        $requirementsPath = public_path('data/pbi_022024_requirements.json');
-        $requirements = file_exists($requirementsPath)
-            ? (json_decode(file_get_contents($requirementsPath), true) ?? [])
-            : [];
-
+        $requirements = $this->loadJson(public_path('data/pbi_022024_requirements.json'));
         $requirements = array_map(fn ($requirement) => $this->normalizePbiRequirement($requirement), $requirements);
 
-        $referencesPath = public_path('data/pbi_022024_references.json');
-        $references = file_exists($referencesPath)
-            ? (json_decode(file_get_contents($referencesPath), true) ?? [])
-            : [];
-
+        $references = $this->loadJson(public_path('data/pbi_022024_references.json'));
         $references = array_map(function ($reference) {
             $reference['deliverables'] = array_values($reference['deliverables'] ?? []);
             $reference['linked_requirements'] = array_values($reference['linked_requirements'] ?? []);
@@ -97,9 +84,80 @@ class FrameworkController extends Controller
         return view('frameworks.pbi', compact('requirements', 'references'));
     }
 
+    public function iso37001()
+    {
+        $controls = $this->loadJson(public_path('data/iso37001.json'));
+
+        return view('frameworks.iso37001', compact('controls'));
+    }
+
+    public function cobit()
+    {
+        $cobitData = $this->loadJson(public_path('data/cobit_2019.json'));
+
+        return view('frameworks.cobit', compact('cobitData'));
+    }
+
+    public function owaspTop10()
+    {
+        $requirements = $this->loadJson(public_path('data/owasp_top10_reqs.json'));
+        $appendices = $this->loadJson(public_path('data/owasp_top10_apps.json'));
+
+        return view('frameworks.owasp-top10', compact('requirements', 'appendices'));
+    }
+
+    public function owaspAsvs()
+    {
+        $requirements = $this->loadJson(public_path('data/owasp_asvs_reqs.json'));
+        $appendices = $this->loadJson(public_path('data/owasp_asvs_apps.json'));
+
+        return view('frameworks.owasp-asvs', compact('requirements', 'appendices'));
+    }
+
+    public function pojk()
+    {
+        $requirements = $this->loadJson(public_path('data/pojk_11_2022_requirements.json'));
+        $references = $this->loadJson(public_path('data/pojk_11_2022_references.json'));
+
+        return view('frameworks.pojk', compact('requirements', 'references'));
+    }
+
+    public function padk()
+    {
+        $requirements = $this->loadJson(public_path('data/padk_1_2026_requirements.json'));
+        $appendices = $this->loadJson(public_path('data/padk_1_2026_appendices.json'));
+
+        return view('frameworks.padk', compact('requirements', 'appendices'));
+    }
+
+    public function padg()
+    {
+        $requirements = $this->loadJson(public_path('data/padg_requirements.json'));
+        $appendices = $this->loadJson(public_path('data/padg_appendices.json'));
+        $edition = 'PADG 32/2025';
+
+        return view('frameworks.padg', compact('requirements', 'appendices', 'edition'));
+    }
+
+    public function padg24()
+    {
+        $requirements = $this->loadJson(public_path('data/padg24_2024_requirements.json'));
+        $appendices = $this->loadJson(public_path('data/padg24_2024_references.json'));
+        $edition = 'PADG 24/2024';
+
+        return view('frameworks.padg', compact('requirements', 'appendices', 'edition'));
+    }
+
+    public function pdp()
+    {
+        $requirements = $this->loadJson(public_path('data/uu_pdp_requirements.json'));
+
+        return view('frameworks.pdp', compact('requirements'));
+    }
+
     public function placeholder()
     {
-        return abort(404, 'Framework framework belum tersedia di versi ini.');
+        return abort(404, 'Framework belum tersedia di versi ini.');
     }
 
     protected function normalizeIsoControl(array $control): array

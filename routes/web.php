@@ -37,6 +37,7 @@ use App\Http\Controllers\OidcSingleSignOnController;
 use App\Http\Controllers\OperationalResilienceController;
 use App\Http\Controllers\DataRetentionController;
 use App\Http\Controllers\OperationalResilienceEvidenceExportController;
+use App\Http\Controllers\AnalysisController;
 
 Auth::routes([
     'register' => config('auth.allow_public_registration', false),
@@ -240,15 +241,34 @@ Route::middleware(['auth', 'password.changed', 'approved.user', 'mfa.completed']
     Route::get('/trend-analysis', [TrendAnalysisController::class, 'index'])->name('trends.analysis');
     Route::get('/api/trend-analysis/data', [TrendAnalysisController::class, 'data'])->name('trends.data');
     Route::get('/threat-intelligence', [ThreatIntelligenceController::class, 'index'])->name('threat-intelligence.index');
+    Route::get('/api/threat-intelligence/breaches', [ThreatIntelligenceController::class, 'searchBreaches'])->name('threat-intelligence.breaches.search');
+    Route::post('/api/threat-intelligence/cve-ai', [ThreatIntelligenceController::class, 'cveAi'])->name('threat-intelligence.cve-ai');
     
-    // Framework Explorer
+    // Framework Explorer - Standar Internasional
     Route::get('/frameworks/iso27001', [FrameworkController::class, 'iso27001'])->name('frameworks.iso27001');
+    Route::get('/frameworks/iso37001', [FrameworkController::class, 'iso37001'])->name('frameworks.iso37001');
     Route::get('/frameworks/nist-csf-2', [FrameworkController::class, 'nist'])->name('frameworks.nist');
+    Route::get('/frameworks/cobit-2019', [FrameworkController::class, 'cobit'])->name('frameworks.cobit');
+    Route::get('/frameworks/owasp-top-10', [FrameworkController::class, 'owaspTop10'])->name('frameworks.owasp-top10');
+    Route::get('/frameworks/owasp-asvs', [FrameworkController::class, 'owaspAsvs'])->name('frameworks.owasp-asvs');
+
+    // Framework Explorer - Regulasi Nasional
     Route::get('/frameworks/seojk', [FrameworkController::class, 'seojk'])->name('frameworks.seojk');
+    Route::get('/frameworks/pojk-11-2022', [FrameworkController::class, 'pojk'])->name('frameworks.pojk');
+    Route::get('/frameworks/padk-1-2026', [FrameworkController::class, 'padk'])->name('frameworks.padk');
     Route::redirect('/frameworks/cis', '/frameworks/panduan-resiliensi-ojk');
     Route::get('/frameworks/panduan-resiliensi-ojk', [FrameworkController::class, 'cis'])->name('frameworks.cis');
     Route::redirect('/frameworks/pci-dss', '/frameworks/pbi-02-2024')->name('frameworks.pci-dss');
     Route::get('/frameworks/pbi-02-2024', [FrameworkController::class, 'pbi'])->name('frameworks.pbi');
+    Route::get('/frameworks/padg-32-2025', [FrameworkController::class, 'padg'])->name('frameworks.padg');
+    Route::get('/frameworks/padg-24-2024', [FrameworkController::class, 'padg24'])->name('frameworks.padg24');
+    Route::get('/frameworks/uu-pdp-27-2022', [FrameworkController::class, 'pdp'])->name('frameworks.pdp');
+
+    // Analisis Kepatuhan & Simulasi
+    Route::get('/analysis/cross-mapping', [AnalysisController::class, 'crossMapping'])->name('analysis.cross-mapping');
+    Route::get('/analysis/comparison', [AnalysisController::class, 'comparison'])->name('analysis.comparison');
+    Route::get('/analysis/checklist', [AnalysisController::class, 'checklist'])->name('analysis.checklist');
+    Route::get('/analysis/simulator', [AnalysisController::class, 'simulator'])->name('analysis.simulator');
     Route::get('/incident-management', [IncidentManagementController::class, 'index'])->name('incidents.index');
     Route::get('/incident-management/create', [IncidentManagementController::class, 'create'])->name('incidents.create');
     Route::post('/incident-management', [IncidentManagementController::class, 'store'])->name('incidents.store');

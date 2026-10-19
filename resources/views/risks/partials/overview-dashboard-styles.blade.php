@@ -191,6 +191,16 @@
     .grc-portfolio-sub { font-size: .78rem; color: var(--grc-muted); line-height: 1.35; }
     .grc-portfolio-sub b { color: var(--grc-ink); font-weight: 600; }
     .grc-bar-row.is-other .name { color: var(--grc-muted); font-style: italic; }
+    .grc-portfolio-item { transition: all 0.15s ease-in-out; border-color: #e2e8f0 !important; }
+    .grc-portfolio-item:hover { background-color: #f8fafc !important; border-color: #cbd5e1 !important; transform: translateY(-1px); }
+    .grc-portfolio-scroll::-webkit-scrollbar { width: 5px; }
+    .grc-portfolio-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .grc-portfolio-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .grc-portfolio-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Control effectiveness cards */
+    .grc-eff-item { transition: all 0.2s ease-in-out; border-color: #e2e8f0 !important; }
+    .grc-eff-item:hover { border-color: #93c5fd !important; box-shadow: 0 4px 8px -2px rgba(0,0,0,0.05) !important; transform: translateY(-1px); }
 
     /* Ranked bars (top risks): residual over a faded inherent bar, appetite line */
     .grc-rank { display: grid; gap: .55rem; }

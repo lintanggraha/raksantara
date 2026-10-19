@@ -211,6 +211,7 @@ class DashboardMetricsService
             'totals' => collect($keys)->mapWithKeys(fn ($key) => [$key => $groups->sum('counts.' . $key)])->all(),
             'groups_total' => $groups->count(),
             'rows' => $shown,
+            'all_rows' => $groups->all(),
         ];
     }
 
